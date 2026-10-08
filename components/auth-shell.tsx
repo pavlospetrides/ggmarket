@@ -1,0 +1,2 @@
+import { Logo } from "./logo";
+export function AuthShell({ title, subtitle, children }: { title: string; subtitle: string; children: React.ReactNode }) { return <div className="container-page grid min-h-[calc(100vh-72px)] place-items-center py-10"><div className="w-full max-w-md"><div className="mb-8 text-center"><Logo /><h1 className="mt-8 text-3xl font-black tracking-tight">{title}</h1><p className="mt-2 text-[var(--muted)]">{subtitle}</p></div><div className="card p-6 sm:p-8">{children}</div></div></div>; }

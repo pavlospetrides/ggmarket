@@ -1,0 +1,3 @@
+"use client";
+import { AlertTriangle } from "lucide-react";
+export default function ErrorPage({ reset }: { error: Error & { digest?: string }; reset: () => void }) { return <div className="container-page grid min-h-[60vh] place-items-center py-12 text-center"><div className="card max-w-lg p-10"><AlertTriangle className="mx-auto size-10 text-[#ff8c98]" /><h1 className="mt-4 text-2xl font-black">We couldn&apos;t load this page</h1><p className="mt-3 text-[var(--muted)]">The marketplace service may be temporarily unavailable. No sample data has been substituted.</p><button type="button" onClick={reset} className="btn-primary mt-6">Try again</button></div></div>; }

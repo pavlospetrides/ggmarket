@@ -1,0 +1,2 @@
+import type { MetadataRoute } from "next";
+export default function manifest(): MetadataRoute.Manifest { return { name: "GGMarket — Gaming Marketplace", short_name: "GGMarket", description: "Buy, sell, trade, and find gaming gear.", start_url: "/", display: "standalone", background_color: "#080a0f", theme_color: "#7c5cff", orientation: "portrait-primary", icons: [{ src: "/icon.svg", sizes: "any", type: "image/svg+xml", purpose: "any" }] }; }

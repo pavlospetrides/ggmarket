@@ -1,0 +1,2 @@
+import Link from "next/link";
+export default function NotFound() { return <div className="container-page grid min-h-[60vh] place-items-center text-center"><div><p className="eyebrow">404</p><h1 className="mt-3 text-3xl font-bold">This listing is no longer available</h1><p className="mt-3 text-[var(--muted)]">It may have sold or been removed.</p><Link href="/marketplace" className="btn-primary mt-6">Browse marketplace</Link></div></div>; }
