@@ -205,21 +205,22 @@ export function SellWizard({ categories }: { categories: Category[] }) {
   }
   return (
     <div className="mx-auto max-w-3xl">
-      <div className="mb-7">
+      <div className="mb-7 rounded-2xl border border-white/[.055] bg-white/[.018] p-4 sm:p-5">
         <div className="flex items-center justify-between text-xs">
           <span className="font-bold text-[#b9aaff]">
             Step {step + 1} of {steps.length}
           </span>
           <span className="text-[var(--muted)]">{steps[step]}</span>
         </div>
-        <div className="mt-3 h-1 overflow-hidden rounded-full bg-[var(--surface-2)]">
+        <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-[var(--surface-2)]">
           <div
-            className="h-full bg-gradient-to-r from-[#744fff] to-[#9c85ff] transition-all"
+            className="h-full rounded-full bg-gradient-to-r from-[#7658ff] to-[#a28fff] shadow-[0_0_16px_rgba(132,104,255,.45)] transition-all duration-300"
             style={{ width: `${((step + 1) / steps.length) * 100}%` }}
           />
         </div>
+        <ol className="mt-4 hidden grid-cols-6 gap-2 sm:grid">{steps.map((label, index) => <li key={label} className={`truncate text-[10px] font-bold ${index <= step ? "text-[#b9aaff]" : "text-[var(--muted)]"}`}><span className={`mr-1.5 inline-grid size-5 place-items-center rounded-full ${index < step ? "bg-[var(--success)] text-[#07100b]" : index === step ? "bg-[var(--primary)] text-white" : "bg-[var(--surface-alt)]"}`}>{index < step ? <Check className="size-3" /> : index + 1}</span>{label}</li>)}</ol>
       </div>
-      <form onSubmit={form.handleSubmit(publish)} className="card p-5 sm:p-8">
+      <form onSubmit={form.handleSubmit(publish)} className="surface-panel p-5 sm:p-8">
         <div className="min-h-[390px]">
           {step === 0 && (
             <fieldset>
@@ -248,7 +249,7 @@ export function SellWizard({ categories }: { categories: Category[] }) {
                 {categories.map((item) => (
                   <label
                     key={item.id}
-                    className={`cursor-pointer rounded-xl border p-4 transition ${values.categoryId === item.id ? "border-[var(--brand)] bg-[#211a3a]" : "border-[var(--border)] bg-[#0d1017] hover:border-[#4c426f]"}`}
+                    className={`cursor-pointer rounded-[var(--radius-md)] border p-4 text-sm transition active:scale-[.98] ${values.categoryId === item.id ? "border-[var(--primary)] bg-[#211a3a] shadow-[0_0_0_3px_rgba(132,104,255,.1)]" : "border-[var(--border)] bg-[#0b0f17] hover:border-[var(--border-hover)] hover:bg-[var(--surface-alt)]"}`}
                   >
                     <input
                       type="radio"
@@ -306,7 +307,7 @@ export function SellWizard({ categories }: { categories: Category[] }) {
               <p className="mt-2 text-sm text-[var(--muted)]">
                 Add up to 8 clear photos. At least one is required.
               </p>
-              <label className="mt-6 grid min-h-48 cursor-pointer place-items-center rounded-2xl border-2 border-dashed border-[#3b3f4d] bg-[#0d1017] text-center hover:border-[#7160bd]">
+              <label className="mt-6 grid min-h-48 cursor-pointer place-items-center rounded-[var(--radius-lg)] border-2 border-dashed border-[#3b4356] bg-[#0a0e15] text-center transition hover:border-[#7965cb] hover:bg-[#0d111b]">
                 <input
                   type="file"
                   accept="image/jpeg,image/png,image/webp"
@@ -407,7 +408,7 @@ export function SellWizard({ categories }: { categories: Category[] }) {
                     </p>
                   )}
                 </div>
-                <label className="flex items-center justify-between rounded-xl border border-[var(--border)] p-4">
+                <label className="flex cursor-pointer items-center justify-between rounded-xl border border-[var(--border)] bg-[#0a0e15] p-4 transition hover:border-[var(--border-hover)]">
                   <span>Original box included</span>
                   <input
                     type="checkbox"
@@ -415,7 +416,7 @@ export function SellWizard({ categories }: { categories: Category[] }) {
                     {...form.register("originalBox")}
                   />
                 </label>
-                <label className="flex items-center justify-between rounded-xl border border-[var(--border)] p-4">
+                <label className="flex cursor-pointer items-center justify-between rounded-xl border border-[var(--border)] bg-[#0a0e15] p-4 transition hover:border-[var(--border-hover)]">
                   <span>Warranty remaining</span>
                   <input
                     type="checkbox"
@@ -467,7 +468,7 @@ export function SellWizard({ categories }: { categories: Category[] }) {
                     {...form.register("location")}
                   />
                 </div>
-                <label className="flex items-center justify-between rounded-xl border border-[var(--border)] p-4">
+                <label className="flex cursor-pointer items-center justify-between rounded-xl border border-[var(--border)] bg-[#0a0e15] p-4 transition hover:border-[var(--border-hover)]">
                   <span>
                     <strong className="block">Shipping available</strong>
                     <small className="text-[var(--muted)]">
@@ -480,7 +481,7 @@ export function SellWizard({ categories }: { categories: Category[] }) {
                     {...form.register("shipping")}
                   />
                 </label>
-                <label className="flex items-center justify-between rounded-xl border border-[var(--border)] p-4">
+                <label className="flex cursor-pointer items-center justify-between rounded-xl border border-[var(--border)] bg-[#0a0e15] p-4 transition hover:border-[var(--border-hover)]">
                   <span>
                     <strong className="block">Local meetup</strong>
                     <small className="text-[var(--muted)]">
@@ -528,7 +529,7 @@ export function SellWizard({ categories }: { categories: Category[] }) {
                     {category?.name}
                   </span>
                   <h3 className="mt-1 text-xl font-bold">{values.title}</h3>
-                  <p className="mt-2 text-2xl font-black">
+                  <p className="price mt-2 text-2xl">
                     {formatPrice(Number(values.price || 0))}
                   </p>
                   <p className="mt-3 line-clamp-3 text-sm text-[var(--muted)]">

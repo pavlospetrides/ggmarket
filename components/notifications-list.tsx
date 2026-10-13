@@ -40,7 +40,7 @@ export function NotificationsList({ initial }: { initial: Item[] }) {
   }
   return (
     <section>
-      <div className="mb-4 flex justify-end">
+      <div className="mb-4 flex items-center justify-between"><p className="text-sm text-[var(--muted)]">{items.filter((item) => !item.read_at).length} unread</p>
         <button type="button" disabled={!items.some((item) => !item.read_at)} onClick={readAll} className="btn-secondary disabled:cursor-not-allowed disabled:opacity-50">
           <CheckCheck className="size-4" /> Mark all read
         </button>
@@ -53,10 +53,11 @@ export function NotificationsList({ initial }: { initial: Item[] }) {
               key={item.id}
               href={item.href || "/notifications"}
               onClick={(event) => void openItem(event, item)}
-              className={`card block p-5 ${item.read_at ? "opacity-70" : "border-[#554589] bg-[#171329]"}`}
+              className={`card card-interactive relative block overflow-hidden p-5 ${item.read_at ? "opacity-65" : "border-[#51437f] bg-[#171329]"}`}
             >
+              {!item.read_at && <span className="absolute inset-y-0 left-0 w-0.5 bg-[var(--primary)]" />}
               <div className="flex gap-3">
-                <Bell className="mt-1 size-5 shrink-0 text-[#aa98ff]" />
+                <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-[#211a3a] text-[#aa98ff]"><Bell className="size-[18px]" /></span>
                 <div>
                   <h2 className="font-bold">{item.title}</h2>
                   {item.body && (
@@ -72,9 +73,7 @@ export function NotificationsList({ initial }: { initial: Item[] }) {
             </Link>
           ))
         ) : (
-          <div className="card p-10 text-center text-[var(--muted)]">
-            You have no notifications.
-          </div>
+          <div className="card empty-state"><div><span className="empty-state-icon"><Bell /></span><h2 className="mt-4 font-bold text-white">You&apos;re all caught up</h2><p className="mt-2 text-sm text-[var(--muted)]">Offers, messages, and saved-search matches will appear here.</p></div></div>
         )}
       </div>
     </section>

@@ -69,27 +69,27 @@ export function SettingsForm({
 
   return (
     <div className="grid gap-6 md:grid-cols-[200px_1fr]">
-      <nav className="card h-fit p-3">
+      <nav className="card h-fit p-2 md:sticky md:top-20">
         <a
-          className="block rounded-lg bg-[#211a3a] px-3 py-2 text-sm font-bold text-[#c8bcff]"
+          className="block rounded-xl border border-[#463875] bg-[#211a3a] px-3 py-2.5 text-sm font-bold text-[#c8bcff]"
           href="#profile"
         >
           Profile
         </a>
         <span
-          className="mt-1 block rounded-lg px-3 py-2 text-sm text-[var(--muted)]"
+          className="mt-1 block rounded-xl px-3 py-2.5 text-sm text-[var(--muted)]"
           title="Coming in a later phase"
         >
           Security
         </span>
         <span
-          className="mt-1 block rounded-lg px-3 py-2 text-sm text-[var(--muted)]"
+          className="mt-1 block rounded-xl px-3 py-2.5 text-sm text-[var(--muted)]"
           title="Coming in a later phase"
         >
           Notifications
         </span>
       </nav>
-      <form onSubmit={save} id="profile" className="card p-6 sm:p-8">
+      <form onSubmit={save} id="profile" className="surface-panel p-6 sm:p-8">
         <h2 className="text-xl font-bold">Profile information</h2>
         <p className="mt-1 text-sm text-[var(--muted)]">
           How other gamers see you on GGMarket.
@@ -173,7 +173,7 @@ export function SettingsForm({
             {saving ? "Saving…" : "Save changes"}
           </button>
           {status && (
-            <span className="text-sm text-[var(--success)]" role="status">
+            <span className="badge border-[#28563e] bg-[#123021] text-[var(--success)]" role="status">
               {status}
             </span>
           )}
@@ -182,7 +182,7 @@ export function SettingsForm({
         <button
           type="button"
           onClick={logout}
-          className="btn-secondary text-[#ff9ca6]"
+          className="btn-danger"
         >
           <LogOut className="size-4" /> Log out
         </button>

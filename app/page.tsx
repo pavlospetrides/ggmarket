@@ -1,5 +1,14 @@
 import Link from "next/link";
-import { ArrowRight, ShieldCheck, Sparkles, Zap } from "lucide-react";
+import {
+  ArrowRight,
+  BadgeCheck,
+  Gamepad2,
+  MonitorUp,
+  PackageCheck,
+  ShieldCheck,
+  Sparkles,
+  Zap,
+} from "lucide-react";
 import { CategoryGrid } from "@/components/category-grid";
 import { ListingGrid } from "@/components/listing-grid";
 import { Logo } from "@/components/logo";
@@ -9,14 +18,61 @@ import { getCategories, getFavoriteIds, getListings } from "@/lib/data";
 import { getRecentlyViewed } from "@/lib/phase2-data";
 
 export default async function HomePage() {
-  const [categories, recent, user] = await Promise.all([getCategories(), getListings({}, 4), getUser()]);
+  const [categories, recent, user] = await Promise.all([
+    getCategories(),
+    getListings({}, 4),
+    getUser(),
+  ]);
   const favoriteIds = user ? await getFavoriteIds(user.id) : new Set<string>();
   const viewed = user ? await getRecentlyViewed(user.id) : [];
+
   return <>
-    <section className="relative overflow-hidden border-b border-[var(--border)]"><div className="container-page py-5 md:hidden"><Logo /></div><div className="container-page grid min-h-[500px] items-center gap-10 py-14 md:grid-cols-[1.15fr_.85fr] md:py-20"><div><div className="mb-5 inline-flex items-center gap-2 rounded-full border border-[#473a77] bg-[#171329] px-3 py-1.5 text-xs font-bold text-[#c8bdff]"><Sparkles className="size-3.5" /> Built for players, not warehouses</div><h1 className="max-w-3xl text-5xl font-black leading-[.96] tracking-[-.06em] sm:text-6xl lg:text-7xl">The marketplace<br />for <span className="bg-gradient-to-r from-[#9d87ff] to-[#6bdbff] bg-clip-text text-transparent">gamers.</span></h1><p className="mt-6 max-w-xl text-lg leading-relaxed text-[var(--muted)]">Buy. Sell. Upgrade. Discover gaming gear from real people and specialist sellers near you.</p><div className="mt-8 max-w-2xl"><SearchBar large /></div><div className="mt-5 flex flex-wrap gap-4 text-xs text-[#9ca3b2]"><span className="inline-flex items-center gap-1.5"><ShieldCheck className="size-4 text-[var(--success)]" /> Account-based sellers</span><span className="inline-flex items-center gap-1.5"><Zap className="size-4 text-[#9d87ff]" /> Fresh listings</span></div></div><div className="relative hidden h-[360px] md:block" aria-hidden="true"><div className="absolute inset-6 rotate-3 rounded-[2rem] border border-[#43376a] bg-gradient-to-br from-[#201b35] to-[#10131b] shadow-2xl" /><div className="absolute left-[12%] top-[12%] h-[76%] w-[76%] -rotate-3 rounded-[2rem] border border-[#33405b] bg-[radial-gradient(circle_at_55%_42%,#51429a_0,#20233b_32%,#0d111b_70%)] shadow-2xl"><div className="absolute left-[15%] top-[20%] size-28 rounded-full border-[12px] border-[#111827] bg-[#252c42] shadow-[0_0_55px_rgba(124,92,255,.35)]" /><div className="absolute bottom-[19%] right-[15%] h-24 w-36 rounded-[2rem] border-[10px] border-[#111827] bg-[#2a3150]" /></div></div></div></section>
-    <section className="container-page py-14"><div className="mb-6 flex items-end justify-between"><div><p className="eyebrow">Find your next upgrade</p><h2 className="section-title mt-2">Browse categories</h2></div><Link href="/marketplace" className="hidden items-center gap-1 text-sm font-bold text-[#aa98ff] sm:flex">All categories <ArrowRight className="size-4" /></Link></div><CategoryGrid categories={categories} limit={8} /></section>
-    <section className="container-page py-8"><div className="mb-6 flex items-end justify-between"><div><p className="eyebrow">Fresh drops</p><h2 className="section-title mt-2">Recently listed</h2></div><Link href="/marketplace?sort=newest" className="inline-flex items-center gap-1 text-sm font-bold text-[#aa98ff]">View all <ArrowRight className="size-4" /></Link></div>{recent.length ? <ListingGrid listings={recent} favoriteIds={favoriteIds} /> : <div className="card p-10 text-center"><h3 className="font-bold">No active listings yet</h3><p className="mt-2 text-sm text-[var(--muted)]">Be the first to list gaming gear in your area.</p><Link href="/sell" className="btn-primary mt-5">Create a listing</Link></div>}</section>
+    <section className="relative overflow-hidden border-b border-white/[.06]">
+      <div className="container-page py-5 md:hidden"><Logo /></div>
+      <div className="container-page grid min-h-[500px] items-center gap-10 py-12 md:grid-cols-[1.08fr_.92fr] md:py-16 lg:min-h-[560px]">
+        <div className="relative z-10">
+          <div className="badge mb-5 border-[#4d407a] bg-[#171329] text-[#cfc5ff]"><Sparkles className="size-3.5" /> The player-to-player marketplace</div>
+          <h1 className="max-w-3xl text-[clamp(3.15rem,7vw,5.2rem)] font-[880] leading-[.94] tracking-[-.065em]">Great gear.<br /><span className="bg-gradient-to-r from-[#a994ff] via-[#8f8eff] to-[#62d5ff] bg-clip-text text-transparent">Better upgrades.</span></h1>
+          <p className="mt-6 max-w-xl text-base leading-7 text-[var(--text-muted)] sm:text-lg">Buy, sell, and trade gaming hardware with real players and specialist sellers—without the marketplace clutter.</p>
+          <div className="mt-7 max-w-2xl"><SearchBar large /></div>
+          <div className="mt-5 flex flex-wrap gap-x-5 gap-y-2 text-xs font-medium text-[var(--text-muted)]">
+            <span className="inline-flex items-center gap-1.5"><ShieldCheck className="size-4 text-[var(--success)]" /> Account-based sellers</span>
+            <span className="inline-flex items-center gap-1.5"><Zap className="size-4 text-[#aa99ff]" /> Fresh local listings</span>
+          </div>
+        </div>
+        <div className="relative hidden md:block" aria-hidden="true">
+          <div className="absolute -inset-8 rounded-full bg-[#7658ff]/10 blur-3xl" />
+          <div className="surface-panel relative rotate-[1.5deg] overflow-hidden p-5 lg:p-6">
+            <div className="mb-5 flex items-center justify-between"><span className="text-xs font-bold text-[var(--text-muted)]">LIVE MARKET</span><span className="badge border-[#24573f] bg-[#10271d] text-[#65dda1]"><span className="size-1.5 rounded-full bg-[#45d78e]" /> Updated now</span></div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="rounded-2xl border border-white/[.07] bg-[#0b0f17] p-4"><span className="grid size-11 place-items-center rounded-xl bg-[#211a3b] text-[#ab99ff]"><Gamepad2 /></span><p className="mt-5 text-xs text-[var(--text-muted)]">Consoles</p><p className="mt-1 text-lg font-extrabold">Ready to play</p></div>
+              <div className="rounded-2xl border border-white/[.07] bg-[#0b0f17] p-4"><span className="grid size-11 place-items-center rounded-xl bg-[#142736] text-[#6bd9ff]"><MonitorUp /></span><p className="mt-5 text-xs text-[var(--text-muted)]">PC hardware</p><p className="mt-1 text-lg font-extrabold">Built to upgrade</p></div>
+            </div>
+            <div className="mt-3 rounded-2xl border border-white/[.07] bg-gradient-to-r from-[#121725] to-[#17132a] p-4">
+              <div className="flex items-center gap-3"><span className="grid size-10 place-items-center rounded-full bg-[#1a3528] text-[var(--success)]"><BadgeCheck className="size-5" /></span><div><p className="text-sm font-bold">Trade with confidence</p><p className="mt-0.5 text-xs text-[var(--text-muted)]">Seller profiles, item checks, and direct messaging.</p></div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section className="container-page py-12 md:py-16">
+      <div className="mb-6 flex items-end justify-between gap-4"><div><p className="eyebrow">Find your next upgrade</p><h2 className="section-title mt-2">Browse categories</h2></div><Link href="/marketplace" className="btn-ghost hidden sm:inline-flex">All categories <ArrowRight className="size-4" /></Link></div>
+      <CategoryGrid categories={categories} limit={8} />
+    </section>
+
+    <section className="container-page py-7 md:py-10">
+      <div className="mb-6 flex items-end justify-between gap-4"><div><p className="eyebrow">Fresh drops</p><h2 className="section-title mt-2">Recently listed</h2></div><Link href="/marketplace?sort=newest" className="btn-ghost px-2">View all <ArrowRight className="size-4" /></Link></div>
+      {recent.length ? <ListingGrid listings={recent} favoriteIds={favoriteIds} /> : <div className="card empty-state"><div><span className="empty-state-icon"><PackageCheck /></span><h3 className="mt-4 text-lg font-bold">The market is warming up</h3><p className="mt-2 text-sm text-[var(--muted)]">Be the first to list gaming gear in your area.</p><Link href="/sell" className="btn-primary mt-5">Create a listing</Link></div></div>}
+    </section>
+
     {viewed.length > 0 && <section className="container-page py-8"><div className="mb-6"><p className="eyebrow">Pick up where you left off</p><h2 className="section-title mt-2">Recently viewed</h2></div><ListingGrid listings={viewed} favoriteIds={favoriteIds} /></section>}
-    <section className="container-page py-16"><div className="overflow-hidden rounded-[2rem] border border-[#493d79] bg-gradient-to-br from-[#201934] via-[#141523] to-[#11141b] p-8 sm:p-12"><div className="max-w-2xl"><p className="eyebrow">Clear your setup</p><h2 className="mt-3 text-3xl font-black tracking-tight sm:text-4xl">Your old gear is someone&apos;s next upgrade.</h2><p className="mt-4 text-[var(--muted)]">Create a listing in minutes. Add photos, set your price, and connect with interested gamers.</p><Link href="/sell" className="btn-primary mt-7">Sell your gaming gear <ArrowRight className="size-4" /></Link></div></div></section>
+
+    <section className="container-page py-14 md:py-20">
+      <div className="relative overflow-hidden rounded-[var(--radius-xl)] border border-[#463a72] bg-[linear-gradient(120deg,#211937,#121724_62%,#10151d)] p-7 shadow-[var(--shadow-md)] sm:p-10">
+        <div className="absolute -right-16 -top-24 size-72 rounded-full bg-[#7658ff]/15 blur-3xl" />
+        <div className="relative max-w-2xl"><p className="eyebrow">Make room for what&apos;s next</p><h2 className="mt-3 text-3xl font-[850] tracking-[-.04em] sm:text-4xl">Your old gear is someone&apos;s next upgrade.</h2><p className="mt-4 max-w-xl leading-7 text-[var(--text-muted)]">Create a polished listing in minutes, choose delivery options, and connect directly with interested gamers.</p><Link href="/sell" className="btn-primary mt-7">Sell your gaming gear <ArrowRight className="size-4" /></Link></div>
+      </div>
+    </section>
   </>;
 }

@@ -96,6 +96,18 @@ async function enrichRows(
   ]);
   if (reviewsError || verificationError)
     throw new DataAccessError("load seller details");
+  const imagePaths = [...new Set(rows.flatMap((row) => row.images.map((image) => image.storage_path)))];
+  const signedImages = new Map<string, string>();
+  const signedResults = await Promise.all(
+    imagePaths.map(async (path) => ({
+      path,
+      result: await supabase.storage.from("listing-images").createSignedUrl(path, 3600),
+    })),
+  );
+  for (const { path, result } of signedResults) {
+    if (result.error || !result.data?.signedUrl) throw new DataAccessError("load listing images");
+    signedImages.set(path, result.data.signedUrl);
+  }
   const ratings = new Map<string, number[]>();
   for (const review of reviews ?? [])
     ratings.set(review.seller_id, [
@@ -128,9 +140,7 @@ async function enrichRows(
       .map((image) => ({
         id: image.id,
         path: image.storage_path,
-        url: supabase.storage
-          .from("listing-images")
-          .getPublicUrl(image.storage_path).data.publicUrl,
+        url: signedImages.get(image.storage_path)!,
       }));
     const images = imageRecords.map((image) => image.url);
     return [
@@ -226,6 +236,95 @@ export async function getListings(
   const { data, error } = await query.limit(Math.min(limit, 60));
   if (error) throw new DataAccessError("load listings");
   return enrichRows(supabase, data as unknown as ListingRow[]);
+}
+
+export type BrowseData = {
+  fresh: Listing[];
+  popular: Listing[];
+  retro: Listing[];
+  trades: Listing[];
+  wanted: Listing[];
+  recentlyViewed: Listing[];
+  recommended: Listing[];
+  personalizedRecommendations: boolean;
+};
+
+export async function getBrowseData(userId?: string): Promise<BrowseData> {
+  const supabase = publicClient();
+  const { data, error } = await supabase
+    .from("listings")
+    .select(listingSelect)
+    .eq("status", "active")
+    .order("published_at", { ascending: false })
+    .order("sort_order", { referencedTable: "listing_images", ascending: true })
+    .limit(1, { referencedTable: "listing_images" })
+    .limit(48);
+  if (error) throw new DataAccessError("load discovery listings");
+
+  const pool = await enrichRows(supabase, data as unknown as ListingRow[]);
+  let recentlyViewed: Listing[] = [];
+  if (userId) {
+    const server = await createServerClient();
+    if (server) {
+      const recentResult = await server
+        .from("recently_viewed")
+        .select("listing_id")
+        .eq("user_id", userId)
+        .order("viewed_at", { ascending: false })
+        .limit(10);
+      if (recentResult.error)
+        throw new DataAccessError("load recently viewed listings");
+      const recentIds = recentResult.data.map((item) => item.listing_id);
+      if (recentIds.length) {
+        const recentListings = await server
+          .from("listings")
+          .select(listingSelect)
+          .in("id", recentIds)
+          .eq("status", "active")
+          .order("sort_order", { referencedTable: "listing_images", ascending: true })
+          .limit(1, { referencedTable: "listing_images" });
+        if (recentListings.error)
+          throw new DataAccessError("load recently viewed listings");
+        const enriched = await enrichRows(
+          server,
+          recentListings.data as unknown as ListingRow[],
+        );
+        const byId = new Map(enriched.map((listing) => [listing.id, listing]));
+        recentlyViewed = recentIds.flatMap((id) => {
+          const listing = byId.get(id);
+          return listing ? [listing] : [];
+        });
+      }
+    }
+  }
+
+  const popular = [...pool]
+    .toSorted((a, b) => b.views - a.views || +new Date(b.createdAt) - +new Date(a.createdAt))
+    .slice(0, 10);
+  const recentCategory = recentlyViewed[0]?.category.id;
+  const recentIds = new Set(recentlyViewed.map((listing) => listing.id));
+  const personalized = recentCategory
+    ? pool.filter(
+        (listing) => listing.category.id === recentCategory && !recentIds.has(listing.id),
+      )
+    : [];
+
+  return {
+    fresh: pool.slice(0, 12),
+    popular,
+    retro: pool
+      .filter((listing) => /retro|classic/i.test(`${listing.category.slug} ${listing.category.name}`))
+      .slice(0, 6),
+    trades: pool
+      .filter((listing) => ["trade", "sale_or_trade"].includes(String(listing.attributes.intent)))
+      .slice(0, 6),
+    wanted: pool
+      .filter((listing) => listing.attributes.intent === "wanted")
+      .slice(0, 6),
+    recentlyViewed,
+    recommended: (personalized.length ? personalized : popular).slice(0, 10),
+    personalizedRecommendations: personalized.length > 0,
+  };
 }
 
 export async function getListing(

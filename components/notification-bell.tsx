@@ -66,18 +66,18 @@ export function NotificationBell() {
       <button
         type="button"
         onClick={() => setOpen((value) => !value)}
-        className="relative grid size-10 place-items-center rounded-xl hover:bg-[var(--surface-2)]"
+        className="relative grid size-10 place-items-center rounded-xl text-[var(--text-secondary)] transition hover:bg-[var(--surface-alt)] hover:text-white active:scale-95"
         aria-label={`Notifications${unread ? `, ${unread} unread` : ""}`}
       >
         <Bell className="size-5" />
         {unread > 0 && (
-          <span className="absolute right-0 top-0 min-w-4 rounded-full bg-[#ff6375] px-1 text-[10px] font-bold">
+          <span className="absolute right-0 top-0 min-w-4 rounded-full border border-[#090c12] bg-[var(--danger)] px-1 text-[10px] font-bold shadow-md">
             {Math.min(unread, 9)}
           </span>
         )}
       </button>
       {open && (
-        <div className="absolute right-0 top-12 z-50 w-[min(360px,calc(100vw-1.25rem))] rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-3 shadow-2xl">
+        <div className="absolute right-0 top-12 z-50 w-[min(380px,calc(100vw-1.25rem))] rounded-[var(--radius-lg)] border border-[var(--border-hover)] bg-[#0e121af5] p-3 shadow-[var(--shadow-lg)] backdrop-blur-2xl [animation:pop-in_.16s_ease-out]">
           <div className="flex items-center justify-between px-2 py-1">
             <div>
               <strong>Notifications</strong>
@@ -103,7 +103,7 @@ export function NotificationBell() {
                   key={item.id}
                   href={item.href || "/notifications"}
                   onClick={() => setOpen(false)}
-                  className={`block rounded-xl p-3 text-sm ${item.read_at ? "text-[var(--muted)]" : "bg-[#1d1930]"}`}
+                  className={`block rounded-xl border border-transparent p-3 text-sm transition hover:border-[var(--border)] hover:bg-[var(--surface-alt)] ${item.read_at ? "text-[var(--muted)]" : "bg-[#1d1930]"}`}
                 >
                   <strong className="block text-white">{item.title}</strong>
                   {item.body && (
@@ -112,9 +112,7 @@ export function NotificationBell() {
                 </Link>
               ))
             ) : (
-              <p className="p-6 text-center text-sm text-[var(--muted)]">
-                No notifications yet.
-              </p>
+              <div className="p-7 text-center"><Bell className="mx-auto size-6 text-[#aa98ff]" /><p className="mt-3 text-sm font-bold">You&apos;re all caught up</p><p className="mt-1 text-xs text-[var(--muted)]">New activity will appear here.</p></div>
             )}
           </div>
           <div className="mt-2 flex gap-2 border-t border-[var(--border)] pt-3">

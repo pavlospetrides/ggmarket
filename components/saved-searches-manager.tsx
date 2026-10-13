@@ -1,5 +1,5 @@
 "use client";
-import { BellRing, Pencil, Plus, Trash2 } from "lucide-react";
+import { BellRing, Check, Pencil, Plus, Trash2, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 import type { Category } from "@/lib/types";
@@ -26,6 +26,8 @@ export function SavedSearchesManager({
   const router = useRouter();
   const [items, setItems] = useState(initial);
   const [error, setError] = useState("");
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [draftName, setDraftName] = useState("");
   async function create(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError("");
@@ -68,8 +70,9 @@ export function SavedSearchesManager({
       );
   }
   async function rename(item: SavedSearch) {
-    const name = window.prompt("Alert name", item.name)?.trim();
-    if (!name || name === item.name) return;
+    const name = draftName.trim();
+    if (!name) return;
+    if (name === item.name) { setEditingId(null); return; }
     const response = await fetch(`/api/saved-searches/${item.id}`, {
       method: "PATCH",
       headers: { "content-type": "application/json" },
@@ -82,6 +85,7 @@ export function SavedSearchesManager({
         ),
       );
     else setError("The alert could not be updated.");
+    setEditingId(null);
   }
   async function remove(id: string) {
     const response = await fetch(`/api/saved-searches/${id}`, {
@@ -92,7 +96,7 @@ export function SavedSearchesManager({
   }
   return (
     <div className="grid gap-6 lg:grid-cols-[.8fr_1.2fr]">
-      <form onSubmit={create} className="card h-fit space-y-4 p-5 sm:p-6">
+      <form onSubmit={create} className="surface-panel h-fit space-y-4 p-5 sm:sticky sm:top-20 sm:p-6">
         <h2 className="text-xl font-bold">Create alert</h2>
         <div>
           <label className="label" htmlFor="alert-name">
@@ -183,7 +187,7 @@ export function SavedSearchesManager({
             items.map((item) => (
               <article
                 key={item.id}
-                className="card flex flex-wrap items-center gap-4 p-5"
+                className="card card-interactive flex flex-wrap items-center gap-3 p-4 sm:gap-4 sm:p-5"
               >
                 <span
                   className={`grid size-11 place-items-center rounded-xl ${item.enabled ? "bg-[#213729] text-[var(--success)]" : "bg-[var(--surface-2)] text-[var(--muted)]"}`}
@@ -191,7 +195,7 @@ export function SavedSearchesManager({
                   <BellRing className="size-5" />
                 </span>
                 <div className="min-w-0 flex-1">
-                  <h2 className="font-bold">{item.name}</h2>
+                  {editingId === item.id ? <div className="flex gap-2"><label className="sr-only" htmlFor={`rename-${item.id}`}>Edit alert name</label><input id={`rename-${item.id}`} className="input min-h-10 py-2" value={draftName} maxLength={80} autoFocus onChange={(event) => setDraftName(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") { event.preventDefault(); void rename(item); } if (event.key === "Escape") setEditingId(null); }} /><button type="button" className="icon-btn size-10 min-h-10" onClick={() => void rename(item)} aria-label="Save alert name"><Check className="size-4" /></button><button type="button" className="icon-btn size-10 min-h-10" onClick={() => setEditingId(null)} aria-label="Cancel rename"><X className="size-4" /></button></div> : <h2 className="font-bold">{item.name}</h2>}
                   <p className="mt-1 truncate text-sm text-[var(--muted)]">
                     {[
                       item.search_term,
@@ -204,8 +208,8 @@ export function SavedSearchesManager({
                 </div>
                 <button
                   type="button"
-                  onClick={() => rename(item)}
-                  className="grid size-11 place-items-center rounded-xl text-[var(--muted)] hover:bg-[var(--surface-2)]"
+                  onClick={() => { setEditingId(item.id); setDraftName(item.name); }}
+                  className="icon-btn border-transparent bg-transparent"
                   aria-label={`Rename ${item.name}`}
                 >
                   <Pencil className="size-4" />
@@ -220,7 +224,7 @@ export function SavedSearchesManager({
                 <button
                   type="button"
                   onClick={() => remove(item.id)}
-                  className="grid size-11 place-items-center rounded-xl text-[var(--danger)] hover:bg-[var(--surface-2)]"
+                  className="icon-btn border-transparent bg-transparent text-[var(--danger)]"
                   aria-label={`Delete ${item.name}`}
                 >
                   <Trash2 className="size-4" />
@@ -228,9 +232,7 @@ export function SavedSearchesManager({
               </article>
             ))
           ) : (
-            <div className="card p-10 text-center text-[var(--muted)]">
-              No saved searches yet.
-            </div>
+            <div className="card empty-state"><div><span className="empty-state-icon"><BellRing /></span><h2 className="mt-4 font-bold text-white">No saved searches yet</h2><p className="mt-2 text-sm text-[var(--muted)]">Create an alert and we&apos;ll watch the marketplace for you.</p></div></div>
           )}
         </div>
       </section>

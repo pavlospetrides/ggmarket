@@ -7,7 +7,7 @@ if (!url || !anonKey || !serviceKey) throw new Error("Supabase test environment 
 const admin = createClient(url, serviceKey, { auth: { persistSession: false } });
 const stamp = Date.now(); const password = `Gg!${crypto.randomUUID()}aA1`;
 const emailA = `ggmarket.qa.a.${stamp}@example.invalid`; const emailB = `ggmarket.qa.b.${stamp}@example.invalid`;
-const results = []; let userA; let userB;
+const results = []; let userA; let userB; let rogueListingId; let ownedStoragePath;
 const record = (name, passed, detail = "") => results.push({ name, passed, detail });
 try {
   const createdA = await admin.auth.admin.createUser({ email: emailA, password, email_confirm: true, user_metadata: { username: `qa_a_${stamp}`, display_name: "QA User A" } }); if (createdA.error) throw createdA.error; userA = createdA.data.user;
@@ -19,7 +19,15 @@ try {
   const { data: ownProfile, error: ownProfileError } = await clientA.from("profiles").update({ display_name: "QA User A Updated", username: `qa_a_updated_${stamp}`.slice(0, 24) }).eq("id", userA.id).select("display_name").single(); record("owner can update profile", !ownProfileError && ownProfile?.display_name === "QA User A Updated");
   const { data: crossProfile, error: crossProfileError } = await clientB.from("profiles").update({ display_name: "Tampered" }).eq("id", userA.id).select("id"); record("other user cannot update profile", !crossProfileError && crossProfile?.length === 0);
   const { error: escalateError } = await clientB.from("profiles").update({ is_admin: true }).eq("id", userB.id); record("user cannot self-promote to admin", Boolean(escalateError));
-  await admin.from("profiles").update({ suspended_at: new Date().toISOString() }).eq("id", userB.id); const { error: clearSuspensionError } = await clientB.from("profiles").update({ suspended_at: null }).eq("id", userB.id); record("user cannot clear own suspension", Boolean(clearSuspensionError), clearSuspensionError ? "blocked" : "CURRENT_SCHEMA_VULNERABLE"); await admin.from("profiles").update({ suspended_at: null }).eq("id", userB.id);
+  const anonymous = createClient(url, anonKey, { auth: { persistSession: false } });
+  const publicPrivilegeProbe = await anonymous.from("profiles").select("is_admin,suspended_at").eq("id", userA.id);
+  record("anonymous profile reads exclude privilege and suspension fields", Boolean(publicPrivilegeProbe.error), publicPrivilegeProbe.error ? "blocked" : "CURRENT_SCHEMA_EXPOSES_INTERNAL_FIELDS");
+  await admin.from("profiles").update({ suspended_at: new Date().toISOString() }).eq("id", userB.id);
+  const { error: clearSuspensionError } = await clientB.from("profiles").update({ suspended_at: null }).eq("id", userB.id); record("user cannot clear own suspension", Boolean(clearSuspensionError), clearSuspensionError ? "blocked" : "CURRENT_SCHEMA_VULNERABLE");
+  const suspendedCreate = await clientB.from("listings").insert({ seller_id: userB.id, category_id: category.id, title: `Suspended QA Listing ${stamp}`, description: "This write must be denied while the test account is suspended.", price: 123, currency: "EUR", condition: "good", status: "draft", location: "QA City", shipping_available: true, meetup_available: false, attributes: {} }).select("id").maybeSingle();
+  rogueListingId = suspendedCreate.data?.id;
+  record("suspended user cannot create listings", Boolean(suspendedCreate.error), suspendedCreate.error ? "blocked" : "CURRENT_SCHEMA_VULNERABLE");
+  await admin.from("profiles").update({ suspended_at: null }).eq("id", userB.id);
   const { data: listing, error: listingError } = await clientA.from("listings").insert({ seller_id: userA.id, category_id: category.id, title: `GGMarket QA Listing ${stamp}`, description: "Temporary automated authorization test listing.", price: 123, currency: "EUR", condition: "good", status: "draft", location: "QA City", shipping_available: true, meetup_available: false, attributes: {} }).select("id").single(); if (listingError) throw listingError;
   const { data: crossListing, error: crossListingError } = await clientB.from("listings").update({ price: 1 }).eq("id", listing.id).select("id"); record("other user cannot edit listing", !crossListingError && crossListing?.length === 0);
   const { data: crossDelete, error: crossDeleteError } = await clientB.from("listings").delete().eq("id", listing.id).select("id"); record("other user cannot delete listing", !crossDeleteError && crossDelete?.length === 0);
@@ -28,8 +36,34 @@ try {
   const { error: reportError } = await clientB.from("reports").insert({ reporter_id: userB.id, listing_id: publicListing.id, reason: "spam", status: "actioned", moderated_by: userA.id }); record("user cannot set moderation fields on report insert", Boolean(reportError), reportError ? "blocked" : "CURRENT_SCHEMA_VULNERABLE");
   const { error: verificationError } = await clientB.from("seller_verifications").insert({ seller_id: userB.id, status: "verified" }); record("user cannot self-verify", Boolean(verificationError));
   const { error: crossStorageError } = await clientB.storage.from("listing-images").upload(`${userA.id}/${listing.id}/tamper.png`, new Blob(["not-an-image"], { type: "image/png" })); record("user cannot upload into another user's folder", Boolean(crossStorageError));
+  ownedStoragePath = `${userA.id}/${listing.id}/owner.png`;
+  const png = Uint8Array.from(Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=", "base64"));
+  const ownUpload = await clientA.storage.from("listing-images").upload(ownedStoragePath, png, { contentType: "image/png" });
+  record("owner can upload to owned listing namespace", !ownUpload.error);
+  const imageMetadata = await clientA.from("listing_images").insert({ listing_id: listing.id, storage_path: ownedStoragePath, sort_order: 0 });
+  record("owner can attach uploaded image metadata", !imageMetadata.error);
+  const crossOverwrite = await clientB.storage.from("listing-images").upload(ownedStoragePath, png, { contentType: "image/png", upsert: true });
+  record("other user cannot overwrite owned image", Boolean(crossOverwrite.error));
+  await clientB.storage.from("listing-images").remove([ownedStoragePath]);
+  const stillExists = await clientA.storage.from("listing-images").download(ownedStoragePath);
+  record("other user cannot delete owned image", !stillExists.error);
+  const oldPublicUrl = clientA.storage.from("listing-images").getPublicUrl(ownedStoragePath).data.publicUrl;
+  const publicResponse = await fetch(oldPublicUrl);
+  record("private draft image is not exposed by an old public URL", !publicResponse.ok);
+  const signedUrl = await clientA.storage.from("listing-images").createSignedUrl(ownedStoragePath, 60);
+  const signedResponse = signedUrl.data?.signedUrl ? await fetch(signedUrl.data.signedUrl) : null;
+  record("owner signed image URL works", !signedUrl.error && Boolean(signedResponse?.ok));
+  const expiringUrl = await clientA.storage.from("listing-images").createSignedUrl(ownedStoragePath, 1);
+  await new Promise((resolve) => setTimeout(resolve, 2500));
+  const expiredResponse = expiringUrl.data?.signedUrl ? await fetch(expiringUrl.data.signedUrl) : null;
+  record("expired signed image URL is rejected", !expiringUrl.error && Boolean(expiredResponse && !expiredResponse.ok));
+  const { data: activeImage } = await admin.from("listing_images").select("storage_path,listing:listings!inner(status)").eq("listing.status", "active").limit(1).maybeSingle();
+  const activeSigned = activeImage ? await clientB.storage.from("listing-images").createSignedUrl(activeImage.storage_path, 60) : null;
+  record("authenticated user can sign an active listing image", Boolean(activeSigned && !activeSigned.error));
 } finally {
-  const ids = [userA?.id, userB?.id].filter(Boolean); if (ids.length) { await admin.from("reports").delete().in("reporter_id", ids); await admin.from("reports").delete().in("moderated_by", ids); await admin.from("listings").delete().in("seller_id", ids); }
+  if (ownedStoragePath) await admin.from("listing_images").delete().eq("storage_path", ownedStoragePath);
+  if (ownedStoragePath) await admin.storage.from("listing-images").remove([ownedStoragePath]);
+  const ids = [userA?.id, userB?.id].filter(Boolean); if (ids.length) { await admin.from("reports").delete().in("reporter_id", ids); await admin.from("reports").delete().in("moderated_by", ids); if (rogueListingId) await admin.from("listings").delete().eq("id", rogueListingId); await admin.from("listings").delete().in("seller_id", ids); }
   if (userA) await admin.auth.admin.deleteUser(userA.id); if (userB) await admin.auth.admin.deleteUser(userB.id);
 }
 for (const result of results) console.log(`${result.passed ? "PASS" : "FAIL"} ${result.name}${result.detail ? ` (${result.detail})` : ""}`);
