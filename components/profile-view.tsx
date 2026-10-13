@@ -1,4 +1,4 @@
-import { BadgeCheck, CalendarDays, MapPin, Star } from "lucide-react";
+import { BadgeCheck, CalendarDays, MapPin, PackageOpen, Star } from "lucide-react";
 import { ListingGrid } from "./listing-grid";
 import type { Listing, Review, Seller } from "@/lib/types";
 
@@ -17,15 +17,15 @@ export function ProfileView({
 }) {
   return (
     <div className="container-page py-8 md:py-12">
-      <section className="card overflow-hidden">
-        <div className="h-28 bg-gradient-to-r from-[#251d49] via-[#17304b] to-[#13242a] sm:h-40" />
+      <section className="card overflow-hidden shadow-[var(--shadow-md)]">
+        <div className="relative h-28 overflow-hidden bg-[radial-gradient(circle_at_78%_20%,rgba(97,212,255,.18),transparent_30%),radial-gradient(circle_at_22%_0%,rgba(132,104,255,.35),transparent_36%),linear-gradient(120deg,#1c1737,#102335_58%,#0c1a20)] sm:h-40"><div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,.025)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.025)_1px,transparent_1px)] bg-[size:40px_40px]" /></div>
         <div className="px-5 pb-6 sm:px-8">
           <div className="-mt-12 flex flex-wrap items-end gap-4">
-            <div className="grid size-24 place-items-center rounded-full border-4 border-[var(--surface)] bg-gradient-to-br from-[#7a5cf0] to-[#2e8ca7] text-3xl font-black">
+            <div className="grid size-24 place-items-center rounded-full border-4 border-[#0f141d] bg-gradient-to-br from-[#866aff] to-[#287d98] text-3xl font-black shadow-xl">
               {seller.displayName[0]}
             </div>
             <div className="mb-1 min-w-0 flex-1">
-              <h1 className="flex items-center gap-2 text-2xl font-black">
+              <h1 className="flex items-center gap-2 text-2xl font-[850] tracking-tight">
                 {seller.displayName}
                 {seller.verified && (
                   <BadgeCheck
@@ -68,33 +68,33 @@ export function ProfileView({
             </span>
           </div>
           {seller.verified && (
-            <div className="mt-5 inline-flex items-center gap-2 rounded-full bg-[#133424] px-3 py-1.5 text-xs font-bold text-[#69e7a4]">
+            <div className="badge mt-5 border-[#28563e] bg-[#123021] text-[#75e5aa]">
               <BadgeCheck className="size-4" /> Verified Seller
             </div>
           )}
         </div>
       </section>
       <section className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <div className="card p-4">
-          <strong className="text-2xl">{stats.activeListings}</strong>
+        <div className="card p-4 sm:p-5">
+          <strong className="price text-2xl">{stats.activeListings}</strong>
           <span className="mt-1 block text-xs text-[var(--muted)]">
             Active listings
           </span>
         </div>
-        <div className="card p-4">
-          <strong className="text-2xl">{stats.soldListings ?? "—"}</strong>
+        <div className="card p-4 sm:p-5">
+          <strong className="price text-2xl">{stats.soldListings ?? "—"}</strong>
           <span className="mt-1 block text-xs text-[var(--muted)]">
             Marked sold
           </span>
         </div>
-        <div className="card p-4">
-          <strong className="text-2xl">{seller.reviewCount}</strong>
+        <div className="card p-4 sm:p-5">
+          <strong className="price text-2xl">{seller.reviewCount}</strong>
           <span className="mt-1 block text-xs text-[var(--muted)]">
             Reviews
           </span>
         </div>
-        <div className="card p-4">
-          <strong className="text-2xl">{stats.totalViews}</strong>
+        <div className="card p-4 sm:p-5">
+          <strong className="price text-2xl">{stats.totalViews}</strong>
           <span className="mt-1 block text-xs text-[var(--muted)]">
             Listing views
           </span>
@@ -110,9 +110,7 @@ export function ProfileView({
         {items.length ? (
           <ListingGrid listings={items} />
         ) : (
-          <div className="card p-10 text-center text-[var(--muted)]">
-            No active listings.
-          </div>
+          <div className="card empty-state"><div><span className="empty-state-icon"><PackageOpen /></span><h3 className="mt-4 font-bold">No active listings</h3><p className="mt-2 text-sm text-[var(--muted)]">New items from this seller will appear here.</p></div></div>
         )}
       </div>
       <section className="mt-14">
@@ -120,7 +118,7 @@ export function ProfileView({
         <div className="mt-5 space-y-3">
           {reviews.length ? (
             reviews.map((review) => (
-              <article key={review.id} className="card p-6">
+              <article key={review.id} className="card p-5 sm:p-6">
                 <div className="flex items-center gap-1 text-[#f8bf4b]">
                   {Array.from({ length: review.rating }, (_, index) => (
                     <Star key={index} className="size-4 fill-current" />
@@ -136,9 +134,7 @@ export function ProfileView({
               </article>
             ))
           ) : (
-            <div className="card p-8 text-center text-sm text-[var(--muted)]">
-              No reviews yet.
-            </div>
+            <div className="card p-8 text-center text-sm text-[var(--muted)]">No reviews yet. Completed-transaction reviews will appear here.</div>
           )}
         </div>
       </section>

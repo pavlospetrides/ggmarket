@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { listingSchema } from "@/lib/validation";
+import { readJson } from "@/lib/security";
 
 type AttributeRule = { type?: "string" | "number" | "boolean" };
 function validAttributes(attributes: Record<string, string | number | boolean>, schema: unknown) {
@@ -11,7 +12,7 @@ function validAttributes(attributes: Record<string, string | number | boolean>, 
 
 export async function POST(request: Request) {
   const user = await getUser(); if (!user) return NextResponse.json({ error: "Your session has expired. Please log in again." }, { status: 401 });
-  const parsed = listingSchema.safeParse(await request.json()); if (!parsed.success) return NextResponse.json({ error: parsed.error.issues[0]?.message ?? "Invalid listing." }, { status: 400 });
+  const parsed = listingSchema.safeParse(await readJson(request)); if (!parsed.success) return NextResponse.json({ error: parsed.error.issues[0]?.message ?? "Invalid listing." }, { status: 400 });
   const supabase = await createClient();
   const { data: existing } = await supabase!.from("listings").select("id,status").eq("seller_id", user.id).contains("attributes", { _request_id: parsed.data.requestId }).maybeSingle();
   if (existing) return NextResponse.json(existing);

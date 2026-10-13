@@ -57,8 +57,8 @@ test("mobile controls mutate and persist through real taps", async ({ page }) =>
   await expect(page).toHaveURL(/\/profile/);
 
   const nav = page.getByRole("navigation", { name: "Mobile navigation" });
-  await nav.getByRole("link", { name: "Search" }).click();
-  await expect(page).toHaveURL(/\/search/);
+  await nav.getByRole("link", { name: "Browse" }).click();
+  await expect(page).toHaveURL(/\/browse/);
   await nav.getByRole("link", { name: "Home" }).click();
   await expect(page).toHaveURL("/");
   await nav.getByRole("link", { name: "Messages" }).click();
@@ -163,8 +163,9 @@ test("mobile controls mutate and persist through real taps", async ({ page }) =>
   await expect(page.getByRole("button", { name: "Enable" })).toBeVisible();
   await page.reload();
   await expect(page.getByRole("button", { name: "Enable" })).toBeVisible();
-  page.once("dialog", (dialog) => dialog.accept(`${alertName} renamed`));
   await page.getByRole("button", { name: `Rename ${alertName}` }).click();
+  await page.getByRole("textbox", { name: "Edit alert name" }).fill(`${alertName} renamed`);
+  await page.getByRole("button", { name: "Save alert name" }).click();
   await expect(
     page.getByRole("heading", { name: `${alertName} renamed` }),
   ).toBeVisible();

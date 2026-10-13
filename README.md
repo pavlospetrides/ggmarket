@@ -28,6 +28,9 @@ GGMarket is a production-oriented gaming marketplace built with Next.js App Rout
    - `supabase/migrations/202610010001_core_schema.sql`
    - `supabase/migrations/202610020001_phase1_stabilization.sql`
    - `supabase/migrations/202610030001_phase2_marketplace.sql`
+   - `supabase/migrations/202610030002_fix_saved_search_publish.sql`
+   - `supabase/migrations/202610030003_fix_saved_search_similarity.sql`
+   - `supabase/migrations/202610030004_fix_conversation_read_receipts.sql`
 
 4. Run `supabase/seed.sql` for categories, brands, and the initial product catalog.
 

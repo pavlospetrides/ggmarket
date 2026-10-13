@@ -21,7 +21,7 @@ test("public marketplace layouts fit mobile and desktop viewports", async ({ pag
   const { data: profile, error: profileError } = await admin.from("profiles").select("username").eq("id", listing.seller_id).single();
   if (profileError || !profile) throw new Error("The active listing seller profile is missing");
 
-  const routes = ["/", "/marketplace", "/search?q=gaming", `/listing/${listing.id}`, `/profile/${profile.username}`];
+  const routes = ["/", "/marketplace", "/browse", "/search?q=gaming", `/listing/${listing.id}`, `/profile/${profile.username}`];
 
   for (const viewport of viewports) {
     await page.setViewportSize(viewport);
@@ -41,5 +41,22 @@ test("public marketplace layouts fit mobile and desktop viewports", async ({ pag
       await expect(mobileNav).toBeHidden();
       await expect(desktopNav).toBeVisible();
     }
+  }
+});
+
+test("mobile navigation and filter controls work at required phone sizes", async ({ page }) => {
+  for (const viewport of viewports.slice(0, 3)) {
+    await page.setViewportSize(viewport);
+    await page.goto("/");
+    const nav = page.getByRole("navigation", { name: "Mobile navigation" });
+    await nav.getByRole("link", { name: "Browse" }).click();
+    await expect(page).toHaveURL(/\/browse/);
+    await nav.getByRole("link", { name: "Home" }).click();
+    await expect(page).toHaveURL("/");
+    await page.goto("/marketplace");
+    await page.getByRole("button", { name: "Filters" }).click();
+    await expect(page.getByRole("dialog", { name: "Marketplace filters" })).toBeVisible();
+    await page.getByRole("button", { name: "Close filters" }).click();
+    await expect(page.getByRole("dialog", { name: "Marketplace filters" })).toBeHidden();
   }
 });

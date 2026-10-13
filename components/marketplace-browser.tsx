@@ -1,6 +1,6 @@
 "use client";
-import { SlidersHorizontal, X } from "lucide-react";
-import { useState } from "react";
+import { SearchX, SlidersHorizontal, X } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
 import { CategoryGrid } from "./category-grid";
 import { ListingGrid } from "./listing-grid";
 import { SearchBar } from "./search-bar";
@@ -22,6 +22,14 @@ export function MarketplaceBrowser({
 }) {
   const [filters, setFilters] = useState(false);
   const query = value(params, "q");
+  const activeFilterCount = useMemo(() => ["category", "min", "max", "condition", "location", "seller", "intent"].filter((key) => value(params, key)).length, [params]);
+  useEffect(() => {
+    if (!filters) return;
+    const close = (event: KeyboardEvent) => event.key === "Escape" && setFilters(false);
+    document.addEventListener("keydown", close);
+    document.body.style.overflow = "hidden";
+    return () => { document.removeEventListener("keydown", close); document.body.style.overflow = ""; };
+  }, [filters]);
   const sidebar = (prefix: "desktop" | "mobile") => (
     <form action="/marketplace" className="space-y-7">
       {query && <input type="hidden" name="q" value={query} />}
@@ -138,34 +146,38 @@ export function MarketplaceBrowser({
     </form>
   );
   return (
-    <div className="container-page py-8 md:py-12">
-      <div className="mb-8">
+    <div className="container-page py-7 md:py-12">
+      <div className="page-header">
         <p className="eyebrow">Discover</p>
-        <h1 className="mt-2 text-3xl font-black tracking-tight sm:text-4xl">
-          Marketplace
+        <h1 className="page-title">
+          {query ? `Results for “${query}”` : "Marketplace"}
         </h1>
-        <div className="mt-6 max-w-2xl">
+        <p className="page-description">Find consoles, components, games, and gear from gamers and trusted specialist sellers.</p>
+        <div className="mt-5 max-w-2xl">
           <SearchBar defaultValue={query} />
         </div>
       </div>
       {!query && !params.category && (
-        <div className="mb-10">
+        <div className="mb-9">
           <CategoryGrid categories={categories} limit={8} />
         </div>
       )}
-      <div className="grid gap-8 md:grid-cols-[230px_1fr]">
+      <div className="grid gap-7 md:grid-cols-[240px_minmax(0,1fr)] lg:gap-9">
         <aside className="hidden md:block">
-          <div className="sticky top-24 card p-5">
-            <h2 className="mb-6 flex items-center gap-2 font-bold">
+          <div className="sticky top-20 card p-5">
+            <h2 className="mb-6 flex items-center justify-between gap-2 font-bold">
+              <span className="inline-flex items-center gap-2">
               <SlidersHorizontal className="size-4" /> Filters
+              </span>
+              {activeFilterCount > 0 && <span className="badge border-[#4e417e] bg-[#211a3a] text-[#c8bcff]">{activeFilterCount}</span>}
             </h2>
             {sidebar("desktop")}
           </div>
         </aside>
         <section>
-          <div className="mb-6 flex items-center justify-between gap-3">
+          <div className="mb-5 flex items-center justify-between gap-3 rounded-2xl border border-white/[.055] bg-white/[.018] p-2 pl-3">
             <p className="text-sm text-[var(--muted)]">
-              <strong className="text-white">{items.length}</strong> listings
+              <strong className="text-white">{items.length}</strong> {items.length === 1 ? "listing" : "listings"}
             </p>
             <div className="flex gap-2">
               <button
@@ -173,7 +185,7 @@ export function MarketplaceBrowser({
                 onClick={() => setFilters(true)}
                 className="btn-secondary md:hidden"
               >
-                <SlidersHorizontal className="size-4" /> Filters
+                <SlidersHorizontal className="size-4" /> Filters {activeFilterCount > 0 && <span className="grid size-5 place-items-center rounded-full bg-[var(--primary)] text-[10px]">{activeFilterCount}</span>}
               </button>
               <form action="/marketplace">
                 {Object.entries(params)
@@ -209,9 +221,10 @@ export function MarketplaceBrowser({
           {items.length ? (
             <ListingGrid listings={items} favoriteIds={new Set(favoriteIds)} />
           ) : (
-            <div className="card grid min-h-72 place-items-center p-8 text-center">
+            <div className="card empty-state">
               <div>
-                <h2 className="text-xl font-bold">No matching listings</h2>
+                <span className="empty-state-icon"><SearchX /></span>
+                <h2 className="mt-4 text-xl font-bold">No matching listings</h2>
                 <p className="mt-2 text-[var(--muted)]">
                   Try widening your filters or be the first to list one.
                 </p>
@@ -225,14 +238,14 @@ export function MarketplaceBrowser({
       </div>
       {filters && (
         <div
-          className="fixed inset-0 z-[60] bg-black/70 md:hidden"
+          className="fixed inset-0 z-[60] bg-black/75 backdrop-blur-sm md:hidden"
           role="dialog"
           aria-modal="true"
           aria-label="Marketplace filters"
           onClick={() => setFilters(false)}
         >
           <div
-            className="absolute inset-x-0 bottom-0 max-h-[90vh] overflow-auto rounded-t-[2rem] border-t border-[var(--border)] bg-[var(--surface)] p-6 pb-24"
+            className="absolute inset-x-0 bottom-0 max-h-[92dvh] overflow-auto rounded-t-[1.75rem] border-t border-[var(--border-hover)] bg-[#0e121a] p-5 pb-[calc(6rem+env(safe-area-inset-bottom))] shadow-[0_-24px_70px_rgba(0,0,0,.5)] [animation:sheet-up_.22s_ease-out]"
             onClick={(event) => event.stopPropagation()}
           >
             <div className="mb-6 flex items-center justify-between">
@@ -240,7 +253,7 @@ export function MarketplaceBrowser({
               <button
                 type="button"
                 onClick={() => setFilters(false)}
-                className="grid size-10 place-items-center rounded-full bg-[var(--surface-2)]"
+                className="icon-btn"
                 aria-label="Close filters"
               >
                 <X />

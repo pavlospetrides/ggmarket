@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
+import { readJson } from "@/lib/security";
 
 export async function GET() {
   const user = await getUser(); if (!user) return NextResponse.json({ items: [], unread: 0 }); const supabase = await createClient();
@@ -10,7 +11,9 @@ export async function GET() {
 
 export async function PATCH(request: Request) {
   const user = await getUser(); if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  const body = await request.json() as { id?: unknown; all?: unknown }; const supabase = await createClient();
+  const body = await readJson(request) as { id?: unknown; all?: unknown } | null;
+  if (!body) return NextResponse.json({ error: "Invalid notification request." }, { status: 400 });
+  const supabase = await createClient();
   let query = supabase!.from("notifications").update({ read_at: new Date().toISOString() }).eq("user_id", user.id).is("read_at", null);
   if (body.all !== true) { if (typeof body.id !== "string") return NextResponse.json({ error: "Invalid notification." }, { status: 400 }); query = query.eq("id", body.id); }
   const { error } = await query; if (error) return NextResponse.json({ error: "Notification could not be updated." }, { status: 400 }); return NextResponse.json({ ok: true });

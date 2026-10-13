@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { favoriteSchema, listingSchema, listingUpdateSchema, profileSchema, reportSchema } from "../lib/validation";
-import { isAllowedImageFile, safeRedirectPath } from "../lib/security";
+import { isAllowedImageFile, readJson, safeRedirectPath } from "../lib/security";
 
 const validListing = { title: "Test graphics card", description: "A detailed and honest description of the test item.", price: 400, categoryId: "00000000-0000-4000-8000-000000000001", productName: "Test GPU", condition: "good", location: "Test City", shipping: true, meetup: false, attributes: { warranty: false }, requestId: "00000000-0000-4000-8000-000000000002" };
 describe("Phase 1 server validation", () => {
@@ -11,4 +11,9 @@ describe("Phase 1 server validation", () => {
 describe("Security helpers", () => {
   it("only permits local redirect paths", () => { expect(safeRedirectPath("/settings")).toBe("/settings"); expect(safeRedirectPath("//evil.example")).toBe("/profile"); expect(safeRedirectPath("https://evil.example")).toBe("/profile"); expect(safeRedirectPath("/\\evil.example")).toBe("/profile"); });
   it("enforces image type and size", () => { expect(isAllowedImageFile({ type: "image/webp", size: 1024 })).toBe(true); expect(isAllowedImageFile({ type: "image/svg+xml", size: 1024 })).toBe(false); expect(isAllowedImageFile({ type: "image/jpeg", size: 11_000_000 })).toBe(false); expect(isAllowedImageFile({ type: "image/jpeg", size: 0 })).toBe(false); });
+  it("rejects malformed and non-JSON request bodies", async () => {
+    expect(await readJson(new Request("https://ggmarket.test", { method: "POST", headers: { "content-type": "application/json" }, body: "{" }))).toBeNull();
+    expect(await readJson(new Request("https://ggmarket.test", { method: "POST", headers: { "content-type": "text/plain" }, body: "{}" }))).toBeNull();
+    expect(await readJson(new Request("https://ggmarket.test", { method: "POST", headers: { "content-type": "application/json" }, body: '{"ok":true}' }))).toEqual({ ok: true });
+  });
 });

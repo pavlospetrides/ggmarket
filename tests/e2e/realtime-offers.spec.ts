@@ -12,6 +12,8 @@ const emailB = `ggmarket.chat.b.${stamp}@example.invalid`;
 let userA: User;
 let userB: User;
 let listingId = "";
+let ownedListingId = "";
+let buyerListingId = "";
 let conversationId = "";
 let messageSellerConversationId = "";
 
@@ -28,6 +30,13 @@ async function typeMessage(page: Page, value: string) {
   await expect(composer).toBeVisible({ timeout: 15_000 });
   await composer.click({ timeout: 15_000 });
   await composer.fill(value, { timeout: 15_000 });
+}
+
+async function openOfferForm(page: Page) {
+  const amount = page.locator('input[name="amount"]');
+  if (!(await amount.isVisible()))
+    await page.getByText("Make an offer", { exact: true }).click();
+  await expect(amount).toBeVisible();
 }
 
 test.beforeAll(async () => {
@@ -56,14 +65,15 @@ test.beforeAll(async () => {
   if (createdB.error || !createdB.data.user) throw createdB.error;
   userB = createdB.data.user;
 
-  const listing = await admin
-    .from("listings")
-    .select("id")
-    .eq("status", "active")
-    .limit(1)
-    .single();
+  const category = await admin.from("categories").select("id").eq("active", true).limit(1).single();
+  if (category.error) throw category.error;
+  const listing = await admin.from("listings").insert({ seller_id: userA.id, category_id: category.data.id, title: `Realtime seller listing ${stamp}`, description: "Controlled active listing for the realtime offer acceptance test.", price: 500, currency: "EUR", condition: "good", status: "active", location: "QA City", shipping_available: true, meetup_available: false, attributes: {} }).select("id").single();
   if (listing.error) throw listing.error;
   listingId = listing.data.id;
+  ownedListingId = listing.data.id;
+  const buyerListing = await admin.from("listings").insert({ seller_id: userB.id, category_id: category.data.id, title: `Realtime buyer trade item ${stamp}`, description: "Controlled active listing offered in the browser trade acceptance test.", price: 300, currency: "EUR", condition: "good", status: "active", location: "QA City", shipping_available: true, meetup_available: false, attributes: {} }).select("id").single();
+  if (buyerListing.error) throw buyerListing.error;
+  buyerListingId = buyerListing.data.id;
   const conversation = await admin
     .from("conversations")
     .insert({ listing_id: listingId, buyer_id: userB.id, seller_id: userA.id })
@@ -86,6 +96,14 @@ test.afterAll(async () => {
       .eq("id", messageSellerConversationId);
   if (conversationId)
     await admin.from("conversations").delete().eq("id", conversationId);
+  if (ownedListingId) {
+    await admin.from("notifications").delete().eq("entity_id", ownedListingId);
+    await admin.from("listings").delete().eq("id", ownedListingId);
+  }
+  if (buyerListingId) {
+    await admin.from("notifications").delete().eq("entity_id", buyerListingId);
+    await admin.from("listings").delete().eq("id", buyerListingId);
+  }
   if (userA) await admin.auth.admin.deleteUser(userA.id);
   if (userB) await admin.auth.admin.deleteUser(userB.id);
 });
@@ -104,6 +122,12 @@ test("two users exchange realtime messages and offers", async ({ browser }) => {
   });
   const pageA = await contextA.newPage();
   const pageB = await contextB.newPage();
+  const hydrationErrors: string[] = [];
+  for (const page of [pageA, pageB])
+    page.on("console", (message) => {
+      if (message.type() === "error" && /hydration|server rendered html|did not match/i.test(message.text()))
+        hydrationErrors.push(message.text());
+    });
   try {
     await Promise.all([login(pageA, emailA), login(pageB, emailB)]);
 
@@ -189,21 +213,17 @@ test("two users exchange realtime messages and offers", async ({ browser }) => {
     await pageA.reload();
     await pageB.reload();
     await expect(pageA.getByText(realtimeBody)).toBeVisible();
-    await expect(pageB.getByText(replyBody)).toBeVisible();
+    await expect(pageB.locator("p").filter({ hasText: replyBody })).toBeVisible();
+    await expect(pageA.getByText("Online now")).toBeVisible({ timeout: 15_000 });
+    await expect(pageB.getByText("Online now")).toBeVisible({ timeout: 15_000 });
 
-    await pageB.getByText("Make an offer", { exact: true }).click();
+    await openOfferForm(pageB);
     await pageB.locator('input[name="amount"]').fill("100");
     await pageB.getByRole("button", { name: "Send offer" }).click();
-    await expect(pageA.getByRole("button", { name: "Accept" })).toBeVisible({
-      timeout: 15_000,
-    });
-    const offer100 = await admin
-      .from("offers")
-      .select("id,status,amount")
-      .eq("conversation_id", conversationId)
-      .eq("amount", 100)
-      .single();
+    await expect.poll(async () => (await admin.from("offers").select("id").eq("conversation_id", conversationId).eq("amount", 100).maybeSingle()).data?.id).toBeTruthy();
+    const offer100 = await admin.from("offers").select("id,status,amount").eq("conversation_id", conversationId).eq("amount", 100).single();
     expect(offer100.data?.status).toBe("pending");
+    await expect(pageA.getByRole("button", { name: "Accept" })).toBeVisible({ timeout: 15_000 });
     await pageA.getByRole("button", { name: "Accept" }).click();
     await expect
       .poll(async () =>
@@ -217,12 +237,11 @@ test("two users exchange realtime messages and offers", async ({ browser }) => {
       )
       .toBe("accepted");
 
-    await pageB.getByText("Make an offer", { exact: true }).click();
+    await openOfferForm(pageB);
     await pageB.locator('input[name="amount"]').fill("110");
     await pageB.getByRole("button", { name: "Send offer" }).click();
-    await expect(pageA.getByRole("button", { name: "Decline" })).toBeVisible({
-      timeout: 15_000,
-    });
+    await expect.poll(async () => (await admin.from("offers").select("id").eq("conversation_id", conversationId).eq("amount", 110).maybeSingle()).data?.id).toBeTruthy();
+    await expect(pageA.getByRole("button", { name: "Decline" })).toBeVisible({ timeout: 15_000 });
     await pageA.getByRole("button", { name: "Decline" }).click();
     await expect
       .poll(async () =>
@@ -237,7 +256,7 @@ test("two users exchange realtime messages and offers", async ({ browser }) => {
       )
       .toBe("declined");
 
-    await pageB.getByText("Make an offer", { exact: true }).click();
+    await openOfferForm(pageB);
     await pageB.locator('input[name="amount"]').fill("120");
     await pageB.getByRole("button", { name: "Send offer" }).click();
     await pageB.getByRole("button", { name: "Withdraw" }).click();
@@ -254,11 +273,14 @@ test("two users exchange realtime messages and offers", async ({ browser }) => {
       )
       .toBe("withdrawn");
 
-    await pageB.getByText("Make an offer", { exact: true }).click();
+    await openOfferForm(pageB);
     await pageB.locator('input[name="amount"]').fill("130");
     await pageB.getByRole("button", { name: "Send offer" }).click();
-    await expect(pageA.getByText("€130")).toBeVisible({ timeout: 15_000 });
-    await pageA.getByText("Make an offer", { exact: true }).click();
+    await expect.poll(async () => (await admin.from("offers").select("id").eq("conversation_id", conversationId).eq("amount", 130).maybeSingle()).data?.id).toBeTruthy();
+    await expect(
+      pageA.locator("article").filter({ hasText: "Structured offer" }).filter({ hasText: "130" }),
+    ).toBeVisible({ timeout: 15_000 });
+    await openOfferForm(pageA);
     const counterOption = pageA.locator(
       'select[name="parentOfferId"] option:not([value=""])',
     ).last();
@@ -267,13 +289,24 @@ test("two users exchange realtime messages and offers", async ({ browser }) => {
       .selectOption((await counterOption.getAttribute("value"))!);
     await pageA.locator('input[name="amount"]').fill("125");
     await pageA.getByRole("button", { name: "Send offer" }).click();
+    await expect
+      .poll(async () =>
+        (
+          await admin
+            .from("offers")
+            .select("status")
+            .eq("conversation_id", conversationId)
+            .eq("amount", 130)
+            .single()
+        ).data?.status,
+      )
+      .toBe("countered");
     const offer130 = await admin
       .from("offers")
       .select("id,status")
       .eq("conversation_id", conversationId)
       .eq("amount", 130)
       .single();
-    expect(offer130.data?.status).toBe("countered");
     const counter = await admin
       .from("offers")
       .select("amount,status,parent_offer_id,created_by")
@@ -286,6 +319,44 @@ test("two users exchange realtime messages and offers", async ({ browser }) => {
       created_by: userA.id,
     });
 
+    await pageB.getByText("Propose a trade", { exact: true }).click();
+    await pageB.getByLabel("Your listing").selectOption(buyerListingId);
+    await pageB.getByLabel("Cash adjustment").fill("250");
+    await pageB.getByLabel("Trade details").fill("Browser trade acceptance");
+    await pageB.getByRole("button", { name: "Propose" }).click();
+    await expect(pageB.getByRole("status")).toContainText("Trade proposal sent");
+    await expect
+      .poll(async () =>
+        (
+          await admin
+            .from("trade_proposals")
+            .select("status")
+            .eq("conversation_id", conversationId)
+            .eq("offered_listing_id", buyerListingId)
+            .single()
+        ).data?.status,
+      )
+      .toBe("pending");
+    await pageA.reload();
+    await expect(pageA.getByText(`Realtime buyer trade item ${stamp}`)).toBeVisible();
+    await pageA.getByRole("button", { name: "Accept" }).last().click();
+    await expect
+      .poll(async () =>
+        (
+          await admin
+            .from("trade_proposals")
+            .select("status")
+            .eq("conversation_id", conversationId)
+            .eq("offered_listing_id", buyerListingId)
+            .single()
+        ).data?.status,
+      )
+      .toBe("accepted");
+    await pageB.reload();
+    await expect(
+      pageB.locator("article").filter({ hasText: "Trade proposal" }).filter({ hasText: "accepted" }),
+    ).toBeVisible();
+
     const notificationCount = await admin
       .from("notifications")
       .select("id", { count: "exact", head: true })
@@ -297,6 +368,7 @@ test("two users exchange realtime messages and offers", async ({ browser }) => {
     await expect(pageA.getByRole("button", { name: "Mark all read" })).toBeDisabled();
     await pageB.goto("/notifications");
     await expect(pageB.getByText(/accepted|counter/i).first()).toBeVisible();
+    expect(hydrationErrors).toEqual([]);
   } finally {
     await contextA.close();
     await contextB.close();

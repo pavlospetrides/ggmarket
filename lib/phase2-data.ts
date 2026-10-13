@@ -23,16 +23,20 @@ export async function getConversations(userId: string): Promise<ConversationSumm
   const ids = (data ?? []).map((row) => row.id);
   const { data: messageRows, error: messageError } = ids.length ? await supabase.from("messages").select("id,conversation_id,sender_id,body,created_at").in("conversation_id", ids).order("created_at", { ascending: false }).limit(500) : { data: [], error: null };
   if (messageError) throw new DataAccessError("load message previews");
-  return (data ?? []).flatMap((row) => {
+  const summaries = await Promise.all((data ?? []).map(async (row) => {
     const listing = one(row.listing as Related<{ title: string; price: number; listing_images: { storage_path: string }[] }>);
     const other = one((row.buyer_id === userId ? row.seller : row.buyer) as Related<{ id: string; username: string; display_name: string }>);
-    if (!listing || !other) return [];
+    if (!listing || !other) return null;
     const messages = (messageRows ?? []).filter((message) => message.conversation_id === row.id);
     const membership = one(row.conversation_members as Related<{ last_read_at: string | null }>);
     const unread = messages.filter((message) => message.sender_id !== userId && (!membership?.last_read_at || message.created_at > membership.last_read_at)).length;
     const imagePath = listing.listing_images?.[0]?.storage_path;
-    return [{ id: row.id, listingId: row.listing_id, listingTitle: listing.title, listingPrice: Number(listing.price), listingImage: imagePath ? supabase.storage.from("listing-images").getPublicUrl(imagePath).data.publicUrl : undefined, otherUserId: other.id, otherName: other.display_name, otherUsername: other.username, lastMessage: messages[0]?.body, lastMessageAt: row.last_message_at, unread }];
-  });
+    const signed = imagePath
+      ? await supabase.storage.from("listing-images").createSignedUrl(imagePath, 3600)
+      : null;
+    return { id: row.id, listingId: row.listing_id, listingTitle: listing.title, listingPrice: Number(listing.price), listingImage: signed?.data?.signedUrl, otherUserId: other.id, otherName: other.display_name, otherUsername: other.username, lastMessage: messages[0]?.body, lastMessageAt: row.last_message_at, unread } satisfies ConversationSummary;
+  }));
+  return summaries.filter((item): item is NonNullable<typeof item> => item !== null);
 }
 
 export async function getConversation(userId: string, id: string) {

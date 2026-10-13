@@ -28,6 +28,13 @@ type TimelineItem =
   | ({ kind: "offer" } & ChatOffer)
   | ({ kind: "trade" } & ChatTrade);
 
+const chatTimeFormatter = new Intl.DateTimeFormat("en-GB", {
+  hour: "2-digit",
+  minute: "2-digit",
+  hour12: false,
+  timeZone: "UTC",
+});
+
 export function ChatInterface({
   currentUserId,
   conversation,
@@ -109,7 +116,38 @@ export function ChatInterface({
           table: "offers",
           filter: `conversation_id=eq.${conversation.id}`,
         },
-        () => location.reload(),
+        (payload) => {
+          const row = payload.new as {
+            id?: string;
+            created_by?: string;
+            buyer_id?: string;
+            seller_id?: string;
+            amount?: number | string;
+            currency?: string;
+            status?: string;
+            created_at?: string;
+          };
+          if (!row.id || !row.created_by || !row.buyer_id || !row.seller_id || row.amount == null || !row.currency || !row.status || !row.created_at) return;
+          const currency =
+            typeof row.currency === "string" && /^[A-Z]{3}$/.test(row.currency)
+              ? row.currency
+              : conversation.currency;
+          const offer: ChatOffer = {
+            id: row.id,
+            createdBy: row.created_by,
+            buyerId: row.buyer_id,
+            sellerId: row.seller_id,
+            amount: Number(row.amount),
+            currency,
+            status: row.status,
+            createdAt: row.created_at,
+          };
+          setOffers((current) =>
+            current.some((item) => item.id === offer.id)
+              ? current.map((item) => (item.id === offer.id ? offer : item))
+              : [...current, offer],
+          );
+        },
       )
       .on("broadcast", { event: "typing" }, ({ payload }) => {
         if (payload.userId === conversation.other.id) {
@@ -147,7 +185,7 @@ export function ChatInterface({
       void channel.untrack();
       void supabase.removeChannel(channel);
     };
-  }, [conversation.id, conversation.other.id, currentUserId]);
+  }, [conversation.currency, conversation.id, conversation.other.id, currentUserId]);
   useEffect(() => {
     endRef.current?.scrollIntoView({ block: "end" });
   }, [timeline.length]);
@@ -276,7 +314,7 @@ export function ChatInterface({
 
   return (
     <div className="container-page py-0 md:py-8">
-      <div className="card min-h-[calc(100vh-76px)] overflow-hidden md:grid md:min-h-[720px] md:grid-cols-[330px_1fr]">
+      <div className="card min-h-[calc(100dvh-76px-env(safe-area-inset-bottom))] overflow-hidden bg-[#0b0f17] md:grid md:min-h-[720px] md:grid-cols-[330px_1fr] md:shadow-[var(--shadow-md)]">
         <aside className="hidden border-r border-[var(--border)] md:block">
           <div className="border-b border-[var(--border)] p-4 text-lg font-bold">
             Messages
@@ -285,7 +323,7 @@ export function ChatInterface({
             <Link
               key={item.id}
               href={`/messages/${item.id}`}
-              className={`block border-b border-[var(--border)] p-4 ${item.id === conversation.id ? "bg-[#1d1930]" : "hover:bg-[var(--surface-2)]"}`}
+              className={`block border-b border-[var(--border)] p-4 transition ${item.id === conversation.id ? "bg-[#1d1930] shadow-[inset_3px_0_0_var(--primary)]" : "hover:bg-[var(--surface-alt)]"}`}
             >
               <strong className="block truncate">{item.otherName}</strong>
               <span className="mt-1 block truncate text-xs text-[#b6a8ff]">
@@ -339,7 +377,7 @@ export function ChatInterface({
               Messages can still be sent.
             </div>
           )}
-          <div className="flex-1 space-y-3 overflow-y-auto p-4 sm:p-6">
+          <div className="flex-1 space-y-3 overflow-y-auto bg-[radial-gradient(circle_at_50%_0%,rgba(132,104,255,.04),transparent_36%)] p-4 sm:p-6">
             {timeline.map((item) =>
               item.kind === "message" ? (
                 <div
@@ -347,14 +385,11 @@ export function ChatInterface({
                   className={`flex ${item.senderId === currentUserId ? "justify-end" : "justify-start"}`}
                 >
                   <div
-                    className={`max-w-[82%] rounded-2xl px-4 py-2.5 text-sm ${item.senderId === currentUserId ? "rounded-br-md bg-[var(--brand)]" : "rounded-bl-md bg-[var(--surface-2)]"}`}
+                    className={`max-w-[82%] rounded-2xl px-4 py-2.5 text-sm shadow-sm ${item.senderId === currentUserId ? "rounded-br-md bg-gradient-to-br from-[#8063f8] to-[#6748dc]" : "rounded-bl-md border border-white/[.055] bg-[var(--surface-alt)]"}`}
                   >
                     <p>{item.body}</p>
                     <time className="mt-1 block text-right text-[10px] opacity-65">
-                      {new Date(item.createdAt).toLocaleTimeString([], {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })}
+                      {chatTimeFormatter.format(new Date(item.createdAt))}
                     </time>
                   </div>
                 </div>
@@ -464,7 +499,7 @@ export function ChatInterface({
             )}
             <div ref={endRef} />
           </div>
-          <div className="border-t border-[var(--border)] p-3 sm:p-4">
+          <div className="border-t border-[var(--border)] bg-[#0e121af2] p-3 backdrop-blur-xl sm:p-4">
             {error && (
               <p role="alert" className="mb-2 text-xs text-[var(--danger)]">
                 {error}{" "}

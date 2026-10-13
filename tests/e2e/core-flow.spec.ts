@@ -111,8 +111,8 @@ test("real Supabase-backed Phase 1 flow", async ({ page }, testInfo) => {
     const mobileNav = page.getByRole("navigation", {
       name: "Mobile navigation",
     });
-    await mobileNav.getByRole("link", { name: "Search" }).click();
-    await expect(page).toHaveURL(/\/search/);
+    await mobileNav.getByRole("link", { name: "Browse" }).click();
+    await expect(page).toHaveURL(/\/browse/);
     await mobileNav.getByRole("link", { name: "Home" }).click();
     await expect(page).toHaveURL("/");
     await mobileNav.getByRole("link", { name: "Profile" }).click();
@@ -211,6 +211,7 @@ test("real Supabase-backed Phase 1 flow", async ({ page }, testInfo) => {
   await page.goto(`/search?q=${encodeURIComponent("E2E Gaming Console")}`);
   await expect(page.getByText(originalTitle)).toBeVisible();
   await page.getByRole("link", { name: `View ${originalTitle}` }).click();
+  await expect(page).toHaveURL(new RegExp(`/listing/${listingId}$`));
   await expect(
     page.getByRole("heading", { name: originalTitle }),
   ).toBeVisible();
@@ -224,7 +225,13 @@ test("real Supabase-backed Phase 1 flow", async ({ page }, testInfo) => {
   await login(page, emailB);
   await page.goto(`/listing/${listingId}`);
   const detailPanel = page.getByRole("complementary");
+  const favoriteRefresh = page.waitForResponse(
+    (response) =>
+      response.url().includes(`/listing/${listingId}`) &&
+      response.request().headers().rsc === "1",
+  );
   await detailPanel.getByRole("button", { name: "Add to favorites" }).click();
+  await favoriteRefresh;
   await expect(
     detailPanel.getByRole("button", { name: "Remove from favorites" }),
   ).toBeEnabled();
