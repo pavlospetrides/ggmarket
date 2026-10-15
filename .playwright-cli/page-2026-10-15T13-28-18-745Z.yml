@@ -1,0 +1,239 @@
+- generic:
+  - link [aria-hidden]:
+    - /url: "#main-content"
+    - text: Skip to content
+  - main [aria-hidden]:
+    - generic:
+      - navigation:
+        - link:
+          - /url: /marketplace
+          - text: Marketplace
+        - generic:
+          - link:
+            - /url: /marketplace?category=games
+            - text: Games
+      - generic:
+        - heading [level=1]: Marketplace
+        - paragraph: Find consoles, components, games, and gear from gamers and specialist sellers.
+        - generic:
+          - search:
+            - generic: Search marketplace
+            - generic:
+              - textbox:
+                - /placeholder: Search PS5, RTX 5070, Steam Deck…
+              - button: Search
+      - generic:
+        - generic:
+          - generic:
+            - link:
+              - /url: /marketplace?category=games&family=playstation
+              - text: PlayStation
+            - link:
+              - /url: /marketplace?category=games&family=xbox
+              - text: Xbox
+            - link:
+              - /url: /marketplace?category=games&family=nintendo
+              - text: Nintendo
+            - link:
+              - /url: /marketplace?category=games&family=pc
+              - text: PC
+            - link:
+              - /url: /marketplace?category=games&family=sega
+              - text: Sega
+            - link:
+              - /url: /marketplace?category=games&family=retro-other
+              - text: Atari & Other Legacy
+      - generic:
+        - generic:
+          - generic:
+            - paragraph:
+              - strong: "2"
+              - text: listings
+            - generic:
+              - button [expanded]:
+                - text: Filters
+                - generic: "1"
+              - generic:
+                - combobox
+          - group:
+            - link:
+              - /url: /marketplace
+              - text: Games
+              - generic [aria-hidden]: ×
+            - link:
+              - /url: /marketplace
+              - text: Clear all
+          - generic:
+            - article:
+              - generic:
+                - link:
+                  - /url: /listing/d5bbdfa1-c4c5-4ac7-9b0c-76ee5022fa66
+                - generic:
+                  - button
+              - link:
+                - /url: /listing/d5bbdfa1-c4c5-4ac7-9b0c-76ee5022fa66
+                - generic:
+                  - generic:
+                    - generic: Good
+                    - heading [level=3]: Fc2026
+                    - strong: €40
+                  - generic:
+                    - generic: Limassol
+                    - generic: · Ships
+                  - generic: pavlospetrides741
+            - article:
+              - generic:
+                - link:
+                  - /url: /listing/d7f477cc-985b-4ad2-9c40-7fcb68adaaff
+                - generic:
+                  - button
+              - link:
+                - /url: /listing/d7f477cc-985b-4ad2-9c40-7fcb68adaaff
+                - generic:
+                  - generic:
+                    - generic: New
+                    - heading [level=3]: gtavi new
+                    - strong: €50
+                  - generic:
+                    - generic: limassol
+                    - generic: · Ships
+                  - generic: pavlospetrides741
+  - navigation [aria-hidden]:
+    - generic:
+      - link:
+        - /url: /
+        - text: Home
+      - link:
+        - /url: /browse
+        - text: Browse
+      - link:
+        - /url: /sell
+        - text: Sell
+      - link:
+        - /url: /messages
+        - text: Messages
+      - link:
+        - /url: /profile
+        - text: Profile
+  - alert
+  - dialog [ref=f1e115]:
+    - button "Close filters" [active] [ref=f1e116] [cursor=pointer]
+    - generic [ref=f1e120]:
+      - heading "Filters" [level=2] [ref=f1e121]
+      - paragraph [ref=f1e122]: Narrow the market by category, price, condition, seller, and location.
+    - generic [ref=f1e124]:
+      - generic [ref=f1e125]:
+        - generic [ref=f1e126]: Category
+        - combobox "Category" [ref=f1e127] [cursor=pointer]:
+          - option "All categories"
+          - option "Consoles"
+          - option "Gaming PCs"
+          - option "PC Components"
+          - option "Games" [selected]
+          - option "Peripherals"
+          - option "Controllers"
+          - option "Monitors"
+          - option "Retro"
+          - option "VR"
+          - option "Gaming Setup"
+          - option "Collectibles"
+          - option "Broken / For Parts"
+      - generic [ref=f1e128]:
+        - generic [ref=f1e129]: Platform family
+        - combobox "Platform family" [ref=f1e130] [cursor=pointer]:
+          - option "All families" [selected]
+          - option "PlayStation"
+          - option "Xbox"
+          - option "Nintendo"
+          - option "PC"
+          - option "Sega"
+          - option "Atari & Other Legacy"
+      - generic [ref=f1e131]:
+        - generic [ref=f1e132]: Genre
+        - combobox "Genre" [ref=f1e133] [cursor=pointer]:
+          - option "Any genre" [selected]
+          - option "Action"
+          - option "Adventure"
+          - option "Role-playing (RPG)"
+          - option "Shooter"
+          - option "Sports"
+          - option "Racing"
+          - option "Fighting"
+          - option "Strategy"
+          - option "Simulation"
+          - option "Puzzle"
+          - option "Platformer"
+          - option "Horror"
+          - option "Family"
+          - option "Other"
+      - generic [ref=f1e134]:
+        - generic [ref=f1e135]: Edition
+        - textbox "Edition" [ref=f1e136]
+      - generic [ref=f1e137]:
+        - generic [ref=f1e138]: Original packaging
+        - combobox "Original packaging" [ref=f1e139] [cursor=pointer]:
+          - option "Any original packaging" [selected]
+          - option "Original case / box"
+          - option "Replacement case"
+          - option "No case / loose"
+      - generic [ref=f1e140]:
+        - generic [ref=f1e141]: Manuals or inserts included
+        - combobox "Manuals or inserts included" [ref=f1e142] [cursor=pointer]:
+          - option "Any" [selected]
+          - option "Yes"
+          - option "No"
+      - generic [ref=f1e143]:
+        - generic [ref=f1e144]: Region
+        - combobox "Region" [ref=f1e145] [cursor=pointer]:
+          - option "Any region" [selected]
+          - option "PAL"
+          - option "NTSC-U"
+          - option "NTSC-J"
+          - option "Region free"
+          - option "Other / Unknown"
+      - generic [ref=f1e146]:
+        - generic [ref=f1e147]: Age rating
+        - combobox "Age rating" [ref=f1e148] [cursor=pointer]:
+          - option "Any age rating" [selected]
+          - option "PEGI 3"
+          - option "PEGI 7"
+          - option "PEGI 12"
+          - option "PEGI 16"
+          - option "PEGI 18"
+      - group "Price range" [ref=f1e149]:
+        - generic [ref=f1e151]:
+          - generic [ref=f1e152]: Minimum price
+          - spinbutton "Minimum price" [ref=f1e153]
+          - generic [ref=f1e154]: Maximum price
+          - spinbutton "Maximum price" [ref=f1e155]
+      - generic [ref=f1e156]:
+        - generic [ref=f1e157]: Condition
+        - combobox "Condition" [ref=f1e158] [cursor=pointer]:
+          - option "Any condition" [selected]
+          - option "New"
+          - option "Like new"
+          - option "Good"
+          - option "Fair"
+          - option "For parts"
+      - generic [ref=f1e159]:
+        - generic [ref=f1e160]: Location
+        - textbox "Location" [ref=f1e161]:
+          - /placeholder: City or region
+      - generic [ref=f1e162]:
+        - generic [ref=f1e163]: Seller type
+        - combobox "Seller type" [ref=f1e164] [cursor=pointer]:
+          - option "All sellers" [selected]
+          - option "Private"
+          - option "Business"
+      - generic [ref=f1e165]:
+        - generic [ref=f1e166]: Listing type
+        - combobox "Listing type" [ref=f1e167] [cursor=pointer]:
+          - option "All types" [selected]
+          - option "For sale"
+          - option "Wanted"
+          - option "Trade"
+          - option "Sale or trade"
+      - generic [ref=f1e168]:
+        - link "Reset" [ref=f1e169] [cursor=pointer]:
+          - /url: /marketplace
+        - button "Apply filters" [ref=f1e170] [cursor=pointer]

@@ -1,0 +1,149 @@
+- generic [active] [ref=f8e1]:
+  - link "Skip to content" [ref=f8e2] [cursor=pointer]:
+    - /url: "#main-content"
+  - main [ref=f8e3]:
+    - region [ref=f8e4]:
+      - generic [ref=f8e7]:
+        - link "GGMarket home" [ref=f8e9] [cursor=pointer]:
+          - /url: /
+          - generic [ref=f8e13]: GGMarket
+        - generic [ref=f8e14]:
+          - heading "Find your next setup" [level=1] [ref=f8e15]
+          - paragraph [ref=f8e16]: The player-to-player market for consoles, PC hardware, games, and accessories.
+          - generic [ref=f8e17]:
+            - link "Browse marketplace" [ref=f8e18] [cursor=pointer]:
+              - /url: /marketplace
+            - link "Sell your gear" [ref=f8e21] [cursor=pointer]:
+              - /url: /sell
+          - search [ref=f8e23]:
+            - generic [ref=f8e24]: Search marketplace
+            - generic [ref=f8e25]:
+              - textbox "Search marketplace" [ref=f8e26]:
+                - /placeholder: Search PS5, RTX 5070, Steam Deck…
+              - button "Search" [ref=f8e27] [cursor=pointer]
+        - paragraph [aria-hidden] [ref=f8e28]: GG / LOADOUT ATLAS
+    - region [ref=f8e29]:
+      - generic [ref=f8e30]:
+        - heading "Browse the loadout atlas" [level=2] [ref=f8e32]
+        - link "All categories" [ref=f8e33] [cursor=pointer]:
+          - /url: /marketplace
+      - generic [ref=f8e36]:
+        - link [ref=f8e37] [cursor=pointer]:
+          - /url: /marketplace?category=pc-components
+          - strong [ref=f8e40]: PC performance
+        - link [ref=f8e43] [cursor=pointer]:
+          - /url: /marketplace?category=consoles
+          - strong [ref=f8e46]: Console worlds
+        - link [ref=f8e49] [cursor=pointer]:
+          - /url: /marketplace?category=games
+          - strong [ref=f8e52]: Games library
+        - link [ref=f8e55] [cursor=pointer]:
+          - /url: /marketplace?category=retro
+          - strong [ref=f8e58]: Retro vault
+      - generic [ref=f8e62]:
+        - link [ref=f8e63] [cursor=pointer]:
+          - /url: /marketplace?category=consoles
+          - strong [ref=f8e67]: Consoles
+        - link [ref=f8e71] [cursor=pointer]:
+          - /url: /marketplace?category=gaming-pcs
+          - strong [ref=f8e75]: Gaming PCs
+        - link [ref=f8e79] [cursor=pointer]:
+          - /url: /marketplace?category=pc-components
+          - strong [ref=f8e84]: PC Components
+        - link [ref=f8e88] [cursor=pointer]:
+          - /url: /marketplace?category=games
+          - strong [ref=f8e95]: Games
+        - link [ref=f8e99] [cursor=pointer]:
+          - /url: /marketplace?category=peripherals
+          - strong [ref=f8e103]: Peripherals
+        - link [ref=f8e107] [cursor=pointer]:
+          - /url: /marketplace?category=controllers
+          - strong [ref=f8e112]: Controllers
+        - link [ref=f8e116] [cursor=pointer]:
+          - /url: /marketplace?category=monitors
+          - strong [ref=f8e120]: Monitors
+        - link [ref=f8e124] [cursor=pointer]:
+          - /url: /marketplace?category=retro
+          - strong [ref=f8e128]: Retro
+    - region [ref=f8e132]:
+      - generic [ref=f8e133]:
+        - generic [ref=f8e134]:
+          - generic [ref=f8e135]:
+            - heading "Just listed" [level=2] [ref=f8e136]
+            - paragraph [ref=f8e137]: Real gear from real sellers, shown exactly as listed.
+          - link "View marketplace" [ref=f8e138] [cursor=pointer]:
+            - /url: /marketplace?sort=newest
+        - generic [ref=f8e141]:
+          - article [ref=f8e142]:
+            - generic [ref=f8e143]:
+              - link "View Ps5 sli" [ref=f8e144] [cursor=pointer]:
+                - /url: /listing/1cf0cbe7-9248-4a60-be24-f6ac9be417de
+                - img "Ps5 sli" [ref=f8e146]
+              - button "Add to favorites" [ref=f8e148]
+            - link "Like new Ps5 sli €500 Limassol · Ships pavlospetrides741" [ref=f8e151] [cursor=pointer]:
+              - /url: /listing/1cf0cbe7-9248-4a60-be24-f6ac9be417de
+              - generic [ref=f8e152]:
+                - generic [ref=f8e153]:
+                  - generic [ref=f8e154]: Like new
+                  - heading "Ps5 sli" [level=3] [ref=f8e155]
+                  - strong [ref=f8e156]: €500
+                - generic [ref=f8e157]:
+                  - generic [ref=f8e158]: Limassol
+                  - generic [ref=f8e163]: · Ships
+                - generic [ref=f8e164]: pavlospetrides741
+          - complementary [ref=f8e166]:
+            - heading "One fresh find" [level=3] [ref=f8e167]
+            - paragraph [ref=f8e168]: The whole market is still open. Browse every category, save a search, or be the next gamer to add something worth finding.
+            - generic [ref=f8e169]:
+              - link "Browse all" [ref=f8e170] [cursor=pointer]:
+                - /url: /marketplace
+              - link "Sell your gear" [ref=f8e173] [cursor=pointer]:
+                - /url: /sell
+    - region [ref=f8e174]:
+      - generic [ref=f8e175]:
+        - heading "A clearer way to deal" [level=2] [ref=f8e176]
+        - paragraph [ref=f8e177]: GGMarket keeps the useful signals close and the conversation between players.
+      - generic [ref=f8e178]:
+        - article [ref=f8e179]:
+          - heading "Find the right gear" [level=3] [ref=f8e184]
+          - paragraph [ref=f8e185]: Search real listings by category, condition, location, and price.
+        - article [ref=f8e186]:
+          - heading "Know the seller" [level=3] [ref=f8e190]
+          - paragraph [ref=f8e191]: Review profiles, item details, delivery options, and available verification.
+        - article [ref=f8e192]:
+          - heading "Make the deal" [level=3] [ref=f8e195]
+          - paragraph [ref=f8e196]: Message, offer, or propose a trade through the marketplace tools already built in.
+      - generic [ref=f8e197]: Always verify the item and terms before you pay.
+    - generic [ref=f8e204]:
+      - heading "Ready for its next setup" [level=2] [ref=f8e205]
+      - paragraph [ref=f8e206]: The next player is looking. Create a clear listing, choose your delivery options, and connect with interested gamers.
+      - link "Sell your gear" [ref=f8e207] [cursor=pointer]:
+        - /url: /sell
+    - generic [ref=f8e211]:
+      - generic [ref=f8e216]: GGMarket
+      - generic [ref=f8e217]:
+        - link "GGMarket home" [ref=f8e218] [cursor=pointer]:
+          - /url: /
+          - generic [ref=f8e222]: GGMarket
+        - navigation "Footer navigation" [ref=f8e223]:
+          - link "Marketplace" [ref=f8e224] [cursor=pointer]:
+            - /url: /marketplace
+          - link "Browse" [ref=f8e225] [cursor=pointer]:
+            - /url: /browse
+          - link "Sell" [ref=f8e226] [cursor=pointer]:
+            - /url: /sell
+          - link "Saved searches" [ref=f8e227] [cursor=pointer]:
+            - /url: /saved-searches
+        - paragraph [ref=f8e228]: Buy, sell, and trade gaming gear player to player.
+  - navigation "Mobile navigation" [ref=f8e229]:
+    - generic [ref=f8e230]:
+      - link "Home" [ref=f8e231] [cursor=pointer]:
+        - /url: /
+      - link "Browse" [ref=f8e235] [cursor=pointer]:
+        - /url: /browse
+      - link [ref=f8e239] [cursor=pointer]:
+        - /url: /sell
+      - link "Messages" [ref=f8e242] [cursor=pointer]:
+        - /url: /messages
+      - link "Profile" [ref=f8e245] [cursor=pointer]:
+        - /url: /profile

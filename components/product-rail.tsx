@@ -10,10 +10,6 @@ export function ProductRail({ label, children }: { label: string; children: Reac
   };
   return (
     <div className="relative">
-      <div className="absolute -top-14 right-0 hidden gap-2 sm:flex">
-        <button type="button" className="icon-btn" aria-label={`Scroll ${label} backward`} onClick={() => move(-1)}><ArrowLeft className="size-4" /></button>
-        <button type="button" className="icon-btn" aria-label={`Scroll ${label} forward`} onClick={() => move(1)}><ArrowRight className="size-4" /></button>
-      </div>
       <div
         ref={rail}
         tabIndex={0}
@@ -26,6 +22,10 @@ export function ProductRail({ label, children }: { label: string; children: Reac
         }}
       >
         {children}
+      </div>
+      <div className="mt-2 hidden justify-end gap-2 sm:flex">
+        <button type="button" className="icon-btn" aria-label={`Scroll ${label} backward`} onClick={() => move(-1)}><ArrowLeft className="size-4" aria-hidden="true" /></button>
+        <button type="button" className="icon-btn" aria-label={`Scroll ${label} forward`} onClick={() => move(1)}><ArrowRight className="size-4" aria-hidden="true" /></button>
       </div>
     </div>
   );

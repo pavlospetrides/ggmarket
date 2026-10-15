@@ -53,6 +53,7 @@ export function ChatInterface({
     "connecting",
   );
   const [busy, setBusy] = useState(false);
+  const [pendingActionId, setPendingActionId] = useState<string | null>(null);
   const [error, setError] = useState("");
   const channelRef = useRef<ReturnType<
     ReturnType<typeof createClient>["channel"]
@@ -179,7 +180,7 @@ export function ChatInterface({
       });
     void fetch(`/api/conversations/${conversation.id}/messages`, {
       method: "PATCH",
-    });
+    }).catch(() => setError("Messages could not be marked as read."));
     return () => {
       if (typingTimer.current) clearTimeout(typingTimer.current);
       void channel.untrack();
@@ -213,17 +214,19 @@ export function ChatInterface({
     setMessages((current) => [...current, optimistic]);
     form.reset();
     broadcastTyping(false);
+    setError("");
     setBusy(true);
-    const response = await fetch(
-      `/api/conversations/${conversation.id}/messages`,
-      {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ body: input, clientId }),
-      },
-    );
-    const result = await response.json();
-    if (response.ok)
+    try {
+      const response = await fetch(
+        `/api/conversations/${conversation.id}/messages`,
+        {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ body: input, clientId }),
+        },
+      );
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || "Request failed");
       setMessages((current) =>
         current.map((item) =>
           item.id === clientId
@@ -236,30 +239,34 @@ export function ChatInterface({
             : item,
         ),
       );
-    else {
+    } catch {
       setMessages((current) => current.filter((item) => item.id !== clientId));
-      setError(result.error);
+      setError("Message could not be sent. Try again.");
+    } finally {
+      setBusy(false);
     }
-    setBusy(false);
   }
   async function makeOffer(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (busy) return;
     const form = event.currentTarget;
     const fields = new FormData(form);
     const amount = Number(fields.get("amount"));
     const parentOfferId = fields.get("parentOfferId") || undefined;
+    setError("");
     setBusy(true);
-    const response = await fetch("/api/offers", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({
-        conversationId: conversation.id,
-        amount,
-        parentOfferId,
-      }),
-    });
-    const result = await response.json();
-    if (response.ok) {
+    try {
+      const response = await fetch("/api/offers", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          conversationId: conversation.id,
+          amount,
+          parentOfferId,
+        }),
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || "Request failed");
       setOffers((current) => [
         ...current.map((item) =>
           item.id === parentOfferId ? { ...item, status: "countered" } : item,
@@ -276,45 +283,66 @@ export function ChatInterface({
         },
       ]);
       form.reset();
-    } else setError(result.error);
-    setBusy(false);
+    } catch {
+      setError("The offer could not be sent. Try again.");
+    } finally {
+      setBusy(false);
+    }
   }
   async function offerAction(
     id: string,
     action: "accepted" | "declined" | "withdrawn",
   ) {
-    const response = await fetch(`/api/offers/${id}`, {
-      method: "PATCH",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ action }),
-    });
-    if (response.ok)
+    if (pendingActionId) return;
+    setError("");
+    setPendingActionId(`offer-${id}`);
+    try {
+      const response = await fetch(`/api/offers/${id}`, {
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ action }),
+      });
+      if (!response.ok) throw new Error("Request failed");
       setOffers((current) =>
         current.map((item) =>
           item.id === id ? { ...item, status: action } : item,
         ),
       );
+    } catch {
+      setError("The offer could not be updated. Try again.");
+    } finally {
+      setPendingActionId(null);
+    }
   }
   async function tradeAction(
     id: string,
     action: "accepted" | "declined" | "withdrawn",
   ) {
-    const response = await fetch(`/api/trades/${id}`, {
-      method: "PATCH",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ action }),
-    });
-    if (response.ok)
+    if (pendingActionId) return;
+    setError("");
+    setPendingActionId(`trade-${id}`);
+    try {
+      const response = await fetch(`/api/trades/${id}`, {
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ action }),
+      });
+      if (!response.ok) throw new Error("Request failed");
       setTrades((current) =>
         current.map((item) =>
           item.id === id ? { ...item, status: action } : item,
         ),
       );
+    } catch {
+      setError("The trade proposal could not be updated. Try again.");
+    } finally {
+      setPendingActionId(null);
+    }
   }
 
   return (
-    <div className="container-page py-0 md:py-8">
-      <div className="card min-h-[calc(100dvh-76px-env(safe-area-inset-bottom))] overflow-hidden bg-[#0b0f17] md:grid md:min-h-[720px] md:grid-cols-[330px_1fr] md:shadow-[var(--shadow-md)]">
+    <div className="container-page min-w-0 py-0 md:py-8">
+      <div className="card flex h-[calc(100dvh-138px-env(safe-area-inset-bottom))] min-h-[32rem] min-w-0 overflow-hidden bg-[#0b0f17] md:grid md:h-[min(780px,calc(100dvh-7rem))] md:min-h-[36rem] md:grid-cols-[330px_1fr] md:shadow-[var(--shadow-md)]">
         <aside className="hidden border-r border-[var(--border)] md:block">
           <div className="border-b border-[var(--border)] p-4 text-lg font-bold">
             Messages
@@ -335,14 +363,14 @@ export function ChatInterface({
             </Link>
           ))}
         </aside>
-        <section className="flex min-w-0 flex-col">
+        <section className="flex min-h-0 min-w-0 flex-1 flex-col">
           <header className="flex min-h-20 items-center gap-3 border-b border-[var(--border)] p-3 sm:p-4">
             <Link
               href="/messages"
               className="grid size-10 place-items-center md:hidden"
               aria-label="Back to conversations"
             >
-              <ArrowLeft />
+              <ArrowLeft aria-hidden="true" />
             </Link>
             <span className="grid size-10 place-items-center rounded-full bg-[#30265b] font-bold">
               {conversation.other.display_name[0]}
@@ -354,7 +382,7 @@ export function ChatInterface({
               <span
                 className={`flex items-center gap-1 text-xs ${online ? "text-[var(--success)]" : "text-[var(--muted)]"}`}
               >
-                <Circle className={`size-2 ${online ? "fill-current" : ""}`} />
+                <Circle className={`size-2 ${online ? "fill-current" : ""}`} aria-hidden="true" />
                 {online ? "Online now" : typing ? "Typing…" : "Offline"}
               </span>
             </div>
@@ -372,12 +400,12 @@ export function ChatInterface({
             </Link>
           </header>
           {connection === "error" && (
-            <div className="flex items-center justify-center gap-2 bg-[#3a1d22] p-2 text-xs text-[#ffabb4]">
-              <RefreshCw className="size-3" /> Realtime connection lost.
+            <div className="flex items-center justify-center gap-2 bg-[#3a1d22] p-2 text-xs text-[#ffabb4]" role="status" aria-live="polite">
+              <RefreshCw className="size-3" aria-hidden="true" /> Realtime connection lost.
               Messages can still be sent.
             </div>
           )}
-          <div className="flex-1 space-y-3 overflow-y-auto bg-[radial-gradient(circle_at_50%_0%,rgba(132,104,255,.04),transparent_36%)] p-4 sm:p-6">
+          <div className="min-h-0 flex-1 space-y-3 overflow-y-auto bg-[radial-gradient(circle_at_50%_0%,rgba(132,104,255,.04),transparent_36%)] p-4 sm:p-6" role="log" aria-live="polite" aria-label="Messages">
             {timeline.map((item) =>
               item.kind === "message" ? (
                 <div
@@ -385,9 +413,9 @@ export function ChatInterface({
                   className={`flex ${item.senderId === currentUserId ? "justify-end" : "justify-start"}`}
                 >
                   <div
-                    className={`max-w-[82%] rounded-2xl px-4 py-2.5 text-sm shadow-sm ${item.senderId === currentUserId ? "rounded-br-md bg-gradient-to-br from-[#8063f8] to-[#6748dc]" : "rounded-bl-md border border-white/[.055] bg-[var(--surface-alt)]"}`}
+                    className={`min-w-0 max-w-[82%] rounded-2xl px-4 py-2.5 text-sm shadow-sm ${item.senderId === currentUserId ? "rounded-br-md bg-gradient-to-br from-[#8063f8] to-[#6748dc]" : "rounded-bl-md border border-white/[.055] bg-[var(--surface-alt)]"}`}
                   >
-                    <p>{item.body}</p>
+                    <p className="[overflow-wrap:anywhere]">{item.body}</p>
                     <time className="mt-1 block text-right text-[10px] opacity-65">
                       {chatTimeFormatter.format(new Date(item.createdAt))}
                     </time>
@@ -396,7 +424,7 @@ export function ChatInterface({
               ) : item.kind === "offer" ? (
                 <article
                   key={`o-${item.id}`}
-                  className="mx-auto max-w-md rounded-2xl border border-[#59459a] bg-[#1b1730] p-4"
+                  className="mx-auto w-full min-w-0 max-w-md overflow-hidden rounded-2xl border border-[#59459a] bg-[#1b1730] p-4 [overflow-wrap:anywhere]"
                 >
                   <p className="text-xs font-bold uppercase tracking-wide text-[#b9aaff]">
                     Structured offer
@@ -414,7 +442,9 @@ export function ChatInterface({
                     <div className="mt-3 flex flex-wrap gap-2">
                       {item.createdBy === currentUserId ? (
                         <button
-                          onClick={() => offerAction(item.id, "withdrawn")}
+                          type="button"
+                          disabled={pendingActionId !== null}
+                          onClick={() => void offerAction(item.id, "withdrawn")}
                           className="btn-secondary"
                         >
                           Withdraw
@@ -422,13 +452,17 @@ export function ChatInterface({
                       ) : (
                         <>
                           <button
-                            onClick={() => offerAction(item.id, "declined")}
+                            type="button"
+                            disabled={pendingActionId !== null}
+                            onClick={() => void offerAction(item.id, "declined")}
                             className="btn-secondary"
                           >
                             Decline
                           </button>
                           <button
-                            onClick={() => offerAction(item.id, "accepted")}
+                            type="button"
+                            disabled={pendingActionId !== null}
+                            onClick={() => void offerAction(item.id, "accepted")}
                             className="btn-primary"
                           >
                             Accept
@@ -441,7 +475,7 @@ export function ChatInterface({
               ) : (
                 <article
                   key={`t-${item.id}`}
-                  className="mx-auto max-w-md rounded-2xl border border-[#315c68] bg-[#111f27] p-4"
+                  className="mx-auto w-full min-w-0 max-w-md overflow-hidden rounded-2xl border border-[#315c68] bg-[#111f27] p-4 [overflow-wrap:anywhere]"
                 >
                   <p className="text-xs font-bold uppercase tracking-wide text-[#75d7e8]">
                     Trade proposal
@@ -466,7 +500,9 @@ export function ChatInterface({
                     <div className="mt-3 flex gap-2">
                       {item.proposerId === currentUserId ? (
                         <button
-                          onClick={() => tradeAction(item.id, "withdrawn")}
+                          type="button"
+                          disabled={pendingActionId !== null}
+                          onClick={() => void tradeAction(item.id, "withdrawn")}
                           className="btn-secondary"
                         >
                           Withdraw
@@ -474,13 +510,17 @@ export function ChatInterface({
                       ) : (
                         <>
                           <button
-                            onClick={() => tradeAction(item.id, "declined")}
+                            type="button"
+                            disabled={pendingActionId !== null}
+                            onClick={() => void tradeAction(item.id, "declined")}
                             className="btn-secondary"
                           >
                             Decline
                           </button>
                           <button
-                            onClick={() => tradeAction(item.id, "accepted")}
+                            type="button"
+                            disabled={pendingActionId !== null}
+                            onClick={() => void tradeAction(item.id, "accepted")}
                             className="btn-primary"
                           >
                             Accept
@@ -499,7 +539,7 @@ export function ChatInterface({
             )}
             <div ref={endRef} />
           </div>
-          <div className="border-t border-[var(--border)] bg-[#0e121af2] p-3 backdrop-blur-xl sm:p-4">
+          <div className="shrink-0 border-t border-[var(--border)] bg-[#0e121af2] px-3 pb-[max(.75rem,env(safe-area-inset-bottom))] pt-3 backdrop-blur-xl sm:p-4 md:pb-4">
             {error && (
               <p role="alert" className="mb-2 text-xs text-[var(--danger)]">
                 {error}{" "}
@@ -510,14 +550,16 @@ export function ChatInterface({
             )}
             <details className="mb-3">
               <summary className="cursor-pointer text-sm font-bold text-[#b9aaff]">
-                <HandCoins className="mr-1 inline size-4" /> Make an offer
+                <HandCoins className="mr-1 inline size-4" aria-hidden="true" /> Make an offer
               </summary>
               <form onSubmit={makeOffer} className="mt-3 grid gap-2 sm:grid-cols-[1fr_1fr_auto]">
                 <select className="input" name="parentOfferId" aria-label="Offer type">
                   <option value="">New offer</option>
                   {offers.filter((item) => item.status === "pending" && item.createdBy !== currentUserId).map((item) => <option key={item.id} value={item.id}>Counter {formatPrice(item.amount, item.currency)}</option>)}
                 </select>
+                <label className="sr-only" htmlFor="offer-amount">Offer amount</label>
                 <input
+                  id="offer-amount"
                   className="input"
                   type="number"
                   name="amount"
@@ -551,7 +593,7 @@ export function ChatInterface({
                 className="btn-primary px-4"
                 aria-label="Send message"
               >
-                <Send className="size-5" />
+                <Send className="size-5" aria-hidden="true" />
                 <span className="sr-only sm:not-sr-only">Send</span>
               </button>
             </form>

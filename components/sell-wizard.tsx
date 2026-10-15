@@ -11,13 +11,17 @@ import {
   Upload,
   X,
 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
 import { conditions, formatPrice } from "@/lib/constants";
 import { createClient } from "@/lib/supabase/client";
 import type { Category } from "@/lib/types";
 import { isAllowedImageFile } from "@/lib/security";
+import { getTaxonomyFields } from "@/lib/gaming-taxonomy";
+import type { ListingAttributes } from "@/lib/types";
+import { TaxonomyAttributeFields } from "./taxonomy-attribute-fields";
+import { buildListingTaxonomyAttributes, isTaxonomySelectionComplete, TaxonomySelector, type TaxonomySelection } from "./taxonomy-selector";
 
 const schema = z
   .object({
@@ -32,8 +36,6 @@ const schema = z
     location: z.string().trim().min(2).max(120),
     shipping: z.boolean(),
     meetup: z.boolean(),
-    originalBox: z.boolean(),
-    warranty: z.boolean(),
   })
   .refine((value) => value.shipping || value.meetup, {
     path: ["shipping"],
@@ -59,6 +61,10 @@ export function SellWizard({ categories }: { categories: Category[] }) {
   const [message, setMessage] = useState("");
   const [photoError, setPhotoError] = useState("");
   const [publishing, setPublishing] = useState(false);
+  const [taxonomySelection, setTaxonomySelection] = useState<TaxonomySelection>({ categorySlug: "" });
+  const [taxonomyAttributes, setTaxonomyAttributes] = useState<ListingAttributes>({});
+  const [taxonomyError, setTaxonomyError] = useState("");
+  const photoInputRef = useRef<HTMLInputElement>(null);
   const form = useForm<Values>({
     resolver: zodResolver(schema),
     defaultValues: {
@@ -73,22 +79,44 @@ export function SellWizard({ categories }: { categories: Category[] }) {
       location: "",
       shipping: true,
       meetup: true,
-      originalBox: false,
-      warranty: false,
     },
   });
   const values = useWatch({ control: form.control });
+  const hasUnsavedChanges = form.formState.isDirty || photos.length > 0;
   const category = categories.find((item) => item.id === values.categoryId);
   const error = (name: keyof Values) => form.formState.errors[name]?.message;
+
+  useEffect(() => {
+    if (!hasUnsavedChanges || publishing) return;
+    const warnBeforeUnload = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+      event.returnValue = "";
+    };
+    const confirmLinkNavigation = (event: MouseEvent) => {
+      if (!(event.target instanceof Element)) return;
+      const link = event.target.closest("a[href]");
+      if (!link || link.getAttribute("href")?.startsWith("#")) return;
+      if (!window.confirm("Discard your unsaved changes?")) event.preventDefault();
+    };
+    window.addEventListener("beforeunload", warnBeforeUnload);
+    document.addEventListener("click", confirmLinkNavigation, true);
+    return () => {
+      window.removeEventListener("beforeunload", warnBeforeUnload);
+      document.removeEventListener("click", confirmLinkNavigation, true);
+    };
+  }, [hasUnsavedChanges, publishing]);
+
   function addPhotos(files: FileList | null) {
     if (!files) return;
     setPhotoError("");
     const candidates = Array.from(files);
     const valid = candidates.filter(isAllowedImageFile);
-    if (valid.length !== candidates.length)
+    if (valid.length !== candidates.length) {
       setPhotoError(
         "Some files were skipped. Use JPG, PNG, or WebP files up to 10 MB.",
       );
+      photoInputRef.current?.focus();
+    }
     const next = valid
       .slice(0, 8 - photos.length)
       .map((file) => ({ file, url: URL.createObjectURL(file) }));
@@ -103,6 +131,7 @@ export function SellWizard({ categories }: { categories: Category[] }) {
   async function next() {
     if (step === 2 && !photos.length) {
       setPhotoError("Add at least one photo.");
+      photoInputRef.current?.focus();
       return;
     }
     let fields: (keyof Values)[] = [];
@@ -110,7 +139,22 @@ export function SellWizard({ categories }: { categories: Category[] }) {
     if (step === 1) fields = ["productName"];
     if (step === 3) fields = ["title", "description", "condition"];
     if (step === 4) fields = ["price", ...(values.intent === "wanted" ? ["budgetMin" as const] : []), "location", "shipping", "meetup"];
-    if (fields.length && !(await form.trigger(fields))) return;
+    if (fields.length && !(await form.trigger(fields, { shouldFocus: true }))) return;
+    if (step === 0 && !isTaxonomySelectionComplete(taxonomySelection)) {
+      setTaxonomyError("Choose the complete product path before continuing.");
+      return;
+    }
+    if (step === 1 && category) {
+      const missing = getTaxonomyFields(category.slug, buildListingTaxonomyAttributes(taxonomySelection, taxonomyAttributes)).find((field) => {
+        const fieldValue = taxonomyAttributes[field.key];
+        return field.required && (fieldValue === undefined || fieldValue === "" || (Array.isArray(fieldValue) && fieldValue.length === 0));
+      });
+      if (missing) {
+        setTaxonomyError(`Choose ${missing.label.toLowerCase()} before continuing.`);
+        return;
+      }
+    }
+    setTaxonomyError("");
     setStep((current) => Math.min(5, current + 1));
   }
   async function publish(data: Values) {
@@ -132,12 +176,10 @@ export function SellWizard({ categories }: { categories: Category[] }) {
           location: data.location,
           shipping: data.shipping,
           meetup: data.meetup,
-          attributes: {
-            original_box: data.originalBox,
-            warranty: data.warranty,
+          attributes: buildListingTaxonomyAttributes(taxonomySelection, taxonomyAttributes, {
             intent: data.intent,
             ...(data.intent === "wanted" && { wanted_budget_min: data.budgetMin, wanted_budget_max: data.price }),
-          },
+          }),
           requestId,
         }),
       });
@@ -214,13 +256,14 @@ export function SellWizard({ categories }: { categories: Category[] }) {
         </div>
         <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-[var(--surface-2)]">
           <div
-            className="h-full rounded-full bg-gradient-to-r from-[#7658ff] to-[#a28fff] shadow-[0_0_16px_rgba(132,104,255,.45)] transition-all duration-300"
+            className="h-full rounded-full bg-gradient-to-r from-[#7658ff] to-[#a28fff] shadow-[0_0_16px_rgba(132,104,255,.45)] transition-[width] duration-300"
             style={{ width: `${((step + 1) / steps.length) * 100}%` }}
           />
         </div>
         <ol className="mt-4 hidden grid-cols-6 gap-2 sm:grid">{steps.map((label, index) => <li key={label} className={`truncate text-[10px] font-bold ${index <= step ? "text-[#b9aaff]" : "text-[var(--muted)]"}`}><span className={`mr-1.5 inline-grid size-5 place-items-center rounded-full ${index < step ? "bg-[var(--success)] text-[#07100b]" : index === step ? "bg-[var(--primary)] text-white" : "bg-[var(--surface-alt)]"}`}>{index < step ? <Check className="size-3" /> : index + 1}</span>{label}</li>)}</ol>
       </div>
-      <form onSubmit={form.handleSubmit(publish)} className="surface-panel p-5 sm:p-8">
+      <form onSubmit={form.handleSubmit(publish)} className="surface-panel p-5 sm:p-8" aria-busy={publishing}>
+        <p className="sr-only" role="status" aria-live="polite">{message}</p>
         <div className="min-h-[390px]">
           {step === 0 && (
             <fieldset>
@@ -249,23 +292,30 @@ export function SellWizard({ categories }: { categories: Category[] }) {
                 {categories.map((item) => (
                   <label
                     key={item.id}
-                    className={`cursor-pointer rounded-[var(--radius-md)] border p-4 text-sm transition active:scale-[.98] ${values.categoryId === item.id ? "border-[var(--primary)] bg-[#211a3a] shadow-[0_0_0_3px_rgba(132,104,255,.1)]" : "border-[var(--border)] bg-[#0b0f17] hover:border-[var(--border-hover)] hover:bg-[var(--surface-alt)]"}`}
+                    className={`cursor-pointer rounded-[var(--radius-md)] border p-4 text-sm transition has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-[var(--focus)] has-[:focus-visible]:ring-offset-2 has-[:focus-visible]:ring-offset-[var(--background)] active:scale-[.98] ${values.categoryId === item.id ? "border-[var(--primary)] bg-[#211a3a] shadow-[0_0_0_3px_rgba(132,104,255,.1)]" : "border-[var(--border)] bg-[#0b0f17] hover:border-[var(--border-hover)] hover:bg-[var(--surface-alt)]"}`}
                   >
                     <input
                       type="radio"
                       value={item.id}
                       className="sr-only"
-                      {...form.register("categoryId")}
+                      aria-describedby={error("categoryId") ? "categoryId-error" : undefined}
+                      {...form.register("categoryId", { onChange: (event) => {
+                        const nextCategory = categories.find((candidate) => candidate.id === event.target.value);
+                        setTaxonomySelection({ categorySlug: nextCategory?.slug ?? "" });
+                        setTaxonomyAttributes({});
+                        setTaxonomyError("");
+                      } })}
                     />
                     <span className="font-bold">{item.name}</span>
                   </label>
                 ))}
               </div>
               {error("categoryId") && (
-                <p className="mt-3 text-sm text-[var(--danger)]">
+                <p id="categoryId-error" className="mt-3 text-sm text-[var(--danger)]">
                   {error("categoryId")}
                 </p>
               )}
+              {category ? <TaxonomySelector selection={taxonomySelection} onChange={(next) => { setTaxonomySelection(next); setTaxonomyError(""); }} error={taxonomyError} /> : null}
             </fieldset>
           )}
           {step === 1 && (
@@ -282,6 +332,8 @@ export function SellWizard({ categories }: { categories: Category[] }) {
                 <input
                   className="input"
                   id="productName"
+                  aria-invalid={Boolean(error("productName"))}
+                  aria-describedby={error("productName") ? "productName-error" : undefined}
                   placeholder={
                     category?.slug === "pc-components"
                       ? "e.g. NVIDIA RTX 4070 SUPER"
@@ -290,11 +342,13 @@ export function SellWizard({ categories }: { categories: Category[] }) {
                   {...form.register("productName")}
                 />
                 {error("productName") && (
-                  <p className="mt-2 text-sm text-[var(--danger)]">
+                  <p id="productName-error" className="mt-2 text-sm text-[var(--danger)]">
                     {error("productName")}
                   </p>
                 )}
               </div>
+              {category ? <TaxonomyAttributeFields categorySlug={category.slug} selectionAttributes={buildListingTaxonomyAttributes(taxonomySelection, {})} values={taxonomyAttributes} onChange={(next) => { setTaxonomyAttributes(next); setTaxonomyError(""); }} /> : null}
+              {taxonomyError ? <p className="mt-3 text-sm text-[var(--danger)]" role="alert">{taxonomyError}</p> : null}
               <div className="mt-5 rounded-xl border border-[var(--border)] bg-[#0d1017] p-4 text-sm text-[var(--muted)]">
                 <Package className="mb-2 size-5 text-[#a995ff]" />
                 Enter the exact model where possible.
@@ -307,12 +361,16 @@ export function SellWizard({ categories }: { categories: Category[] }) {
               <p className="mt-2 text-sm text-[var(--muted)]">
                 Add up to 8 clear photos. At least one is required.
               </p>
-              <label className="mt-6 grid min-h-48 cursor-pointer place-items-center rounded-[var(--radius-lg)] border-2 border-dashed border-[#3b4356] bg-[#0a0e15] text-center transition hover:border-[#7965cb] hover:bg-[#0d111b]">
+              <label htmlFor="listing-photos" className="mt-6 grid min-h-48 cursor-pointer place-items-center rounded-[var(--radius-lg)] border-2 border-dashed border-[#3b4356] bg-[#0a0e15] text-center transition focus-within:ring-2 focus-within:ring-[var(--focus)] focus-within:ring-offset-2 focus-within:ring-offset-[var(--background)] hover:border-[#7965cb] hover:bg-[#0d111b]">
                 <input
+                  id="listing-photos"
+                  ref={photoInputRef}
                   type="file"
                   accept="image/jpeg,image/png,image/webp"
                   multiple
                   className="sr-only"
+                  aria-invalid={Boolean(photoError)}
+                  aria-describedby={photoError ? "photo-error" : undefined}
                   onChange={(event) => addPhotos(event.target.files)}
                 />
                 <span>
@@ -326,7 +384,7 @@ export function SellWizard({ categories }: { categories: Category[] }) {
                 </span>
               </label>
               {photoError && (
-                <p role="alert" className="mt-3 text-sm text-[var(--danger)]">
+                <p id="photo-error" role="alert" className="mt-3 text-sm text-[var(--danger)]">
                   {photoError}
                 </p>
               )}
@@ -369,10 +427,12 @@ export function SellWizard({ categories }: { categories: Category[] }) {
                   <input
                     id="title"
                     className="input"
+                    aria-invalid={Boolean(error("title"))}
+                    aria-describedby={error("title") ? "title-error" : undefined}
                     {...form.register("title")}
                   />
                   {error("title") && (
-                    <p className="mt-2 text-sm text-[var(--danger)]">
+                    <p id="title-error" className="mt-2 text-sm text-[var(--danger)]">
                       {error("title")}
                     </p>
                   )}
@@ -400,30 +460,16 @@ export function SellWizard({ categories }: { categories: Category[] }) {
                   <textarea
                     id="description"
                     className="input min-h-32"
+                    aria-invalid={Boolean(error("description"))}
+                    aria-describedby={error("description") ? "description-error" : undefined}
                     {...form.register("description")}
                   />
                   {error("description") && (
-                    <p className="mt-2 text-sm text-[var(--danger)]">
+                    <p id="description-error" className="mt-2 text-sm text-[var(--danger)]">
                       {error("description")}
                     </p>
                   )}
                 </div>
-                <label className="flex cursor-pointer items-center justify-between rounded-xl border border-[var(--border)] bg-[#0a0e15] p-4 transition hover:border-[var(--border-hover)]">
-                  <span>Original box included</span>
-                  <input
-                    type="checkbox"
-                    className="size-5 accent-[#7758ff]"
-                    {...form.register("originalBox")}
-                  />
-                </label>
-                <label className="flex cursor-pointer items-center justify-between rounded-xl border border-[var(--border)] bg-[#0a0e15] p-4 transition hover:border-[var(--border-hover)]">
-                  <span>Warranty remaining</span>
-                  <input
-                    type="checkbox"
-                    className="size-5 accent-[#7758ff]"
-                    {...form.register("warranty")}
-                  />
-                </label>
               </div>
             </div>
           )}
@@ -538,10 +584,7 @@ export function SellWizard({ categories }: { categories: Category[] }) {
                 </div>
               </div>
               {message && (
-                <p
-                  className="mt-4 text-center text-sm text-[#b8a8ff]"
-                  role="status"
-                >
+                 <p className="mt-4 text-center text-sm text-[#b8a8ff]">
                   {message}
                 </p>
               )}

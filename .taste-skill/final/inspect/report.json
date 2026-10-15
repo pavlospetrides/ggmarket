@@ -1,0 +1,1407 @@
+{
+ "url": "http://localhost:3000",
+ "at": "2026-10-15T19:20:24.955Z",
+ "allow": [
+  "palette-purple"
+ ],
+ "viewports": [
+  {
+   "width": 1440,
+   "height": 900,
+   "load": "load",
+   "screens": 6,
+   "filled": [
+    0.97,
+    0.76,
+    0.8,
+    0.82,
+    0.98,
+    0.98
+   ],
+   "motion": {
+    "elements": 14,
+    "css": 13,
+    "transitions": 0,
+    "scripted": 1,
+    "videos": 0,
+    "playingVideos": 0
+   },
+   "metrics": {
+    "viewport": {
+     "w": 1440,
+     "h": 900
+    },
+    "page": {
+     "height": 4505,
+     "screens": 5,
+     "words": 219,
+     "img": 5,
+     "video": 0,
+     "canvas": 0,
+     "svg": 45,
+     "sections": 5,
+     "horizontalOverflow": 0,
+     "overflowCulprits": [],
+     "uiFragments": 6,
+     "uiAbuse": false,
+     "realPictures": 2,
+     "videoCount": 0,
+     "uiPictures": 3,
+     "pictureSamples": [
+      "image?url=%2Fimages%2Fbrand%2Fggmarket-hero-desk",
+      "image?url=%2Fimages%2Fbrand%2Fggmarket-hero-desk"
+     ],
+     "blendText": 0,
+     "sideScrollers": 0,
+     "brokenImages": [],
+     "emoji": []
+    },
+    "hero": {
+     "text": "Find your next setup",
+     "words": 4,
+     "chars": 20,
+     "lines": 2,
+     "size": 86.4,
+     "vw": 6,
+     "font": "Geist",
+     "weight": 760,
+     "tracking": -0.07,
+     "leading": 0.88,
+     "upper": false,
+     "italic": false,
+     "mono": false,
+     "align": "left",
+     "position": "left",
+     "widthRatio": 0.42,
+     "top": 302,
+     "tag": "h1",
+     "kind": "heading"
+    },
+    "h1": {
+     "text": "Find your next setup",
+     "words": 4,
+     "lines": 2,
+     "size": 86.4,
+     "font": "Geist"
+    },
+    "headings": [
+     {
+      "text": "Find your next setup",
+      "words": 4,
+      "chars": 20,
+      "lines": 2,
+      "size": 86.4,
+      "vw": 6,
+      "font": "Geist",
+      "weight": 760,
+      "tracking": -0.07,
+      "leading": 0.88,
+      "upper": false,
+      "italic": false,
+      "mono": false,
+      "align": "left",
+      "position": "left",
+      "widthRatio": 0.42,
+      "top": 302,
+      "tag": "h1",
+      "kind": "heading"
+     },
+     {
+      "text": "Pick a system. Find the gear.",
+      "words": 6,
+      "chars": 29,
+      "lines": 1,
+      "size": 46.1,
+      "vw": 3.2,
+      "font": "Geist",
+      "weight": 760,
+      "tracking": -0.05,
+      "leading": 1,
+      "upper": false,
+      "italic": false,
+      "mono": false,
+      "align": "left",
+      "position": "left",
+      "widthRatio": 0.4,
+      "top": 996,
+      "tag": "h2",
+      "kind": "heading"
+     },
+     {
+      "text": "PC hardware",
+      "words": 2,
+      "chars": 11,
+      "lines": 1,
+      "size": 38.2,
+      "vw": 2.7,
+      "font": "Geist",
+      "weight": 810,
+      "tracking": -0.055,
+      "leading": 0.95,
+      "upper": false,
+      "italic": false,
+      "mono": false,
+      "align": "left",
+      "position": "center",
+      "widthRatio": 0.21,
+      "top": 1274,
+      "tag": "strong",
+      "kind": "heading"
+     },
+     {
+      "text": "Consoles",
+      "words": 1,
+      "chars": 8,
+      "lines": 1,
+      "size": 38.2,
+      "vw": 2.7,
+      "font": "Geist",
+      "weight": 810,
+      "tracking": -0.055,
+      "leading": 0.95,
+      "upper": false,
+      "italic": false,
+      "mono": false,
+      "align": "left",
+      "position": "left",
+      "widthRatio": 0.21,
+      "top": 1484,
+      "tag": "strong",
+      "kind": "heading"
+     },
+     {
+      "text": "Video games",
+      "words": 2,
+      "chars": 11,
+      "lines": 1,
+      "size": 38.2,
+      "vw": 2.7,
+      "font": "Geist",
+      "weight": 810,
+      "tracking": -0.055,
+      "leading": 0.95,
+      "upper": false,
+      "italic": false,
+      "mono": false,
+      "align": "left",
+      "position": "center",
+      "widthRatio": 0.21,
+      "top": 1484,
+      "tag": "strong",
+      "kind": "heading"
+     },
+     {
+      "text": "Accessories",
+      "words": 1,
+      "chars": 11,
+      "lines": 1,
+      "size": 38.2,
+      "vw": 2.7,
+      "font": "Geist",
+      "weight": 810,
+      "tracking": -0.055,
+      "leading": 0.95,
+      "upper": false,
+      "italic": false,
+      "mono": false,
+      "align": "left",
+      "position": "right",
+      "widthRatio": 0.19,
+      "top": 1484,
+      "tag": "strong",
+      "kind": "heading"
+     },
+     {
+      "text": "Just listed",
+      "words": 2,
+      "chars": 11,
+      "lines": 1,
+      "size": 46.1,
+      "vw": 3.2,
+      "font": "Geist",
+      "weight": 760,
+      "tracking": -0.05,
+      "leading": 1,
+      "upper": false,
+      "italic": false,
+      "mono": false,
+      "align": "left",
+      "position": "left",
+      "widthRatio": 0.26,
+      "top": 1781,
+      "tag": "h2",
+      "kind": "heading"
+     },
+     {
+      "text": "A clearer way to deal",
+      "words": 5,
+      "chars": 21,
+      "lines": 1,
+      "size": 46.1,
+      "vw": 3.2,
+      "font": "Geist",
+      "weight": 760,
+      "tracking": -0.05,
+      "leading": 1,
+      "upper": false,
+      "italic": false,
+      "mono": false,
+      "align": "left",
+      "position": "left",
+      "widthRatio": 0.49,
+      "top": 2559,
+      "tag": "h2",
+      "kind": "heading"
+     },
+     {
+      "text": "Ready for its next setup",
+      "words": 5,
+      "chars": 24,
+      "lines": 2,
+      "size": 86.4,
+      "vw": 6,
+      "font": "Geist",
+      "weight": 760,
+      "tracking": -0.07,
+      "leading": 0.9,
+      "upper": false,
+      "italic": false,
+      "mono": false,
+      "align": "left",
+      "position": "left",
+      "widthRatio": 0.42,
+      "top": 3458,
+      "tag": "h2",
+      "kind": "heading"
+     },
+     {
+      "text": "GGMarket",
+      "words": 1,
+      "chars": 8,
+      "lines": 1,
+      "size": 172.8,
+      "vw": 12,
+      "font": "Geist",
+      "weight": 840,
+      "tracking": -0.085,
+      "leading": 0.78,
+      "upper": false,
+      "italic": false,
+      "mono": false,
+      "align": "left",
+      "position": "center",
+      "widthRatio": 0.98,
+      "top": 4073,
+      "tag": "div",
+      "kind": "heading"
+     }
+    ],
+    "headingSummary": {
+     "count": 10,
+     "maxLines": 2,
+     "over2Lines": 0,
+     "statements": 0,
+     "centered": 0,
+     "medianWords": 2,
+     "mixedFontHeadings": 0
+    },
+    "type": {
+     "families": [
+      {
+       "family": "Geist",
+       "share": 1,
+       "mono": false
+      },
+      {
+       "family": "ui-monospace",
+       "share": 0,
+       "mono": false
+      }
+     ],
+     "familyCount": 2,
+     "sizes": [
+      13,
+      14,
+      16,
+      17,
+      19,
+      23,
+      26,
+      38,
+      46,
+      86,
+      173
+     ],
+     "sizeCount": 11,
+     "notLoaded": [],
+     "body": {
+      "font": "Geist",
+      "size": 16,
+      "leading": 1.65,
+      "weight": 400,
+      "tracking": 0,
+      "contrast": 12.1
+     },
+     "measureChars": 59,
+     "max": {
+      "size": 172.8,
+      "vw": 12,
+      "font": "Geist",
+      "text": "GGMarket"
+     },
+     "monoShare": 0,
+     "monoProseShare": 0,
+     "monoFamilies": [
+      "ui-monospace"
+     ],
+     "monoSamples": [],
+     "microLabels": 0,
+     "microLabelShare": 0,
+     "microSamples": [],
+     "upperShare": 0.01,
+     "centerShare": 0,
+     "smallText": 0
+    },
+    "eyebrows": [],
+    "numbered": [],
+    "color": {
+     "bodyBg": "#07090d",
+     "bodyBgHsl": {
+      "h": 220,
+      "s": 0.3,
+      "l": 0.04
+     },
+     "dark": true,
+     "sectionBgs": [
+      {
+       "color": "#090d14",
+       "top": 72,
+       "hsl": {
+        "h": 218,
+        "s": 0.38,
+        "l": 0.06
+       }
+      },
+      {
+       "color": "#0a0d14",
+       "top": 1082,
+       "hsl": {
+        "h": 222,
+        "s": 0.33,
+        "l": 0.06
+       }
+      },
+      {
+       "color": "#0b1018",
+       "top": 1685,
+       "hsl": {
+        "h": 217,
+        "s": 0.37,
+        "l": 0.07
+       }
+      },
+      {
+       "color": "#080b11",
+       "top": 3961,
+       "hsl": {
+        "h": 220,
+        "s": 0.36,
+        "l": 0.05
+       }
+      },
+      {
+       "color": "#7055df",
+       "top": 4073,
+       "hsl": {
+        "h": 252,
+        "s": 0.68,
+        "l": 0.6
+       }
+      }
+     ],
+     "textColors": [
+      {
+       "color": "#c4cad5",
+       "share": 0.27
+      },
+      {
+       "color": "#f5f7fb",
+       "share": 0.21
+      },
+      {
+       "color": "#c5cbd6",
+       "share": 0.17
+      },
+      {
+       "color": "#ffffff",
+       "share": 0.13
+      },
+      {
+       "color": "#d0d5de",
+       "share": 0.09
+      }
+     ],
+     "button": {
+      "bg": "#7055df",
+      "hsl": {
+       "h": 252,
+       "s": 0.68,
+       "l": 0.6
+      },
+      "fg": "#f5f7fb"
+     },
+     "lowContrast": []
+    },
+    "buttons": {
+     "count": 6,
+     "inHero": 5,
+     "radius": 12,
+     "height": 45,
+     "withShadow": 0,
+     "withGradient": 0,
+     "mono": 0,
+     "upper": 0,
+     "heroLabels": [
+      "Skip to content",
+      "Sell",
+      "Browse marketplace",
+      "Sell your gear",
+      "Search"
+     ]
+    },
+    "surfaces": {
+     "shadowStatic": 0,
+     "shadowOverlay": 0,
+     "shadowSamples": [],
+     "gradients": 0,
+     "scrims": 3,
+     "gradientSamples": [],
+     "gradientText": 0,
+     "hairlines": 0,
+     "hairlineSamples": [],
+     "outlinedBoxes": 0,
+     "dashed": 0,
+     "blurred": 0,
+     "roundedBoxes": 12,
+     "boxRadius": 16,
+     "squareMedia": 5,
+     "roundedMedia": 0,
+     "mediaRadius": 0,
+     "textShadow": 0,
+     "cardRows": [
+      {
+       "count": 3,
+       "iconTopped": false,
+       "rounded": true,
+       "top": 1903
+      }
+     ]
+    },
+    "heroMedia": [
+     {
+      "type": "img",
+      "ratio": 0.92
+     }
+    ],
+    "nav": {
+     "links": 7,
+     "fixed": true,
+     "height": 72,
+     "floatingPill": false,
+     "blur": false
+    },
+    "fontsLoaded": [
+     "geist",
+     "geist fallback"
+    ]
+   },
+   "consoleErrors": []
+  },
+  {
+   "width": 768,
+   "height": 1024,
+   "load": "load",
+   "screens": 5,
+   "filled": [
+    0.97,
+    0.84,
+    0.83,
+    0.73,
+    0.97
+   ],
+   "motion": {
+    "elements": 14,
+    "css": 13,
+    "transitions": 0,
+    "scripted": 1,
+    "videos": 0,
+    "playingVideos": 0
+   },
+   "metrics": {
+    "viewport": {
+     "w": 768,
+     "h": 1024
+    },
+    "page": {
+     "height": 4884,
+     "screens": 4.8,
+     "words": 216,
+     "img": 5,
+     "video": 0,
+     "canvas": 0,
+     "svg": 45,
+     "sections": 5,
+     "horizontalOverflow": 0,
+     "overflowCulprits": [],
+     "uiFragments": 6,
+     "uiAbuse": false,
+     "realPictures": 2,
+     "videoCount": 0,
+     "uiPictures": 3,
+     "pictureSamples": [
+      "image?url=%2Fimages%2Fbrand%2Fggmarket-hero-desk",
+      "image?url=%2Fimages%2Fbrand%2Fggmarket-hero-desk"
+     ],
+     "blendText": 0,
+     "sideScrollers": 0,
+     "brokenImages": [],
+     "emoji": []
+    },
+    "hero": {
+     "text": "Find your next setup",
+     "words": 4,
+     "chars": 20,
+     "lines": 2,
+     "size": 56,
+     "vw": 7.3,
+     "font": "Geist",
+     "weight": 760,
+     "tracking": -0.07,
+     "leading": 0.88,
+     "upper": false,
+     "italic": false,
+     "mono": false,
+     "align": "left",
+     "position": "left",
+     "widthRatio": 0.49,
+     "top": 395,
+     "tag": "h1",
+     "kind": "heading"
+    },
+    "h1": {
+     "text": "Find your next setup",
+     "words": 4,
+     "lines": 2,
+     "size": 56,
+     "font": "Geist"
+    },
+    "headings": [
+     {
+      "text": "Find your next setup",
+      "words": 4,
+      "chars": 20,
+      "lines": 2,
+      "size": 56,
+      "vw": 7.3,
+      "font": "Geist",
+      "weight": 760,
+      "tracking": -0.07,
+      "leading": 0.88,
+      "upper": false,
+      "italic": false,
+      "mono": false,
+      "align": "left",
+      "position": "left",
+      "widthRatio": 0.49,
+      "top": 395,
+      "tag": "h1",
+      "kind": "heading"
+     },
+     {
+      "text": "Pick a system. Find the gear.",
+      "words": 6,
+      "chars": 29,
+      "lines": 1,
+      "size": 28,
+      "vw": 3.6,
+      "font": "Geist",
+      "weight": 760,
+      "tracking": -0.05,
+      "leading": 1,
+      "upper": false,
+      "italic": false,
+      "mono": false,
+      "align": "left",
+      "position": "left",
+      "widthRatio": 0.46,
+      "top": 1136,
+      "tag": "h2",
+      "kind": "heading"
+     },
+     {
+      "text": "Just listed",
+      "words": 2,
+      "chars": 11,
+      "lines": 1,
+      "size": 28,
+      "vw": 3.6,
+      "font": "Geist",
+      "weight": 760,
+      "tracking": -0.05,
+      "leading": 1,
+      "upper": false,
+      "italic": false,
+      "mono": false,
+      "align": "left",
+      "position": "left",
+      "widthRatio": 0.48,
+      "top": 1818,
+      "tag": "h2",
+      "kind": "heading"
+     },
+     {
+      "text": "A clearer way to deal",
+      "words": 5,
+      "chars": 21,
+      "lines": 1,
+      "size": 28,
+      "vw": 3.6,
+      "font": "Geist",
+      "weight": 760,
+      "tracking": -0.05,
+      "leading": 1,
+      "upper": false,
+      "italic": false,
+      "mono": false,
+      "align": "left",
+      "position": "left",
+      "widthRatio": 0.5,
+      "top": 3110,
+      "tag": "h2",
+      "kind": "heading"
+     },
+     {
+      "text": "Ready for its next setup",
+      "words": 5,
+      "chars": 24,
+      "lines": 2,
+      "size": 48,
+      "vw": 6.3,
+      "font": "Geist",
+      "weight": 760,
+      "tracking": -0.07,
+      "leading": 0.9,
+      "upper": false,
+      "italic": false,
+      "mono": false,
+      "align": "left",
+      "position": "left",
+      "widthRatio": 0.44,
+      "top": 4033,
+      "tag": "h2",
+      "kind": "heading"
+     },
+     {
+      "text": "GGMarket",
+      "words": 1,
+      "chars": 8,
+      "lines": 1,
+      "size": 92.2,
+      "vw": 12,
+      "font": "Geist",
+      "weight": 840,
+      "tracking": -0.085,
+      "leading": 0.78,
+      "upper": false,
+      "italic": false,
+      "mono": false,
+      "align": "left",
+      "position": "center",
+      "widthRatio": 0.96,
+      "top": 4572,
+      "tag": "div",
+      "kind": "heading"
+     }
+    ],
+    "headingSummary": {
+     "count": 6,
+     "maxLines": 2,
+     "over2Lines": 0,
+     "statements": 0,
+     "centered": 0,
+     "medianWords": 5,
+     "mixedFontHeadings": 0
+    },
+    "type": {
+     "families": [
+      {
+       "family": "Geist",
+       "share": 1,
+       "mono": false
+      }
+     ],
+     "familyCount": 1,
+     "sizes": [
+      13,
+      14,
+      16,
+      17,
+      18,
+      20,
+      28,
+      48,
+      56,
+      92
+     ],
+     "sizeCount": 10,
+     "notLoaded": [],
+     "body": {
+      "font": "Geist",
+      "size": 16,
+      "leading": 1.6,
+      "weight": 400,
+      "tracking": 0,
+      "contrast": 13.5
+     },
+     "measureChars": 59,
+     "max": {
+      "size": 92.2,
+      "vw": 12,
+      "font": "Geist",
+      "text": "GGMarket"
+     },
+     "monoShare": 0,
+     "monoProseShare": 0,
+     "monoFamilies": [],
+     "monoSamples": [],
+     "microLabels": 0,
+     "microLabelShare": 0,
+     "microSamples": [],
+     "upperShare": 0.01,
+     "centerShare": 0,
+     "smallText": 0
+    },
+    "eyebrows": [],
+    "numbered": [],
+    "color": {
+     "bodyBg": "#07090d",
+     "bodyBgHsl": {
+      "h": 220,
+      "s": 0.3,
+      "l": 0.04
+     },
+     "dark": true,
+     "sectionBgs": [
+      {
+       "color": "#090d14",
+       "top": 72,
+       "hsl": {
+        "h": 218,
+        "s": 0.38,
+        "l": 0.06
+       }
+      },
+      {
+       "color": "#0a0d14",
+       "top": 1188,
+       "hsl": {
+        "h": 222,
+        "s": 0.33,
+        "l": 0.06
+       }
+      },
+      {
+       "color": "#0b1018",
+       "top": 1722,
+       "hsl": {
+        "h": 217,
+        "s": 0.37,
+        "l": 0.07
+       }
+      },
+      {
+       "color": "#080b11",
+       "top": 4510,
+       "hsl": {
+        "h": 220,
+        "s": 0.36,
+        "l": 0.05
+       }
+      }
+     ],
+     "textColors": [
+      {
+       "color": "#c4cad5",
+       "share": 0.27
+      },
+      {
+       "color": "#f5f7fb",
+       "share": 0.21
+      },
+      {
+       "color": "#c5cbd6",
+       "share": 0.17
+      },
+      {
+       "color": "#ffffff",
+       "share": 0.13
+      },
+      {
+       "color": "#d0d5de",
+       "share": 0.09
+      }
+     ],
+     "button": {
+      "bg": "#7055df",
+      "hsl": {
+       "h": 252,
+       "s": 0.68,
+       "l": 0.6
+      },
+      "fg": "#f5f7fb"
+     },
+     "lowContrast": []
+    },
+    "buttons": {
+     "count": 6,
+     "inHero": 5,
+     "radius": 12,
+     "height": 45,
+     "withShadow": 0,
+     "withGradient": 0,
+     "mono": 0,
+     "upper": 0,
+     "heroLabels": [
+      "Skip to content",
+      "Sell",
+      "Browse marketplace",
+      "Sell your gear",
+      "Search"
+     ]
+    },
+    "surfaces": {
+     "shadowStatic": 0,
+     "shadowOverlay": 0,
+     "shadowSamples": [],
+     "gradients": 0,
+     "scrims": 3,
+     "gradientSamples": [],
+     "gradientText": 0,
+     "hairlines": 0,
+     "hairlineSamples": [],
+     "outlinedBoxes": 0,
+     "dashed": 0,
+     "blurred": 0,
+     "roundedBoxes": 11,
+     "boxRadius": 16,
+     "squareMedia": 5,
+     "roundedMedia": 0,
+     "mediaRadius": 0,
+     "textShadow": 0,
+     "cardRows": [
+      {
+       "count": 4,
+       "iconTopped": true,
+       "rounded": true,
+       "top": 1250
+      },
+      {
+       "count": 3,
+       "iconTopped": false,
+       "rounded": true,
+       "top": 1906
+      }
+     ]
+    },
+    "heroMedia": [
+     {
+      "type": "img",
+      "ratio": 0.93
+     }
+    ],
+    "nav": {
+     "links": 7,
+     "fixed": true,
+     "height": 72,
+     "floatingPill": false,
+     "blur": false
+    },
+    "fontsLoaded": [
+     "geist",
+     "geist fallback"
+    ]
+   },
+   "consoleErrors": []
+  },
+  {
+   "width": 390,
+   "height": 844,
+   "load": "load",
+   "screens": 5,
+   "filled": [
+    1,
+    0.93,
+    0.86,
+    0.93,
+    1
+   ],
+   "motion": {
+    "elements": 13,
+    "css": 12,
+    "transitions": 0,
+    "scripted": 1,
+    "videos": 0,
+    "playingVideos": 0
+   },
+   "metrics": {
+    "viewport": {
+     "w": 390,
+     "h": 844
+    },
+    "page": {
+     "height": 3826,
+     "screens": 4.5,
+     "words": 190,
+     "img": 5,
+     "video": 0,
+     "canvas": 0,
+     "svg": 45,
+     "sections": 5,
+     "horizontalOverflow": 0,
+     "overflowCulprits": [],
+     "uiFragments": 6,
+     "uiAbuse": false,
+     "realPictures": 1,
+     "videoCount": 0,
+     "uiPictures": 0,
+     "pictureSamples": [
+      "image?url=%2Fimages%2Fbrand%2Fggmarket-hero-desk"
+     ],
+     "blendText": 0,
+     "sideScrollers": 0,
+     "brokenImages": [],
+     "emoji": []
+    },
+    "hero": {
+     "text": "Find your next setup",
+     "words": 4,
+     "chars": 20,
+     "lines": 2,
+     "size": 48.8,
+     "vw": 12.5,
+     "font": "Geist",
+     "weight": 760,
+     "tracking": -0.07,
+     "leading": 0.91,
+     "upper": false,
+     "italic": false,
+     "mono": false,
+     "align": "left",
+     "position": "center",
+     "widthRatio": 0.79,
+     "top": 83,
+     "tag": "h1",
+     "kind": "heading"
+    },
+    "h1": {
+     "text": "Find your next setup",
+     "words": 4,
+     "lines": 2,
+     "size": 48.8,
+     "font": "Geist"
+    },
+    "headings": [
+     {
+      "text": "Find your next setup",
+      "words": 4,
+      "chars": 20,
+      "lines": 2,
+      "size": 48.8,
+      "vw": 12.5,
+      "font": "Geist",
+      "weight": 760,
+      "tracking": -0.07,
+      "leading": 0.91,
+      "upper": false,
+      "italic": false,
+      "mono": false,
+      "align": "left",
+      "position": "center",
+      "widthRatio": 0.79,
+      "top": 83,
+      "tag": "h1",
+      "kind": "heading"
+     },
+     {
+      "text": "Just listed",
+      "words": 2,
+      "chars": 11,
+      "lines": 1,
+      "size": 28,
+      "vw": 7.2,
+      "font": "Geist",
+      "weight": 760,
+      "tracking": -0.05,
+      "leading": 1,
+      "upper": false,
+      "italic": false,
+      "mono": false,
+      "align": "left",
+      "position": "left",
+      "widthRatio": 0.45,
+      "top": 720,
+      "tag": "h2",
+      "kind": "heading"
+     },
+     {
+      "text": "A clearer way to deal",
+      "words": 5,
+      "chars": 21,
+      "lines": 1,
+      "size": 28,
+      "vw": 7.2,
+      "font": "Geist",
+      "weight": 760,
+      "tracking": -0.05,
+      "leading": 1,
+      "upper": false,
+      "italic": false,
+      "mono": false,
+      "align": "left",
+      "position": "center",
+      "widthRatio": 0.92,
+      "top": 1653,
+      "tag": "h2",
+      "kind": "heading"
+     },
+     {
+      "text": "Ready for its next setup",
+      "words": 5,
+      "chars": 24,
+      "lines": 2,
+      "size": 50.7,
+      "vw": 13,
+      "font": "Geist",
+      "weight": 760,
+      "tracking": -0.07,
+      "leading": 0.9,
+      "upper": false,
+      "italic": false,
+      "mono": false,
+      "align": "left",
+      "position": "center",
+      "widthRatio": 0.82,
+      "top": 2687,
+      "tag": "h2",
+      "kind": "heading"
+     },
+     {
+      "text": "GGMarket",
+      "words": 1,
+      "chars": 8,
+      "lines": 1,
+      "size": 41,
+      "vw": 10.5,
+      "font": "Geist",
+      "weight": 840,
+      "tracking": -0.085,
+      "leading": 0.78,
+      "upper": false,
+      "italic": false,
+      "mono": false,
+      "align": "left",
+      "position": "center",
+      "widthRatio": 0.92,
+      "top": 3359,
+      "tag": "div",
+      "kind": "heading"
+     }
+    ],
+    "headingSummary": {
+     "count": 5,
+     "maxLines": 2,
+     "over2Lines": 0,
+     "statements": 0,
+     "centered": 0,
+     "medianWords": 5,
+     "mixedFontHeadings": 0
+    },
+    "type": {
+     "families": [
+      {
+       "family": "Geist",
+       "share": 1,
+       "mono": false
+      }
+     ],
+     "familyCount": 1,
+     "sizes": [
+      11,
+      14,
+      16,
+      17,
+      20,
+      28,
+      41,
+      49,
+      51
+     ],
+     "sizeCount": 9,
+     "notLoaded": [],
+     "body": {
+      "font": "Geist",
+      "size": 16,
+      "leading": 1.5,
+      "weight": 400,
+      "tracking": 0,
+      "contrast": null
+     },
+     "measureChars": 43,
+     "max": {
+      "size": 50.7,
+      "vw": 13,
+      "font": "Geist",
+      "text": "Ready for its next setup"
+     },
+     "monoShare": 0,
+     "monoProseShare": 0,
+     "monoFamilies": [],
+     "monoSamples": [],
+     "microLabels": 0,
+     "microLabelShare": 0,
+     "microSamples": [],
+     "upperShare": 0,
+     "centerShare": 0.01,
+     "smallText": 1
+    },
+    "eyebrows": [],
+    "numbered": [],
+    "color": {
+     "bodyBg": "#07090d",
+     "bodyBgHsl": {
+      "h": 220,
+      "s": 0.3,
+      "l": 0.04
+     },
+     "dark": true,
+     "sectionBgs": [
+      {
+       "color": "#070914",
+       "top": 0,
+       "hsl": {
+        "h": 231,
+        "s": 0.48,
+        "l": 0.05
+       }
+      },
+      {
+       "color": "#0b1018",
+       "top": 656,
+       "hsl": {
+        "h": 217,
+        "s": 0.37,
+        "l": 0.07
+       }
+      },
+      {
+       "color": "#090d14",
+       "top": 2607,
+       "hsl": {
+        "h": 218,
+        "s": 0.38,
+        "l": 0.06
+       }
+      },
+      {
+       "color": "#080b11",
+       "top": 3311,
+       "hsl": {
+        "h": 220,
+        "s": 0.36,
+        "l": 0.05
+       }
+      }
+     ],
+     "textColors": [
+      {
+       "color": "#c4cad5",
+       "share": 0.29
+      },
+      {
+       "color": "#f5f7fb",
+       "share": 0.22
+      },
+      {
+       "color": "#c5cbd6",
+       "share": 0.19
+      },
+      {
+       "color": "#d0d5de",
+       "share": 0.1
+      },
+      {
+       "color": "#8c96a8",
+       "share": 0.08
+      }
+     ],
+     "button": {
+      "bg": "#7055df",
+      "hsl": {
+       "h": 252,
+       "s": 0.68,
+       "l": 0.6
+      },
+      "fg": "#f5f7fb"
+     },
+     "lowContrast": []
+    },
+    "buttons": {
+     "count": 5,
+     "inHero": 4,
+     "radius": 12,
+     "height": 48,
+     "withShadow": 0,
+     "withGradient": 0,
+     "mono": 0,
+     "upper": 0,
+     "heroLabels": [
+      "Skip to content",
+      "Browse marketplace",
+      "Sell your gear",
+      "Search"
+     ]
+    },
+    "surfaces": {
+     "shadowStatic": 0,
+     "shadowOverlay": 0,
+     "shadowSamples": [],
+     "gradients": 1,
+     "scrims": 1,
+     "gradientSamples": [
+      "section.campaign-hero → radial-gradient(circle at 88% 12%, rgba(106, 77, 255, 0.3), rgba(0, 0, 0, 0) 34%), radial-gradient(circle at 8"
+     ],
+     "gradientText": 0,
+     "hairlines": 0,
+     "hairlineSamples": [],
+     "outlinedBoxes": 1,
+     "dashed": 0,
+     "blurred": 0,
+     "roundedBoxes": 11,
+     "boxRadius": 16,
+     "squareMedia": 1,
+     "roundedMedia": 0,
+     "mediaRadius": 0,
+     "textShadow": 0,
+     "cardRows": [
+      {
+       "count": 3,
+       "iconTopped": false,
+       "rounded": true,
+       "top": 856
+      }
+     ]
+    },
+    "heroMedia": [],
+    "nav": {
+     "links": 0,
+     "fixed": true,
+     "height": 0,
+     "floatingPill": false,
+     "blur": false
+    },
+    "fontsLoaded": [
+     "geist"
+    ]
+   },
+   "consoleErrors": []
+  }
+ ],
+ "findings": [
+  {
+   "level": "WARN",
+   "id": "size-count",
+   "width": 1440,
+   "message": "11 different font sizes (13, 14, 16, 17, 19, 23, 26, 38, 46, 86, 173).",
+   "fix": "A page needs about five: display, heading, lead, body, small.",
+   "alsoAt": [
+    768
+   ]
+  },
+  {
+   "level": "WARN",
+   "id": "no-footage",
+   "width": 1440,
+   "message": "No video anywhere on the page.",
+   "fix": "Look for one honest clip with scripts/assets.mjs --video (the place, the material, the process) and use it as a muted loop with a poster frame. Defend its absence only if no clip fits the subject."
+  },
+  {
+   "level": "WARN",
+   "id": "still-page",
+   "width": 1440,
+   "message": "Little motion: 14 element(s) moved while the page loaded and scrolled.",
+   "fix": "Give every section an entrance for its parts (not one fade of the whole block) and add one moving picture: a looping clip or a slow move on a photograph."
+  },
+  {
+   "level": "FAIL",
+   "id": "icon-cards",
+   "width": 768,
+   "message": "1 row(s) of identical cards each topped with a small icon (4 cards).",
+   "fix": "Replace with one composed section from the direction: a narrative split, a list set in large type, or real imagery per item."
+  },
+  {
+   "level": "FAIL",
+   "id": "gradient",
+   "width": 390,
+   "message": "1 gradient fill(s): section.campaign-hero → radial-gradient(circle at 88% 12%, rgba(106, 77, 255, 0.3), rgba(0, 0, 0, 0) 34%), radial-gradient(circle at 8",
+   "fix": "Use a flat colour or a real image. The only gradient allowed by default is a neutral scrim over a photo for legibility."
+  },
+  {
+   "level": "WARN",
+   "id": "outlined-box",
+   "width": 390,
+   "message": "1 box(es) drawn with a 1px outline.",
+   "fix": "Prefer a filled surface or no box."
+  },
+  {
+   "level": "WARN",
+   "id": "small-text",
+   "width": 390,
+   "message": "1 text block(s) under 13px.",
+   "fix": "Nothing meant to be read goes below 13px."
+  },
+  {
+   "level": "FAIL",
+   "id": "covered-text",
+   "width": 390,
+   "message": "Large text lies under another element at some scroll position: \"A clearer way to deal\" (screen 2, 100% hidden)",
+   "fix": "Nothing may sit on top of a headline or statement. Move the picture, shorten the pinned run, or raise the text above it (z-index) and give it a ground."
+  }
+ ],
+ "images": [
+  {
+   "viewport": "desktop",
+   "width": 1440,
+   "fold": "C:\\Users\\Pavlos\\Documents\\ggmrketvol2\\.taste-skill\\final\\inspect\\desktop-fold.jpg",
+   "pages": [
+    "C:\\Users\\Pavlos\\Documents\\ggmrketvol2\\.taste-skill\\final\\inspect\\desktop-page-01.jpg",
+    "C:\\Users\\Pavlos\\Documents\\ggmrketvol2\\.taste-skill\\final\\inspect\\desktop-page-02.jpg"
+   ]
+  },
+  {
+   "viewport": "tablet",
+   "width": 768,
+   "fold": "C:\\Users\\Pavlos\\Documents\\ggmrketvol2\\.taste-skill\\final\\inspect\\tablet-fold.jpg",
+   "pages": [
+    "C:\\Users\\Pavlos\\Documents\\ggmrketvol2\\.taste-skill\\final\\inspect\\tablet-page-01.jpg"
+   ]
+  },
+  {
+   "viewport": "mobile",
+   "width": 390,
+   "fold": "C:\\Users\\Pavlos\\Documents\\ggmrketvol2\\.taste-skill\\final\\inspect\\mobile-fold.jpg",
+   "pages": [
+    "C:\\Users\\Pavlos\\Documents\\ggmrketvol2\\.taste-skill\\final\\inspect\\mobile-page-01.jpg"
+   ]
+  }
+ ]
+}

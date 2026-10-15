@@ -1,9 +1,8 @@
 import { expect, test, type Page } from "@playwright/test";
 import { createClient, type User } from "@supabase/supabase-js";
+import { requireMutationEnvironment } from "./mutation-guard";
 
-const url = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+const { url, anonKey, serviceKey } = requireMutationEnvironment();
 const admin = createClient(url, serviceKey, { auth: { persistSession: false } });
 const stamp = Date.now();
 const password = `Gg!${crypto.randomUUID()}aA1`;

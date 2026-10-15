@@ -3,7 +3,9 @@ import {
   type SupabaseClient,
 } from "@supabase/supabase-js";
 import { createClient as createServerClient } from "./supabase/server";
-import type { Category, Listing, ListingQuery, Review, Seller } from "./types";
+import { normalizeListingPage } from "./pagination";
+import { resolveTaxonomyQuery } from "./gaming-taxonomy";
+import type { Category, Listing, ListingQuery, PaginatedListings, Review, Seller } from "./types";
 
 export class DataAccessError extends Error {
   constructor(public operation: string) {
@@ -51,7 +53,7 @@ type ProfileRow = {
   created_at: string;
 };
 const listingSelect =
-  "id,title,description,price,currency,location,condition,status,attributes,view_count,shipping_available,meetup_available,created_at,published_at,category:categories!listings_category_id_fkey(id,name,slug,icon),seller:profiles!listings_seller_id_fkey(id,username,display_name,avatar_path,location,bio,created_at),images:listing_images!listing_images_listing_id_fkey(id,storage_path,sort_order)";
+  "id,title,description,price,currency,location,condition,status,attributes,view_count,shipping_available,meetup_available,created_at,published_at,category:categories!listings_category_id_fkey!inner(id,name,slug,icon),seller:profiles!listings_seller_id_fkey!inner(id,username,display_name,avatar_path,location,bio,created_at),images:listing_images!listing_images_listing_id_fkey(id,storage_path,sort_order)";
 const one = <T>(value: Related<T>): T | null =>
   Array.isArray(value) ? (value[0] ?? null) : value;
 
@@ -182,17 +184,21 @@ export async function getListings(
   params: ListingQuery = {},
   limit = 48,
 ): Promise<Listing[]> {
+  return (await getPaginatedListings(params, limit)).items;
+}
+
+export async function getPaginatedListings(
+  params: ListingQuery = {},
+  pageSize = 24,
+): Promise<PaginatedListings> {
   const supabase = publicClient();
-  const term =
-    typeof params.q === "string" ? params.q.trim().slice(0, 120) : "";
+  const taxonomyQuery = resolveTaxonomyQuery(params);
+  const term = taxonomyQuery.residualQuery.slice(0, 120);
   let matchingIds: string[] | null = null;
   if (term) {
     const { data, error } = await supabase.rpc("search_listings", {
       search_term: term,
-      category_slug:
-        typeof params.category === "string" && params.category
-          ? params.category
-          : null,
+      category_slug: taxonomyQuery.category ?? null,
       min_price:
         typeof params.min === "string" && params.min
           ? Number(params.min)
@@ -204,16 +210,58 @@ export async function getListings(
     });
     if (error) throw new DataAccessError("search listings");
     const ids = (data ?? []).map((row: { id: string }) => row.id);
-    if (!ids.length) return [];
+    if (!ids.length) return { items: [], total: 0, page: 1, pageSize };
     matchingIds = ids;
   }
+
+  // The search RPC returns relevance-ordered IDs. Apply the remaining filters
+  // first, then paginate that ordered ID set so relevance is not lost to `.in()`.
+  if (matchingIds && !params.sort) {
+    let eligibleQuery = supabase
+      .from("listings")
+      .select("id, profiles!listings_seller_id_fkey!inner(seller_type)")
+      .eq("status", "active")
+      .in("id", matchingIds);
+    if (typeof params.condition === "string" && params.condition)
+      eligibleQuery = eligibleQuery.eq("condition", params.condition);
+    if (typeof params.location === "string" && params.location)
+      eligibleQuery = eligibleQuery.ilike("location", `%${params.location.slice(0, 80)}%`);
+    if (typeof params.seller === "string" && params.seller)
+      eligibleQuery = eligibleQuery.eq("profiles.seller_type", params.seller);
+    if (typeof params.intent === "string" && params.intent)
+      eligibleQuery = eligibleQuery.contains("attributes", { intent: params.intent });
+    for (const filter of taxonomyQuery.filters)
+      eligibleQuery = eligibleQuery.contains("attributes", { [filter.key]: filter.mode === "array" ? [filter.value] : filter.value });
+    const { data: eligibleRows, error: eligibleError } = await eligibleQuery.limit(1000);
+    if (eligibleError) throw new DataAccessError("load listings");
+    const eligible = new Set((eligibleRows ?? []).map((row: { id: string }) => row.id));
+    const orderedIds = matchingIds.filter((id) => eligible.has(id));
+    const total = orderedIds.length;
+    const page = normalizeListingPage(params.page, total, pageSize);
+    const pageIds = orderedIds.slice((page - 1) * pageSize, page * pageSize);
+    if (!pageIds.length) return { items: [], total, page, pageSize };
+    const { data, error } = await supabase
+      .from("listings")
+      .select(listingSelect)
+      .in("id", pageIds);
+    if (error) throw new DataAccessError("load listings");
+    const enriched = await enrichRows(supabase, data as unknown as ListingRow[]);
+    const itemById = new Map(enriched.map((item) => [item.id, item]));
+    return {
+      items: pageIds.flatMap((id) => itemById.get(id) ? [itemById.get(id)!] : []),
+      total,
+      page,
+      pageSize,
+    };
+  }
+
   let query = supabase
     .from("listings")
-    .select(listingSelect)
+    .select(listingSelect, { count: "exact" })
     .eq("status", "active");
   if (matchingIds) query = query.in("id", matchingIds);
-  if (!term && typeof params.category === "string" && params.category)
-    query = query.eq("categories.slug", params.category);
+  if (!term && taxonomyQuery.category)
+    query = query.eq("categories.slug", taxonomyQuery.category);
   if (typeof params.condition === "string" && params.condition)
     query = query.eq("condition", params.condition);
   if (typeof params.location === "string" && params.location)
@@ -222,6 +270,8 @@ export async function getListings(
     query = query.eq("profiles.seller_type", params.seller);
   if (typeof params.intent === "string" && params.intent)
     query = query.contains("attributes", { intent: params.intent });
+  for (const filter of taxonomyQuery.filters)
+    query = query.contains("attributes", { [filter.key]: filter.mode === "array" ? [filter.value] : filter.value });
   if (!term && typeof params.min === "string" && params.min)
     query = query.gte("price", Number(params.min));
   if (!term && typeof params.max === "string" && params.max)
@@ -233,9 +283,23 @@ export async function getListings(
   else if (params.sort === "oldest")
     query = query.order("published_at", { ascending: true });
   else query = query.order("published_at", { ascending: false });
-  const { data, error } = await query.limit(Math.min(limit, 60));
+  query = query.order("id", { ascending: true });
+
+  // Count before choosing the range so out-of-bounds requests can resolve to
+  // the final valid page rather than showing a misleading empty state.
+  const { count, error: countError } = await query.limit(0);
+  if (countError) throw new DataAccessError("load listings");
+  const total = count ?? 0;
+  const page = normalizeListingPage(params.page, total, pageSize);
+  const from = (page - 1) * pageSize;
+  const { data, error } = await query.range(from, from + pageSize - 1);
   if (error) throw new DataAccessError("load listings");
-  return enrichRows(supabase, data as unknown as ListingRow[]);
+  return {
+    items: await enrichRows(supabase, data as unknown as ListingRow[]),
+    total,
+    page,
+    pageSize,
+  };
 }
 
 export type BrowseData = {
@@ -347,11 +411,17 @@ export async function getListing(
 
 export async function getProfileByUsername(
   username: string,
+  listingPageInput: string | undefined = undefined,
+  reviewPageInput: string | undefined = undefined,
 ): Promise<{
   seller: Seller;
   listings: Listing[];
   reviews: Review[];
   stats: { activeListings: number; soldListings: number | null; totalViews: number };
+  pagination: {
+    listings: { page: number; total: number; pageSize: number };
+    reviews: { page: number; total: number; pageSize: number };
+  };
 } | null> {
   const supabase = publicClient();
   const { data, error } = await supabase
@@ -362,26 +432,55 @@ export async function getProfileByUsername(
   if (error) throw new DataAccessError("load seller profile");
   if (!data) return null;
   const profile = data as ProfileRow;
-  const [
-    { data: rows, error: listingError },
-    { data: reviewRows, error: reviewError },
-    { data: verification, error: verificationError },
-  ] = await Promise.all([
-    supabase
+  const listingPageSize = 12;
+  const reviewPageSize = 10;
+  const requestedListingPage = Math.max(1, Number.parseInt(listingPageInput ?? "1", 10) || 1);
+  const requestedReviewPage = Math.max(1, Number.parseInt(reviewPageInput ?? "1", 10) || 1);
+  let { data: rows, error: listingError, count: listingCount } = await supabase
+    .from("listings")
+    .select(listingSelect, { count: "exact" })
+    .eq("seller_id", profile.id)
+    .eq("status", "active")
+    .order("published_at", { ascending: false })
+    .range((requestedListingPage - 1) * listingPageSize, requestedListingPage * listingPageSize - 1);
+  let { data: reviewRows, error: reviewError, count: reviewCount } = await supabase
+    .from("reviews")
+    .select(
+      "id,rating,comment,created_at,reviewer:profiles!reviews_reviewer_id_fkey(display_name)",
+      { count: "exact" },
+    )
+    .eq("seller_id", profile.id)
+    .order("created_at", { ascending: false })
+    .range((requestedReviewPage - 1) * reviewPageSize, requestedReviewPage * reviewPageSize - 1);
+  const listingPage = normalizeListingPage(listingPageInput, listingCount ?? 0, listingPageSize);
+  const reviewPage = normalizeListingPage(reviewPageInput, reviewCount ?? 0, reviewPageSize);
+  if (listingPage !== requestedListingPage) {
+    const retry = await supabase
       .from("listings")
-      .select(listingSelect)
+      .select(listingSelect, { count: "exact" })
       .eq("seller_id", profile.id)
       .eq("status", "active")
       .order("published_at", { ascending: false })
-      .limit(48),
-    supabase
+      .range((listingPage - 1) * listingPageSize, listingPage * listingPageSize - 1);
+    rows = retry.data;
+    listingError = retry.error;
+    listingCount = retry.count;
+  }
+  if (reviewPage !== requestedReviewPage) {
+    const retry = await supabase
       .from("reviews")
       .select(
         "id,rating,comment,created_at,reviewer:profiles!reviews_reviewer_id_fkey(display_name)",
+        { count: "exact" },
       )
       .eq("seller_id", profile.id)
       .order("created_at", { ascending: false })
-      .limit(20),
+      .range((reviewPage - 1) * reviewPageSize, reviewPage * reviewPageSize - 1);
+    reviewRows = retry.data;
+    reviewError = retry.error;
+    reviewCount = retry.count;
+  }
+  const [{ data: verification, error: verificationError }, { data: ratingRows, error: ratingError }] = await Promise.all([
     supabase
       .from("seller_verifications")
       .select("id")
@@ -389,10 +488,11 @@ export async function getProfileByUsername(
       .eq("status", "verified")
       .limit(1)
       .maybeSingle(),
+    supabase.from("reviews").select("rating").eq("seller_id", profile.id).limit(1000),
   ]);
-  if (listingError || reviewError || verificationError)
+  if (listingError || reviewError || verificationError || ratingError)
     throw new DataAccessError("load seller activity");
-  const ratings = (reviewRows ?? []).map((review) => Number(review.rating));
+  const ratings = (ratingRows ?? []).map((review) => Number(review.rating));
   const seller: Seller = {
     id: profile.id,
     username: profile.username,
@@ -403,7 +503,7 @@ export async function getProfileByUsername(
     rating: ratings.length
       ? ratings.reduce((sum, value) => sum + value, 0) / ratings.length
       : 0,
-    reviewCount: ratings.length,
+    reviewCount: reviewCount ?? ratings.length,
     verified: Boolean(verification),
     memberSince: profile.created_at,
   };
@@ -435,7 +535,16 @@ export async function getProfileByUsername(
         sellerListings.reduce((sum, item) => sum + item.views, 0),
     ),
   };
-  return { seller, listings: sellerListings, reviews: mappedReviews, stats };
+  return {
+    seller,
+    listings: sellerListings,
+    reviews: mappedReviews,
+    stats,
+    pagination: {
+      listings: { page: listingPage, total: listingCount ?? sellerListings.length, pageSize: listingPageSize },
+      reviews: { page: reviewPage, total: reviewCount ?? mappedReviews.length, pageSize: reviewPageSize },
+    },
+  };
 }
 
 export async function getCurrentProfile(userId: string): Promise<ProfileRow> {

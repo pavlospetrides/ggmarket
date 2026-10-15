@@ -16,6 +16,16 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 - Preserve the existing architecture, public behavior, design tokens, and unrelated working-tree changes. Do not commit, deploy, install dependencies, or alter production configuration unless the user explicitly requests it.
 - Classify the task before choosing expertise and tools. Use the smallest workflow that gives reliable evidence; complex or cross-cutting work requires an approved plan.
 
+## Usage-efficient execution
+
+- Select only the skills, documentation, tools, and repository files relevant to the current task. Follow mandatory skill instructions, but do not invoke every Superpowers skill, reread unrelated guidance, or repeat brainstorming/planning for approved work.
+- Before implementation, inspect the relevant current files and, when applicable, the existing plan and progress ledger. Resume from the current worktree state, trust recorded completed work, and avoid broad repository audits or repeated research without a concrete reason.
+- Use external tools for a task-relevant purpose: 21st.dev for useful component research/integration, shadcn for appropriate UI primitives, Context7 for necessary documentation verification, Chrome DevTools for browser diagnostics, and Playwright for functional browser testing. Do not call MCP servers merely to demonstrate availability or repeat still-applicable searches.
+- Subagents are off by default. Prefer inline execution for small and medium work; delegate only when authorized, when independent non-overlapping tasks justify the coordination cost, and when duplicate research or review will not result.
+- Verify progressively: small changes get focused tests and relevant static checks; medium changes add targeted browser checks on affected routes; large or cross-cutting work uses focused checks during implementation and comprehensive regression, production-build, and required browser gates at major completion points. Responsive matrices are required when responsive behavior is affected, not by default for unrelated changes.
+- Batch large work by objective and affected files, then implement, run focused verification, and record concise progress. Do not expand scope or create planning documents for minor changes without a concrete need.
+- Efficiency never permits guessing instead of debugging, skipping security or necessary verification, ignoring failures, hiding errors, weakening Supabase authorization, removing required behavior, or claiming results without fresh evidence.
+
 ## Expert routing
 
 - **Architecture:** use `brainstorming`, then `writing-plans` for non-trivial work; apply `vercel-react-best-practices`; read the version-pinned guides in `node_modules/next/dist/docs/`; consult Context7 only when its tool is available in the current session.
@@ -29,11 +39,11 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 
 - Apply Superpowers skills only when relevant. Keep simple tasks lightweight; plan complex work; establish root cause before fixes; run fresh verification before completion claims.
 - Use subagents only when the user explicitly authorizes delegation and the current session exposes working multi-agent tools. Parallelize only independent tasks with non-overlapping write scopes. A skill installation alone does not enable delegation.
-- Never claim an MCP or external tool was used unless its call succeeded in the current session. At the audit baseline: 21st.dev requires authentication, Figma requires OAuth, Chrome DevTools is configured but runtime-unverified, and Context7 plus shadcn were protocol-tested but still require per-session tool verification. Fall back to local code, version-pinned docs, repository tests, and Playwright as appropriate, and report the limitation.
+- Never claim an MCP or external tool was used unless its call succeeded in the current session. Chrome DevTools, shadcn, Context7, and 21st.dev have passed real tool executions historically; this does not prove availability or authentication in a future session. Figma authentication has been set up, but runtime availability still requires an active-session check. Fall back to local code, version-pinned docs, repository tests, and Playwright as appropriate, and report relevant limitations.
 
 ## Repository protections
 
 - Never expose Supabase service-role keys or other secrets, weaken RLS or authorization, run destructive SQL against production, replace real production data with mocks, or overwrite unrelated changes.
 - Do not downgrade ESLint tooling to work around Next.js compatibility. Resolve versions using this repository's installed Next.js documentation and package constraints.
-- Preserve all seven existing migration files. `supabase/migrations/202610030005_production_security_hardening.sql` is currently an untracked deployment blocker and must be reviewed and deliberately applied to the target environment before release.
+- Preserve all seven existing migration files. The user confirmed `supabase/migrations/202610030005_production_security_hardening.sql` is present in Supabase migration history; review and track the local file and verify schema consistency, but do not automatically reapply it or claim release requires rerunning it without fresh evidence.
 - Do not claim builds, tests, MCP connectivity, deployment, or database state without fresh evidence. Follow [tests/e2e/AGENTS.md](./tests/e2e/AGENTS.md) for browser-test safety.

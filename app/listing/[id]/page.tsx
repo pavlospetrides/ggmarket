@@ -23,6 +23,17 @@ import { ReportButton } from "@/components/report-button";
 import { getUser } from "@/lib/auth";
 import { formatPrice, labelCondition } from "@/lib/constants";
 import { getFavoriteIds, getListing, getListingExtras } from "@/lib/data";
+import { formatTaxonomyAttribute, isDeprecatedTaxonomyAttribute } from "@/lib/gaming-taxonomy";
+
+const LISTING_ATTRIBUTE_ORDER = [
+  "product_name", "subcategory", "family", "platform", "model", "compatibility",
+  "manufacturer", "series", "exact_model", "socket", "chipset", "vram_gb",
+  "capacity_gb", "form_factor", "switch_type", "connection", "dpi", "genre",
+  "game_series", "release_year", "multiplayer", "pegi", "game_features",
+  "publisher", "edition", "packaging", "manuals", "region", "force_feedback", "pedals_included", "original_box",
+  "warranty", "intent", "wanted_budget_min",
+] as const;
+const listingAttributeRank = new Map<string, number>(LISTING_ATTRIBUTE_ORDER.map((key, index) => [key, index]));
 
 export async function generateMetadata({
   params,
@@ -53,45 +64,44 @@ export default async function ListingPage({
   ]);
   const budgetMin = Number(item.attributes.wanted_budget_min || 0);
   const priceLabel = item.attributes.intent === "wanted" && budgetMin > 0 ? `${formatPrice(budgetMin, item.currency)}–${formatPrice(item.price, item.currency)}` : formatPrice(item.price, item.currency);
+  const orderedAttributes = Object.entries(item.attributes)
+    .filter(([key]) => !key.startsWith("_") && key !== "taxonomy_version" && !isDeprecatedTaxonomyAttribute(key))
+    .sort(([left], [right]) => (listingAttributeRank.get(left) ?? Number.MAX_SAFE_INTEGER) - (listingAttributeRank.get(right) ?? Number.MAX_SAFE_INTEGER) || left.localeCompare(right));
   return (
-    <div className="container-page py-5 md:py-10">
+    <div className="container-page min-w-0 pt-5 pb-40 md:pt-10 md:pb-12">
       <ListingViewTracker listingId={id} />
-      <nav className="mb-5 flex items-center gap-2 text-xs font-medium text-[var(--muted)]" aria-label="Breadcrumb">
+      <nav className="mb-5 flex min-w-0 flex-wrap items-center gap-2 text-sm font-medium text-[var(--text-secondary)]" aria-label="Breadcrumb">
         <Link href="/marketplace" className="transition hover:text-white">Marketplace</Link> <span aria-hidden="true">/</span>
-        <Link href={`/marketplace?category=${item.category.slug}`}>
+        <Link href={`/marketplace?category=${item.category.slug}`} className="min-w-0 [overflow-wrap:anywhere] hover:text-white">
           {item.category.name}
         </Link>
       </nav>
       <div className="grid gap-7 lg:grid-cols-[minmax(0,1.28fr)_minmax(320px,.72fr)] lg:gap-9">
-        <div className="contents lg:block">
-          <div className="order-1 lg:order-none"><ListingGallery images={item.images} title={item.title} /></div>
-          <section className="order-3 mt-0 card p-5 sm:p-7 lg:mt-6">
+        <div className="contents lg:block lg:min-w-0">
+          <div className="order-1 min-w-0 lg:order-none"><ListingGallery images={item.images} title={item.title} /></div>
+          <section className="order-3 mt-0 min-w-0 rounded-[var(--radius-xl)] bg-[var(--surface)] p-5 sm:p-7 lg:mt-6">
             <h2 className="text-xl font-extrabold tracking-tight">About this item</h2>
-            <p className="mt-4 whitespace-pre-line leading-7 text-[var(--text-secondary)]">
+            <p className="mt-4 whitespace-pre-line leading-7 text-[var(--text-secondary)] [overflow-wrap:anywhere]">
               {item.description}
             </p>
             <h2 className="mt-8 text-xl font-bold">Specifications</h2>
-            {Object.keys(item.attributes).length ? (
-              <dl className="mt-4 grid grid-cols-2 overflow-hidden rounded-[var(--radius-md)] border border-[var(--border)] bg-[#0a0e15]">
-                {Object.entries(item.attributes)
-                  .filter(([key]) => !key.startsWith("_"))
-                  .map(([key, value]) => (
+            {orderedAttributes.length ? (
+              <dl className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-px overflow-hidden rounded-[var(--radius-md)] bg-[var(--border)]">
+                {orderedAttributes.map(([key, value]) => {
+                    const formatted = formatTaxonomyAttribute(key, value);
+                    return (
                     <div
                       key={key}
-                      className="border-b border-[var(--border)] p-3.5 last:border-0 odd:border-r"
+                      className="min-w-0 bg-[var(--surface-alt)] p-4"
                     >
-                      <dt className="text-xs capitalize text-[var(--muted)]">
-                        {key.replaceAll("_", " ")}
+                      <dt className="text-xs text-[var(--text-secondary)] [overflow-wrap:anywhere]">
+                        {formatted.label}
                       </dt>
-                      <dd className="mt-1 text-sm font-semibold">
-                        {typeof value === "boolean"
-                          ? value
-                            ? "Yes"
-                            : "No"
-                          : value}
+                      <dd className="mt-1 text-sm font-semibold [overflow-wrap:anywhere]">
+                        {formatted.value}
                       </dd>
                     </div>
-                  ))}
+                  ); })}
               </dl>
             ) : (
               <p className="mt-3 text-sm text-[var(--muted)]">
@@ -100,78 +110,79 @@ export default async function ListingPage({
             )}
           </section>
         </div>
-        <aside className="order-2 lg:order-none">
-          <div className="surface-panel p-5 lg:sticky lg:top-20 lg:p-6">
+        <aside className="order-2 min-w-0 lg:order-none">
+          <div className="min-w-0 rounded-[var(--radius-xl)] bg-[var(--surface)] p-5 lg:sticky lg:top-20 lg:p-6">
             <div className="flex items-start gap-3">
-              <div className="flex-1">
+              <div className="min-w-0 flex-1">
                 <p className="badge w-fit capitalize">
                   {labelCondition(item.condition)}
                 </p>
-                <h1 className="mt-3 text-2xl font-[850] leading-tight tracking-[-.04em] sm:text-3xl">
+                <h1 className="mt-3 text-[clamp(2.25rem,4vw,3rem)] font-[850] leading-[1.05] tracking-[-.04em] [overflow-wrap:anywhere]">
                   {item.title}
                 </h1>
               </div>
               <FavoriteButton
                 listingId={item.id}
                 initialFavorite={isFavorite}
+                className="shrink-0"
               />
             </div>
-            <p className="price mt-5 text-4xl">
+            <p className="price mt-5 text-[clamp(2rem,4vw,2.5rem)] tabular-nums [overflow-wrap:anywhere]">
               {priceLabel}
             </p>
-            <div className="mt-4 flex flex-wrap gap-x-4 gap-y-2 text-xs text-[var(--muted)]">
-              <span className="inline-flex items-center gap-1">
-                <MapPin className="size-3.5" />
-                {item.location}
+            <div className="mt-4 flex min-w-0 flex-wrap gap-x-4 gap-y-2 text-xs text-[var(--text-secondary)]">
+              <span className="inline-flex min-w-0 items-start gap-1">
+                <MapPin className="size-3.5 shrink-0" aria-hidden="true" />
+                <span className="min-w-0 [overflow-wrap:anywhere]">{item.location}</span>
               </span>
               <span className="inline-flex items-center gap-1">
-                <CalendarDays className="size-3.5" />
+                <CalendarDays className="size-3.5 shrink-0" aria-hidden="true" />
                 {new Date(item.createdAt).toLocaleDateString()}
               </span>
               <span className="inline-flex items-center gap-1">
-                <Eye className="size-3.5" />
+                <Eye className="size-3.5 shrink-0" aria-hidden="true" />
                 {item.views} views
               </span>
             </div>
             <div className="divider my-6" />
             <Link
               href={`/profile/${item.seller.username}`}
-              className="flex items-center gap-3 rounded-[var(--radius-md)] border border-transparent p-2 transition hover:border-[var(--border)] hover:bg-[var(--surface-alt)]"
+              className="flex min-w-0 items-center gap-3 rounded-[var(--radius-md)] p-2 transition-colors hover:bg-[var(--surface-alt)]"
             >
-              <span className="grid size-12 place-items-center rounded-full border border-white/10 bg-gradient-to-br from-[#7458e9] to-[#2b739e] font-extrabold shadow-md">
-                {item.seller.displayName[0]}
+              <span className="grid size-12 shrink-0 place-items-center rounded-full bg-[var(--surface-elevated)] font-extrabold text-[var(--primary-hover)]" aria-hidden="true">
+                {item.seller.displayName[0] || "?"}
               </span>
-              <span>
-                <span className="flex items-center gap-1 font-bold">
-                  {item.seller.displayName}
+              <span className="min-w-0 flex-1">
+                <span className="flex min-w-0 items-start gap-1.5 font-bold">
+                  <span className="min-w-0 [overflow-wrap:anywhere]">{item.seller.displayName}</span>
                   {item.seller.verified && (
-                    <BadgeCheck className="size-4 text-[var(--success)]" />
+                    <BadgeCheck className="mt-1 size-4 shrink-0 text-[var(--success)]" aria-label="Verified seller" />
                   )}
                 </span>
                 {item.seller.reviewCount > 0 && (
-                  <span className="mt-1 flex items-center gap-1 text-xs text-[var(--muted)]">
-                    <Star className="size-3 fill-[#f8bf4b] text-[#f8bf4b]" />{" "}
+                  <span className="mt-1 flex flex-wrap items-center gap-1 text-xs text-[var(--text-secondary)]">
+                    <Star className="size-3 shrink-0 fill-[#f8bf4b] text-[#f8bf4b]" aria-hidden="true" />{" "}
                     {item.seller.rating.toFixed(1)} · {item.seller.reviewCount}{" "}
                     reviews
                   </span>
                 )}
               </span>
             </Link>
-            <div className="mt-5 space-y-2 text-sm text-[#bec4d0]">
+            <div className="mt-5 space-y-2 text-sm text-[var(--text-secondary)]">
               {item.shipping && (
                 <p className="flex items-center gap-2">
-                  <PackageCheck className="size-4 text-[var(--success)]" />{" "}
+                  <PackageCheck className="size-4 shrink-0 text-[var(--success)]" aria-hidden="true" />{" "}
                   Shipping available
                 </p>
               )}
               {item.meetup && (
                 <p className="flex items-center gap-2">
-                  <MapPin className="size-4 text-[var(--success)]" /> Local
+                  <MapPin className="size-4 shrink-0 text-[var(--success)]" aria-hidden="true" /> Local
                   meetup available
                 </p>
               )}
               <p className="flex items-center gap-2">
-                <ShieldCheck className="size-4 text-[#9c87ff]" /> Verify the
+                <ShieldCheck className="size-4 shrink-0 text-[var(--primary-hover)]" aria-hidden="true" /> Verify the
                 item before paying
               </p>
             </div>
@@ -193,9 +204,9 @@ export default async function ListingPage({
                 }
               />
             )}
-            <div className="mt-4 flex items-center justify-center gap-4">
-              <span className="inline-flex min-h-11 items-center gap-1 text-sm text-[var(--muted)]">
-                <Heart className="size-4" /> {extras.favoriteCount}
+            <div className="mt-4 flex flex-wrap items-center justify-center gap-x-3 gap-y-1">
+              <span className="inline-flex min-h-11 items-center gap-1 text-sm tabular-nums text-[var(--text-secondary)]" aria-label={`${extras.favoriteCount} favorites`}>
+                <Heart className="size-4 shrink-0" aria-hidden="true" /> {extras.favoriteCount}
               </span>
               <ListingClientTools title={item.title} />
               <ReportButton listingId={item.id} />
@@ -204,13 +215,12 @@ export default async function ListingPage({
         </aside>
       </div>
       {extras.priceInsight && (
-        <section className="mt-10 card p-6 sm:p-7">
-          <p className="eyebrow">Price intelligence</p>
-          <h2 className="mt-2 text-xl font-bold">
-            Current asking-price context
+        <section className="mt-10 min-w-0 rounded-[var(--radius-xl)] bg-[var(--surface)] p-5 sm:p-7">
+          <h2 className="text-xl font-bold">
+            Price intelligence & asking-price context
           </h2>
-          <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
-            <div className="rounded-xl border border-[var(--border)] bg-[#0a0e15] p-3">
+          <div className="mt-5 grid grid-cols-1 gap-3 min-[390px]:grid-cols-2 sm:grid-cols-4 [&>div]:min-w-0 [&_strong]:tabular-nums [&_strong]:[overflow-wrap:anywhere]">
+            <div className="rounded-xl bg-[var(--surface-alt)] p-4">
               <span className="text-xs text-[var(--muted)]">
                 Typical listed range
               </span>
@@ -219,13 +229,13 @@ export default async function ListingPage({
                 {formatPrice(extras.priceInsight.max)}
               </strong>
             </div>
-            <div className="rounded-xl border border-[var(--border)] bg-[#0a0e15] p-3">
+            <div className="rounded-xl bg-[var(--surface-alt)] p-4">
               <span className="text-xs text-[var(--muted)]">Median asking</span>
               <strong className="mt-1 block">
                 {formatPrice(extras.priceInsight.median)}
               </strong>
             </div>
-            <div className="rounded-xl border border-[var(--border)] bg-[#0a0e15] p-3">
+            <div className="rounded-xl bg-[var(--surface-alt)] p-4">
               <span className="text-xs text-[var(--muted)]">
                 Average asking
               </span>
@@ -233,7 +243,7 @@ export default async function ListingPage({
                 {formatPrice(extras.priceInsight.average)}
               </strong>
             </div>
-            <div className="rounded-xl border border-[var(--border)] bg-[#0a0e15] p-3">
+            <div className="rounded-xl bg-[var(--surface-alt)] p-4">
               <span className="text-xs text-[var(--muted)]">Available</span>
               <strong className="mt-1 block">
                 {extras.priceInsight.available}
@@ -262,8 +272,8 @@ export default async function ListingPage({
           </div>
         </section>
       )}
-      <div className="fixed inset-x-0 bottom-[calc(64px+env(safe-area-inset-bottom))] z-40 flex items-center gap-3 border-t border-white/[.08] bg-[#090c12ed] p-3 shadow-[0_-14px_34px_rgba(0,0,0,.28)] backdrop-blur-2xl md:hidden">
-        <strong className="price mr-auto text-xl">
+      <div data-listing-actions="mobile" className="fixed inset-x-0 bottom-[calc(78px+env(safe-area-inset-bottom))] z-40 flex flex-wrap items-center gap-3 border-t border-[var(--border)] bg-[var(--surface)] px-[max(1rem,env(safe-area-inset-left))] py-3 pr-[max(1rem,env(safe-area-inset-right))] shadow-[0_-8px_24px_rgba(0,0,0,.2)] md:hidden"> {/* taste-skill-ignore: fixed mobile action bar is a real overlay */}
+        <strong className="price min-w-0 flex-1 basis-28 text-xl tabular-nums [overflow-wrap:anywhere]">
           {priceLabel}
         </strong>
         {user?.id !== item.seller.id && (

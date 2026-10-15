@@ -1,0 +1,114 @@
+- generic:
+  - link [aria-hidden]:
+    - /url: "#main-content"
+    - text: Skip to content
+  - banner [aria-hidden]:
+    - generic:
+      - link:
+        - /url: /
+        - generic [aria-hidden]: GG
+        - generic: GGMarket
+      - navigation:
+        - link:
+          - /url: /marketplace
+          - text: Marketplace
+        - link:
+          - /url: /browse
+          - text: Browse
+      - generic:
+        - generic: Search marketplace
+        - generic:
+          - textbox:
+            - /placeholder: Search gaming gear…
+          - generic: /
+      - generic:
+        - generic:
+          - button
+        - link:
+          - /url: /messages
+        - link:
+          - /url: /favorites
+        - link:
+          - /url: /profile
+        - link:
+          - /url: /sell
+          - text: Sell
+  - main [aria-hidden]:
+    - generic:
+      - navigation:
+        - link:
+          - /url: /marketplace
+          - text: Marketplace
+        - generic [aria-hidden]: /
+        - link:
+          - /url: /marketplace?category=consoles
+          - text: Consoles
+      - generic:
+        - generic:
+          - generic:
+            - generic:
+              - generic:
+                - button
+                - button
+                - button
+                - generic: 1 / 2
+              - generic:
+                - button
+                - button
+          - generic:
+            - heading [level=2]: About this item
+            - paragraph: in very good condition
+            - heading [level=2]: Specifications
+            - generic:
+              - generic:
+                - term: warranty
+                - definition: "Yes"
+              - generic:
+                - term: original box
+                - definition: "Yes"
+        - complementary:
+          - generic:
+            - generic:
+              - generic:
+                - paragraph: Like new
+                - heading [level=1]: Ps5 sli
+              - generic:
+                - button
+            - paragraph: €500
+            - generic:
+              - generic: Limassol
+              - generic: 01/10/2026
+              - generic: 0 views
+            - link:
+              - /url: /profile/pavlaras
+              - generic: p
+              - generic: pavlospetrides741
+            - generic:
+              - paragraph: Shipping available
+              - paragraph: Local meetup available
+              - paragraph: Verify the item before paying
+            - generic:
+              - button: Message seller
+            - generic:
+              - generic: "1"
+              - button: Share
+              - button [expanded]: Report listing
+  - alert
+  - dialog [ref=e128]:
+    - heading "Report listing" [level=2] [ref=e129]
+    - paragraph [ref=e130]: Tell us what is wrong with this listing. Our moderation team will review your report.
+    - generic [ref=e131]:
+      - generic [ref=e132]:
+        - generic [ref=e133]: Reason
+        - combobox "Reason" [active] [ref=e134] [cursor=pointer]:
+          - option "Scam or fraud" [selected]
+          - option "Prohibited item"
+          - option "Misleading information"
+          - option "Duplicate"
+          - option "Spam"
+          - option "Other"
+      - generic [ref=e135]:
+        - generic [ref=e136]: Details (optional)
+        - textbox "Details (optional)" [ref=e137]
+      - button "Submit report" [ref=e138] [cursor=pointer]
+    - button "Close report dialog" [ref=e139] [cursor=pointer]

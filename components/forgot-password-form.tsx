@@ -26,7 +26,7 @@ export function ForgotPasswordForm() {
   }
 
   return (
-    <form onSubmit={submit} className="space-y-4">
+    <form onSubmit={submit} className="space-y-4" aria-busy={busy}>
       <div>
         <label className="label" htmlFor="email">
           Email
@@ -41,11 +41,11 @@ export function ForgotPasswordForm() {
         />
       </div>
       {status && (
-        <p className="text-sm text-[var(--muted)]" role="status">
+        <p className="text-sm text-[var(--text-secondary)]" role="status" aria-live="polite">
           {status}
         </p>
       )}
-      <button disabled={busy} className="btn-primary w-full">
+      <button type="submit" disabled={busy} className="btn-primary w-full">
         {busy ? "Sending…" : "Send reset link"}
       </button>
     </form>

@@ -37,17 +37,18 @@ export function MessageSellerButton({
     }
   }
   return (
-    <span className={compact ? "" : "block"}>
+    <span className={compact ? "min-w-0 flex-1 basis-28" : "block min-w-0"}>
       <button
         type="button"
         onClick={start}
         disabled={busy}
-        className={`btn-primary ${compact ? "" : "mt-6 w-full"}`}
+        aria-busy={busy}
+        className={`btn-primary min-w-0 w-full ${compact ? "px-3" : "mt-6"}`}
       >
-        <MessageCircle className="size-4" /> {busy ? "Opening…" : label}
+        <MessageCircle className="size-4 shrink-0" aria-hidden="true" /> <span className="min-w-0 [overflow-wrap:anywhere]">{busy ? "Opening…" : label}</span>
       </button>
       {error && (
-        <span role="alert" className="mt-2 block text-xs text-[var(--danger)]">
+        <span role="alert" className="mt-2 block text-xs text-[var(--danger)] [overflow-wrap:anywhere]">
           {error}
         </span>
       )}

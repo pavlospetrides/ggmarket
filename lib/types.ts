@@ -1,5 +1,7 @@
 export type ListingCondition = "new" | "like_new" | "good" | "fair" | "parts";
 export type ListingStatus = "draft" | "active" | "reserved" | "sold" | "removed";
+export type AttributeValue = string | number | boolean | string[];
+export type ListingAttributes = Record<string, AttributeValue>;
 
 export type Category = { id: string; name: string; slug: string; icon: string };
 export type Seller = {
@@ -12,10 +14,16 @@ export type Listing = {
   currency: string; location: string; condition: ListingCondition; status: ListingStatus;
   category: Category; images: string[]; seller: Seller; createdAt: string;
   views: number; shipping: boolean; meetup: boolean; featured?: boolean;
-  belowMarket?: boolean; attributes: Record<string, string | number | boolean>;
+  belowMarket?: boolean; attributes: ListingAttributes;
   favoriteCount?: number; isFavorite?: boolean;
   imageRecords?: { id: string; path: string; url: string }[];
 };
 
 export type Review = { id: string; rating: number; comment?: string; createdAt: string; reviewerName: string };
 export type ListingQuery = Record<string, string | string[] | undefined>;
+export type PaginatedListings = {
+  items: Listing[];
+  total: number;
+  page: number;
+  pageSize: number;
+};

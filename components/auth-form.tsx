@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
+import { CircleCheck } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useState, useSyncExternalStore, type FormEvent } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore, type FormEvent } from "react";
 import { safeRedirectPath } from "@/lib/security";
 import { createClient } from "@/lib/supabase/client";
 
@@ -14,11 +15,16 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
+  const errorRef = useRef<HTMLParagraphElement>(null);
   const hydrated = useSyncExternalStore(
     subscribeHydration,
     () => true,
     () => false,
   );
+
+  useEffect(() => {
+    if (error) errorRef.current?.focus();
+  }, [error]);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -68,11 +74,11 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
   if (success) {
     return (
       <div className="text-center">
-        <div className="mx-auto grid size-14 place-items-center rounded-full bg-[#143926] text-2xl text-[var(--success)]">
-          ✓
+        <div className="mx-auto grid size-14 place-items-center rounded-full bg-[#143926] text-[var(--success)]">
+          <CircleCheck className="size-7" />
         </div>
         <h2 className="mt-4 text-xl font-bold">Check your inbox</h2>
-        <p className="mt-2 text-sm text-[var(--muted)]">
+        <p className="mt-2 text-base leading-7 text-[var(--text-secondary)]">
           We sent you a confirmation link to finish creating your account.
         </p>
       </div>
@@ -80,7 +86,7 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
   }
 
   return (
-    <form onSubmit={submit} className="space-y-4">
+    <form onSubmit={submit} className="space-y-4" aria-busy={loading}>
       {mode === "register" && (
         <div>
           <label className="label" htmlFor="username">
@@ -91,9 +97,11 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
             id="username"
             name="username"
             autoComplete="username"
+            spellCheck={false}
             minLength={3}
             maxLength={24}
             pattern="[a-zA-Z0-9_.]+"
+            aria-describedby={error ? "auth-form-error" : undefined}
             required
           />
         </div>
@@ -108,6 +116,8 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
           name="email"
           type="email"
           autoComplete="email"
+          spellCheck={false}
+          aria-describedby={error ? "auth-form-error" : undefined}
           required
         />
       </div>
@@ -132,18 +142,22 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
           type="password"
           autoComplete={mode === "login" ? "current-password" : "new-password"}
           minLength={8}
+          aria-describedby={error ? "auth-form-error" : undefined}
           required
         />
       </div>
       {error && (
         <p
+          id="auth-form-error"
+          ref={errorRef}
+          tabIndex={-1}
           role="alert"
           className="rounded-xl border border-[#5d2931] bg-[#29151a] p-3 text-sm text-[#ff9ca6]"
         >
           {error}
         </p>
       )}
-      <button disabled={loading || !hydrated} className="btn-primary w-full">
+      <button type="submit" disabled={loading || !hydrated} className="btn-primary w-full">
         {loading
           ? "Please wait…"
           : mode === "login"

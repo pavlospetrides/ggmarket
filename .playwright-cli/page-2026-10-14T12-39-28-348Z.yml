@@ -1,0 +1,86 @@
+- generic [active] [ref=e1]:
+  - link "Skip to content" [ref=e2] [cursor=pointer]:
+    - /url: "#main-content"
+  - banner [ref=e3]:
+    - generic [ref=e4]:
+      - link "GGMarket" [ref=e5] [cursor=pointer]:
+        - /url: /
+        - generic [aria-hidden] [ref=e6]: GG
+      - navigation "Main navigation" [ref=e8]:
+        - link "Marketplace" [ref=e9] [cursor=pointer]:
+          - /url: /marketplace
+        - link "Browse" [ref=e10] [cursor=pointer]:
+          - /url: /browse
+      - generic [ref=e11]:
+        - generic [ref=e12]: Search marketplace
+        - generic [ref=e13]:
+          - textbox "Search marketplace" [ref=e14]:
+            - /placeholder: Search gaming gear…
+          - generic: /
+      - generic [ref=e15]:
+        - button "Notifications" [ref=e17]
+        - link "Messages" [ref=e21] [cursor=pointer]:
+          - /url: /messages
+        - link "Favorites" [ref=e24] [cursor=pointer]:
+          - /url: /favorites
+        - link "Profile" [ref=e27] [cursor=pointer]:
+          - /url: /profile
+        - link "Sell" [ref=e31] [cursor=pointer]:
+          - /url: /sell
+  - main [ref=e32]:
+    - generic [ref=e33]:
+      - navigation "Breadcrumb" [ref=e34]:
+        - link "Marketplace" [ref=e35] [cursor=pointer]:
+          - /url: /marketplace
+        - generic [aria-hidden] [ref=e36]: /
+        - link "Consoles" [ref=e37] [cursor=pointer]:
+          - /url: /marketplace?category=consoles
+      - generic [ref=e38]:
+        - generic [ref=e39]:
+          - generic [ref=e41]:
+            - generic [ref=e42]:
+              - button "Open full-screen gallery" [ref=e43]:
+                - img "Ps5 sli — image 1" [ref=e44]
+              - button "Previous image" [ref=e45] [cursor=pointer]
+              - button "Next image" [ref=e48] [cursor=pointer]
+              - generic: 1 / 2
+            - generic [ref=e51]:
+              - button "View image 1" [ref=e52]
+              - button "View image 2" [ref=e53]
+          - generic [ref=e54]:
+            - heading "About this item" [level=2] [ref=e55]
+            - paragraph [ref=e56]: in very good condition
+            - heading "Specifications" [level=2] [ref=e57]
+            - generic [ref=e58]:
+              - generic [ref=e59]:
+                - term [ref=e60]: warranty
+                - definition [ref=e61]: "Yes"
+              - generic [ref=e62]:
+                - term [ref=e63]: original box
+                - definition [ref=e64]: "Yes"
+        - complementary [ref=e65]:
+          - generic [ref=e66]:
+            - generic [ref=e67]:
+              - generic [ref=e68]:
+                - paragraph [ref=e69]: Like new
+                - heading "Ps5 sli" [level=1] [ref=e70]
+              - button "Add to favorites" [ref=e72]
+            - paragraph [ref=e75]: €500
+            - generic [ref=e76]:
+              - generic [ref=e77]: Limassol
+              - generic [ref=e81]: 01/10/2026
+              - generic [ref=e84]: 0 views
+            - link "p pavlospetrides741" [ref=e89] [cursor=pointer]:
+              - /url: /profile/pavlaras
+              - generic [ref=e90]: p
+              - generic [ref=e91]: pavlospetrides741
+            - generic [ref=e93]:
+              - paragraph [ref=e94]: Shipping available
+              - paragraph [ref=e100]: Local meetup available
+              - paragraph [ref=e104]: Verify the item before paying
+            - button "Message seller" [ref=e109] [cursor=pointer]
+            - generic [ref=e112]:
+              - generic [ref=e113]: "1"
+              - button "Share" [ref=e116]
+              - button "Report listing" [ref=e123]
+  - alert [ref=e126]

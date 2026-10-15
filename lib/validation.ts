@@ -1,5 +1,17 @@
 import { z } from "zod";
 
+const attributeValueSchema = z.union([
+  z.string().max(500),
+  z.number().finite(),
+  z.boolean(),
+  z.array(z.string().min(1).max(120)).min(1).max(32),
+]);
+const listingAttributesSchema = z.record(z.string().max(80), attributeValueSchema).superRefine((attributes, context) => {
+  for (const [key, value] of Object.entries(attributes)) {
+    if (Array.isArray(value) && key !== "compatibility") context.addIssue({ code: "custom", path: [key], message: "Only compatibility can contain multiple values." });
+  }
+});
+
 export const listingSchema = z
   .object({
     title: z.string().trim().min(6).max(120),
@@ -11,10 +23,7 @@ export const listingSchema = z
     location: z.string().trim().min(2).max(120),
     shipping: z.boolean(),
     meetup: z.boolean(),
-    attributes: z.record(
-      z.string(),
-      z.union([z.string(), z.number(), z.boolean()]),
-    ),
+    attributes: listingAttributesSchema,
     requestId: z.string().uuid(),
   })
   .strict()
@@ -33,6 +42,9 @@ export const listingUpdateSchema = z
     shipping: z.boolean(),
     meetup: z.boolean(),
     status: z.enum(["draft", "active", "reserved", "sold", "removed"]),
+    categoryId: z.string().uuid().optional(),
+    productName: z.string().trim().min(2).max(160).optional(),
+    attributes: listingAttributesSchema.optional(),
   })
   .strict()
   .refine((value) => value.shipping || value.meetup, {

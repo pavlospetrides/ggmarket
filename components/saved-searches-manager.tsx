@@ -28,71 +28,109 @@ export function SavedSearchesManager({
   const [error, setError] = useState("");
   const [editingId, setEditingId] = useState<string | null>(null);
   const [draftName, setDraftName] = useState("");
+  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
+  const [createBusy, setCreateBusy] = useState(false);
+  const [busyId, setBusyId] = useState<string | null>(null);
   async function create(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (createBusy) return;
     setError("");
+    setCreateBusy(true);
     const form = event.currentTarget;
     const data = new FormData(form);
-    const response = await fetch("/api/saved-searches", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({
-        name: data.get("name"),
-        searchTerm: data.get("searchTerm") || null,
-        categoryId: data.get("categoryId") || null,
-        intent: data.get("intent") || null,
-        minPrice: data.get("minPrice") ? Number(data.get("minPrice")) : null,
-        maxPrice: data.get("maxPrice") ? Number(data.get("maxPrice")) : null,
-        location: data.get("location") || null,
-        enabled: true,
-      }),
-    });
-    const result = await response.json();
-    if (!response.ok) {
-      setError(result.error);
-      return;
+    try {
+      const response = await fetch("/api/saved-searches", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          name: data.get("name"),
+          searchTerm: data.get("searchTerm") || null,
+          categoryId: data.get("categoryId") || null,
+          intent: data.get("intent") || null,
+          minPrice: data.get("minPrice") ? Number(data.get("minPrice")) : null,
+          maxPrice: data.get("maxPrice") ? Number(data.get("maxPrice")) : null,
+          location: data.get("location") || null,
+          enabled: true,
+        }),
+      });
+      const result = await response.json();
+      if (!response.ok) {
+        setError(result.error || "The alert could not be created. Try again.");
+        return;
+      }
+      form.reset();
+      setItems((current) => [result as SavedSearch, ...current]);
+      router.refresh();
+    } catch {
+      setError("The alert could not be created. Try again.");
+    } finally {
+      setCreateBusy(false);
     }
-    form.reset();
-    setItems((current) => [result as SavedSearch, ...current]);
-    router.refresh();
   }
   async function toggle(item: SavedSearch) {
-    const response = await fetch(`/api/saved-searches/${item.id}`, {
-      method: "PATCH",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ enabled: !item.enabled }),
-    });
-    if (response.ok)
+    if (busyId) return;
+    setError("");
+    setBusyId(item.id);
+    try {
+      const response = await fetch(`/api/saved-searches/${item.id}`, {
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ enabled: !item.enabled }),
+      });
+      if (!response.ok) throw new Error("Request failed");
       setItems((current) =>
         current.map((value) =>
           value.id === item.id ? { ...value, enabled: !value.enabled } : value,
         ),
       );
+    } catch {
+      setError("The alert could not be updated. Try again.");
+    } finally {
+      setBusyId(null);
+    }
   }
   async function rename(item: SavedSearch) {
     const name = draftName.trim();
     if (!name) return;
     if (name === item.name) { setEditingId(null); return; }
-    const response = await fetch(`/api/saved-searches/${item.id}`, {
-      method: "PATCH",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ name }),
-    });
-    if (response.ok)
+    if (busyId) return;
+    setError("");
+    setBusyId(item.id);
+    try {
+      const response = await fetch(`/api/saved-searches/${item.id}`, {
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ name }),
+      });
+      if (!response.ok) throw new Error("Request failed");
       setItems((current) =>
         current.map((value) =>
           value.id === item.id ? { ...value, name } : value,
         ),
       );
-    else setError("The alert could not be updated.");
-    setEditingId(null);
+      setEditingId(null);
+    } catch {
+      setError("The alert could not be updated. Try again.");
+    } finally {
+      setBusyId(null);
+    }
   }
   async function remove(id: string) {
-    const response = await fetch(`/api/saved-searches/${id}`, {
-      method: "DELETE",
-    });
-    if (response.ok)
+    if (busyId) return;
+    setError("");
+    setBusyId(id);
+    try {
+      const response = await fetch(`/api/saved-searches/${id}`, {
+        method: "DELETE",
+      });
+      if (!response.ok) throw new Error("Request failed");
       setItems((current) => current.filter((item) => item.id !== id));
+      setPendingDeleteId(null);
+    } catch {
+      setError("The alert could not be deleted. Try again.");
+    } finally {
+      setBusyId(null);
+    }
   }
   return (
     <div className="grid gap-6 lg:grid-cols-[.8fr_1.2fr]">
@@ -173,12 +211,12 @@ export function SavedSearchesManager({
           aria-label="Location"
         />
         {error && (
-          <p role="alert" className="text-sm text-[var(--danger)]">
+          <p role="alert" aria-live="polite" className="text-sm text-[var(--danger)]">
             {error}
           </p>
         )}
-        <button className="btn-primary w-full">
-          <Plus className="size-4" /> Create alert
+        <button disabled={createBusy} className="btn-primary w-full">
+          <Plus className="size-4" /> {createBusy ? "Creating…" : "Create alert"}
         </button>
       </form>
       <section>
@@ -187,16 +225,16 @@ export function SavedSearchesManager({
             items.map((item) => (
               <article
                 key={item.id}
-                className="card card-interactive flex flex-wrap items-center gap-3 p-4 sm:gap-4 sm:p-5"
+                className="card card-interactive grid min-w-0 grid-cols-[auto_minmax(0,1fr)] items-center gap-3 overflow-hidden p-4 sm:p-5"
               >
                 <span
                   className={`grid size-11 place-items-center rounded-xl ${item.enabled ? "bg-[#213729] text-[var(--success)]" : "bg-[var(--surface-2)] text-[var(--muted)]"}`}
                 >
-                  <BellRing className="size-5" />
+                  <BellRing className="size-5" aria-hidden="true" />
                 </span>
                 <div className="min-w-0 flex-1">
-                  {editingId === item.id ? <div className="flex gap-2"><label className="sr-only" htmlFor={`rename-${item.id}`}>Edit alert name</label><input id={`rename-${item.id}`} className="input min-h-10 py-2" value={draftName} maxLength={80} autoFocus onChange={(event) => setDraftName(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") { event.preventDefault(); void rename(item); } if (event.key === "Escape") setEditingId(null); }} /><button type="button" className="icon-btn size-10 min-h-10" onClick={() => void rename(item)} aria-label="Save alert name"><Check className="size-4" /></button><button type="button" className="icon-btn size-10 min-h-10" onClick={() => setEditingId(null)} aria-label="Cancel rename"><X className="size-4" /></button></div> : <h2 className="font-bold">{item.name}</h2>}
-                  <p className="mt-1 truncate text-sm text-[var(--muted)]">
+                  {editingId === item.id ? <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto_auto] gap-2"><label className="sr-only" htmlFor={`rename-${item.id}`}>Edit alert name</label><input id={`rename-${item.id}`} className="input min-h-10 min-w-0 py-2" value={draftName} maxLength={80} autoFocus disabled={busyId === item.id} onChange={(event) => setDraftName(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") { event.preventDefault(); void rename(item); } if (event.key === "Escape" && !busyId) setEditingId(null); }} /><button type="button" disabled={busyId === item.id} className="icon-btn size-10 min-h-10" onClick={() => void rename(item)} aria-label="Save alert name"><Check className="size-4" aria-hidden="true" /></button><button type="button" disabled={busyId === item.id} className="icon-btn size-10 min-h-10" onClick={() => setEditingId(null)} aria-label="Cancel rename"><X className="size-4" aria-hidden="true" /></button></div> : <h2 className="min-w-0 font-bold [overflow-wrap:anywhere]">{item.name}</h2>}
+                  <p className="mt-1 line-clamp-2 text-sm text-[var(--muted)] [overflow-wrap:anywhere]">
                     {[
                       item.search_term,
                       item.intent?.replaceAll("_", " "),
@@ -206,29 +244,20 @@ export function SavedSearchesManager({
                       .join(" · ") || "All matching listings"}
                   </p>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => { setEditingId(item.id); setDraftName(item.name); }}
-                  className="icon-btn border-transparent bg-transparent"
-                  aria-label={`Rename ${item.name}`}
-                >
-                  <Pencil className="size-4" />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => toggle(item)}
-                  className="btn-secondary"
-                >
-                  {item.enabled ? "Pause" : "Enable"}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => remove(item.id)}
-                  className="icon-btn border-transparent bg-transparent text-[var(--danger)]"
-                  aria-label={`Delete ${item.name}`}
-                >
-                  <Trash2 className="size-4" />
-                </button>
+                <div className="col-span-2 grid min-w-0 grid-cols-[auto_1fr_auto] gap-2 sm:flex sm:justify-end">
+                  <button type="button" disabled={busyId !== null} onClick={() => { setEditingId(item.id); setDraftName(item.name); }} className="icon-btn border-transparent bg-transparent" aria-label={`Rename ${item.name}`}><Pencil className="size-4" aria-hidden="true" /></button>
+                  <button type="button" disabled={busyId !== null} onClick={() => void toggle(item)} className="btn-secondary min-w-0">{item.enabled ? "Pause" : "Enable"}</button>
+                  <button type="button" disabled={busyId !== null} onClick={() => setPendingDeleteId(item.id)} className="icon-btn border-transparent bg-transparent text-[var(--danger)]" aria-label={`Delete ${item.name}`}><Trash2 className="size-4" aria-hidden="true" /></button>
+                </div>
+                {pendingDeleteId === item.id ? (
+                  <div className="col-span-2 rounded-[var(--radius-md)] bg-[#2e1b24] p-3" role="alert">
+                    <p className="text-sm text-[#ffc1c7]">Delete this alert? This cannot be undone.</p>
+                    <div className="mt-3 grid grid-cols-2 gap-2">
+                      <button type="button" className="btn-secondary" disabled={busyId === item.id} onClick={() => setPendingDeleteId(null)}>Cancel delete</button>
+                      <button type="button" className="btn-danger" disabled={busyId === item.id} onClick={() => void remove(item.id)}>Confirm delete</button>
+                    </div>
+                  </div>
+                ) : null}
               </article>
             ))
           ) : (
