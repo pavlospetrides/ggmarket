@@ -1,8 +1,9 @@
 import Link from "next/link";
+import { BrandMark } from "./brand-mark";
 
-export function Logo() {
-  return <Link href="/" className="group inline-flex items-center gap-2.5 text-xl font-[850] tracking-[-.045em]" aria-label="GGMarket home">
-    <span className="grid size-9 place-items-center rounded-xl border border-white/15 bg-gradient-to-br from-[#9378ff] to-[#6547e9] text-[13px] font-black shadow-[0_7px_24px_rgba(105,73,238,.3)] transition-transform group-hover:-rotate-3 group-hover:scale-105">GG</span>
-    <span>GG<span className="text-[var(--text-secondary)]">Market</span></span>
+export function Logo({ compact = false }: { compact?: boolean }) {
+  return <Link href="/" aria-label="GGMarket home" className="group inline-flex min-h-11 items-center gap-2.5 text-[1.05rem] font-[820] tracking-[-.055em] text-white" translate="no">
+    <BrandMark className="size-9 shrink-0 transition-transform duration-200 group-hover:scale-[1.045]" />
+    {!compact && <span className="whitespace-nowrap">GG<span className="font-[650] text-[var(--text-secondary)]">Market</span></span>}
   </Link>;
 }

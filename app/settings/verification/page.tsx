@@ -1,5 +1,20 @@
 import { ItemVerification } from "@/components/item-verification";
+import { EmailVerificationCard } from "@/components/email-verification-card";
+import { PageMasthead } from "@/components/page-masthead";
 import { requireUser } from "@/lib/auth";
 import { getOwnListings } from "@/lib/data";
 
-export default async function VerificationPage() { const user = await requireUser("/settings/verification"); const listings = (await getOwnListings(user.id)).filter((item) => item.status === "active").map((item) => ({ id: item.id, title: item.title })); return <div className="container-page max-w-3xl py-8 md:py-12"><div className="page-header"><p className="eyebrow">Trust and safety</p><h1 className="page-title">Verification</h1><p className="page-description">Build buyer confidence without exposing sensitive identity documents.</p></div><div className="grid gap-5"><section className="card p-6"><h2 className="font-bold">Account verification</h2><dl className="mt-4 grid gap-3 text-sm"><div className="flex justify-between gap-4"><dt>Email</dt><dd className="text-right text-[var(--success)]">Managed by Supabase Auth</dd></div><div className="flex justify-between gap-4"><dt>Phone</dt><dd className="text-right text-[var(--muted)]">Not configured</dd></div><div className="flex justify-between gap-4"><dt>Identity</dt><dd className="text-right text-[var(--muted)]">Requires an approved external provider</dd></div><div className="flex justify-between gap-4"><dt>Business</dt><dd className="text-right text-[var(--muted)]">Manual review required</dd></div></dl><p className="mt-4 text-xs text-[var(--muted)]">GGMarket does not store identity documents in this application.</p></section><ItemVerification listings={listings} /></div></div>; }
+export default async function VerificationPage({ searchParams }: { searchParams: Promise<{ status?: string }> }) {
+  const user = await requireUser("/settings/verification");
+  const { status } = await searchParams;
+  const listings = (await getOwnListings(user.id))
+    .filter((item) => item.status === "active")
+    .map((item) => ({ id: item.id, title: item.title }));
+  return <div className="container-page min-w-0 max-w-3xl pb-28 pt-8 md:pb-12 md:pt-12">
+    <PageMasthead eyebrow="Trust and safety" title="Verification" description="Build buyer confidence without exposing sensitive identity documents." variant="trust" meta={<span>{listings.length} eligible listings</span>} />
+    <div className="grid min-w-0 gap-5">
+      <section className="card min-w-0 p-6"><h2 className="font-bold">Account email</h2><EmailVerificationCard email={user.email ?? "No email address"} confirmed={Boolean(user.email_confirmed_at)} initialStatus={status} /><dl className="mt-5 grid min-w-0 gap-3 border-t border-[var(--border)] pt-5 text-sm"><div className="grid min-w-0 gap-1 sm:grid-cols-2"><dt>Phone</dt><dd className="min-w-0 text-[var(--muted)] [overflow-wrap:anywhere] sm:text-right">Not configured</dd></div><div className="grid min-w-0 gap-1 sm:grid-cols-2"><dt>Identity</dt><dd className="min-w-0 text-[var(--muted)] [overflow-wrap:anywhere] sm:text-right">Requires an approved external provider</dd></div><div className="grid min-w-0 gap-1 sm:grid-cols-2"><dt>Seller verification</dt><dd className="min-w-0 text-[var(--muted)] [overflow-wrap:anywhere] sm:text-right">Manual approval required</dd></div></dl><p className="mt-4 text-xs leading-5 text-[var(--muted)]">Email confirmation does not grant a seller badge. GGMarket never approves seller verification merely because a button was tapped.</p></section>
+      <ItemVerification listings={listings} />
+    </div>
+  </div>;
+}

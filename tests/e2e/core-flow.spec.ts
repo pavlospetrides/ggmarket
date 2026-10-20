@@ -1,9 +1,8 @@
 import { expect, test, type Page } from "@playwright/test";
 import { createClient, type User } from "@supabase/supabase-js";
+import { requireMutationEnvironment } from "./mutation-guard";
 
-const url = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+const { url, anonKey, serviceKey } = requireMutationEnvironment();
 const admin = createClient(url, serviceKey, {
   auth: { persistSession: false },
 });
@@ -210,7 +209,7 @@ test("real Supabase-backed Phase 1 flow", async ({ page }, testInfo) => {
   }
   await page.goto(`/search?q=${encodeURIComponent("E2E Gaming Console")}`);
   await expect(page.getByText(originalTitle)).toBeVisible();
-  await page.getByRole("link", { name: `View ${originalTitle}` }).click();
+  await page.locator('a[href^="/listing/"]').filter({ hasText: originalTitle }).click();
   await expect(page).toHaveURL(new RegExp(`/listing/${listingId}$`));
   await expect(
     page.getByRole("heading", { name: originalTitle }),

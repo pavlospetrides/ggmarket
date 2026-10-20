@@ -1,9 +1,8 @@
 import { expect, test } from "@playwright/test";
 import { createClient, type User } from "@supabase/supabase-js";
+import { requireMutationEnvironment } from "./mutation-guard";
 
-const url = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+const { url, anonKey, serviceKey } = requireMutationEnvironment();
 const admin = createClient(url, serviceKey, { auth: { persistSession: false } });
 const stamp = Date.now();
 const email = `ggmarket.mobile.${stamp}@example.invalid`;
@@ -61,8 +60,8 @@ test("mobile controls mutate and persist through real taps", async ({ page }) =>
   await expect(page).toHaveURL(/\/browse/);
   await nav.getByRole("link", { name: "Home" }).click();
   await expect(page).toHaveURL("/");
-  await nav.getByRole("link", { name: "Messages" }).click();
-  await expect(page).toHaveURL(/\/messages/);
+  await nav.getByRole("link", { name: "Favorites" }).click();
+  await expect(page).toHaveURL(/\/favorites/);
   await nav.getByRole("link", { name: "Profile" }).click();
   await expect(page).toHaveURL(/\/profile/);
 

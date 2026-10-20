@@ -1,11 +1,17 @@
 import { MarketplaceBrowser } from "@/components/marketplace-browser";
-import { getListings } from "@/lib/data";
+import { getPaginatedListings } from "@/lib/data";
 import { getCategories, getFavoriteIds } from "@/lib/data";
 import { getUser } from "@/lib/auth";
+import { redirect } from "next/navigation";
+import { isDeprecatedTaxonomyAttribute, sanitizeTaxonomyQueryParams } from "@/lib/gaming-taxonomy";
 
 export default async function MarketplacePage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const params = await searchParams;
-  const [items, categories, user] = await Promise.all([getListings(params), getCategories(), getUser()]);
+  if (Object.keys(params).some(isDeprecatedTaxonomyAttribute)) {
+    const query = new URLSearchParams(sanitizeTaxonomyQueryParams(params)).toString();
+    redirect(query ? `/marketplace?${query}` : "/marketplace");
+  }
+  const [result, categories, user] = await Promise.all([getPaginatedListings(params), getCategories(), getUser()]);
   const favoriteIds = user ? [...await getFavoriteIds(user.id)] : [];
-  return <MarketplaceBrowser items={items} params={params} categories={categories} favoriteIds={favoriteIds} />;
+  return <MarketplaceBrowser result={result} params={params} categories={categories} favoriteIds={favoriteIds} viewerId={user?.id ?? null} actionPath="/marketplace" />;
 }

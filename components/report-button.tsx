@@ -1,11 +1,14 @@
 "use client";
 
-import { Flag, X } from "lucide-react";
+import { Flag } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
+import { Dialog, DialogContent, DialogDescription, DialogTitle, DialogTrigger } from "./ui/dialog";
+import { useHydrated } from "./use-hydrated";
 
 export function ReportButton({ listingId }: { listingId: string }) {
   const router = useRouter();
+  const hydrated = useHydrated();
   const [open, setOpen] = useState(false);
   const [sent, setSent] = useState(false);
   const [error, setError] = useState("");
@@ -36,5 +39,14 @@ export function ReportButton({ listingId }: { listingId: string }) {
     }
   }
 
-  return <><button type="button" onClick={() => setOpen(true)} className="inline-flex min-h-11 items-center gap-2 text-sm text-[var(--muted)] hover:text-white"><Flag className="size-4" /> Report listing</button>{open && <div className="fixed inset-0 z-[70] grid place-items-end bg-black/70 sm:place-items-center" role="dialog" aria-modal="true" aria-labelledby="report-title" onClick={() => setOpen(false)}><div className="w-full max-w-md rounded-t-3xl border border-[var(--border)] bg-[var(--surface)] p-6 sm:rounded-3xl" onClick={(event) => event.stopPropagation()}><div className="flex items-center justify-between"><h2 id="report-title" className="text-xl font-bold">Report listing</h2><button type="button" className="grid size-10 place-items-center" onClick={() => setOpen(false)} aria-label="Close"><X /></button></div>{sent ? <div className="py-12 text-center"><strong>Thanks for letting us know.</strong><p className="mt-2 text-sm text-[var(--muted)]">Our moderation team will review this report.</p></div> : <form onSubmit={submit} className="mt-6 space-y-4"><div><label className="label" htmlFor="reason">Reason</label><select className="input" id="reason" name="reason" required><option value="scam">Scam or fraud</option><option value="prohibited">Prohibited item</option><option value="misleading">Misleading information</option><option value="duplicate">Duplicate</option><option value="spam">Spam</option><option value="other">Other</option></select></div><div><label className="label" htmlFor="details">Details (optional)</label><textarea className="input min-h-28" id="details" name="details" maxLength={1000} /></div>{error && <p role="alert" className="text-sm text-[var(--danger)]">{error}</p>}<button disabled={busy} className="btn-primary w-full">{busy ? "Submitting…" : "Submit report"}</button></form>}</div></div>}</>;
+  return <Dialog open={open} onOpenChange={setOpen}>
+    <DialogTrigger asChild>
+      <button type="button" disabled={!hydrated} className="inline-flex min-h-11 items-center gap-2 rounded-lg px-1 text-sm text-[var(--text-secondary)] transition-colors hover:text-white disabled:opacity-60"><Flag className="size-4 shrink-0" aria-hidden="true" /> Report listing</button>
+    </DialogTrigger>
+    <DialogContent closeLabel="Close report dialog" className="bottom-0 left-0 top-auto max-h-[92dvh] w-full max-w-none translate-x-0 translate-y-0 overscroll-contain rounded-b-none rounded-t-3xl border border-[var(--border)] pb-[max(1.5rem,env(safe-area-inset-bottom))] sm:bottom-auto sm:left-1/2 sm:top-1/2 sm:w-[min(calc(100%-2rem),28rem)] sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-[var(--radius-xl)]">
+      <DialogTitle>Report listing</DialogTitle>
+      <DialogDescription>Tell us what is wrong with this listing. Our moderation team will review your report.</DialogDescription>
+      {sent ? <div role="status" aria-live="polite" className="py-12 text-center"><strong>Thanks for letting us know.</strong><p className="mt-2 text-sm text-[var(--muted)]">Our moderation team will review this report.</p></div> : <form onSubmit={submit} className="mt-6 space-y-4"><div><label className="label" htmlFor="reason">Reason</label><select className="input" id="reason" name="reason" required><option value="scam">Scam or fraud</option><option value="prohibited">Prohibited item</option><option value="misleading">Misleading information</option><option value="duplicate">Duplicate</option><option value="spam">Spam</option><option value="other">Other</option></select></div><div><label className="label" htmlFor="details">Details (optional)</label><textarea className="input min-h-28" id="details" name="details" maxLength={1000} /></div>{error && <p role="alert" className="text-sm text-[var(--danger)]">{error}</p>}<button disabled={busy} className="btn-primary w-full">{busy ? "Submitting…" : "Submit report"}</button></form>}
+    </DialogContent>
+  </Dialog>;
 }

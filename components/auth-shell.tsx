@@ -1,2 +1,17 @@
 import { Logo } from "./logo";
-export function AuthShell({ title, subtitle, children }: { title: string; subtitle: string; children: React.ReactNode }) { return <div className="container-page relative grid min-h-[calc(100vh-64px)] place-items-center py-10"><div className="pointer-events-none absolute left-1/2 top-1/3 size-80 -translate-x-1/2 rounded-full bg-[#7658ff]/10 blur-3xl" /><div className="relative w-full max-w-md"><div className="mb-7 text-center"><Logo /><h1 className="mt-8 text-3xl font-[850] tracking-[-.04em]">{title}</h1><p className="mt-2 text-sm leading-6 text-[var(--muted)]">{subtitle}</p></div><div className="surface-panel p-6 sm:p-8">{children}</div><p className="mt-5 text-center text-xs text-[var(--muted)]">Trade smart. Verify before you pay.</p></div></div>; }
+export function AuthShell({ title, subtitle, children }: { title: string; subtitle: string; children: React.ReactNode }) {
+  return <div className="auth-shell container-page grid min-h-svh place-items-center py-6 sm:py-10">
+    <div className="auth-exchange-grid w-full overflow-hidden">
+      <aside className="auth-exchange-rail" aria-label="GGMarket buyer and seller principles">
+        <Logo />
+        <div className="auth-exchange-rail__statement"><p className="eyebrow">Player-to-player exchange</p>{/* taste-skill-ignore -- brand proposition context */}<p>Good gear deserves another round.</p></div>
+        <ol aria-label="Marketplace principles"><li><span>1</span> Clear listings</li><li><span>2</span> Direct conversation</li><li><span>3</span> Verify before payment</li></ol>
+      </aside>
+      <section className="auth-exchange-form" aria-labelledby="auth-title">
+        <div className="auth-exchange-form__heading"><p className="eyebrow">Secure access</p>{/* taste-skill-ignore -- form security context */}<h1 id="auth-title">{title}</h1><p>{subtitle}</p></div>
+        <div className="surface-panel p-5 sm:p-8">{children}</div>
+        <p className="auth-exchange-form__note">Trade smart. Verify before you pay.</p>
+      </section>
+    </div>
+  </div>;
+}

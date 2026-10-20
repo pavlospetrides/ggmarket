@@ -1,0 +1,216 @@
+- generic:
+  - link [aria-hidden]:
+    - /url: "#main-content"
+    - text: Skip to content
+  - main [aria-hidden]:
+    - generic:
+      - navigation:
+        - link:
+          - /url: /marketplace?q=metal+gear
+          - text: Marketplace
+        - generic:
+          - link:
+            - /url: /marketplace?q=metal+gear&category=games
+            - text: Games
+      - generic:
+        - heading [level=1]: Results for “metal gear”
+        - paragraph: Find consoles, components, games, and gear from gamers and specialist sellers.
+        - generic:
+          - search:
+            - generic: Search marketplace
+            - generic:
+              - textbox:
+                - /placeholder: Search PS5, RTX 5070, Steam Deck…
+                - text: metal gear
+              - button: Search
+      - generic:
+        - generic:
+          - generic:
+            - link:
+              - /url: /marketplace?condition=good&q=metal+gear&category=games&family=playstation
+              - text: PlayStation
+            - link:
+              - /url: /marketplace?condition=good&q=metal+gear&category=games&family=xbox
+              - text: Xbox
+            - link:
+              - /url: /marketplace?condition=good&q=metal+gear&category=games&family=nintendo
+              - text: Nintendo
+            - link:
+              - /url: /marketplace?condition=good&q=metal+gear&category=games&family=pc
+              - text: PC
+            - link:
+              - /url: /marketplace?condition=good&q=metal+gear&category=games&family=sega
+              - text: Sega
+            - link:
+              - /url: /marketplace?condition=good&q=metal+gear&category=games&family=retro-other
+              - text: Atari & Other Legacy
+      - generic:
+        - generic:
+          - generic:
+            - paragraph:
+              - strong: "0"
+              - text: listings
+            - generic:
+              - button [expanded]:
+                - text: Filters
+                - generic: "2"
+              - generic:
+                - combobox
+          - group:
+            - link:
+              - /url: /marketplace?condition=good&q=metal+gear
+              - text: Games
+              - generic [aria-hidden]: ×
+            - link:
+              - /url: /marketplace?category=games&q=metal+gear
+              - text: good
+              - generic [aria-hidden]: ×
+            - link:
+              - /url: /marketplace?q=metal+gear
+              - text: Clear all
+          - generic:
+            - generic:
+              - heading [level=2]: No matching listings
+              - paragraph: Try widening your filters or be the first to list one.
+              - link:
+                - /url: /sell
+                - text: Create a listing
+  - navigation [aria-hidden]:
+    - generic:
+      - link:
+        - /url: /
+        - text: Home
+      - link:
+        - /url: /browse
+        - text: Browse
+      - link:
+        - /url: /sell
+        - text: Sell
+      - link:
+        - /url: /messages
+        - text: Messages
+      - link:
+        - /url: /profile
+        - text: Profile
+  - alert
+  - dialog [ref=f2e79]:
+    - button "Close filters" [active] [ref=f2e80] [cursor=pointer]
+    - generic [ref=f2e84]:
+      - heading "Filters" [level=2] [ref=f2e85]
+      - paragraph [ref=f2e86]: Narrow the market by category, price, condition, seller, and location.
+    - generic [ref=f2e88]:
+      - generic [ref=f2e89]:
+        - generic [ref=f2e90]: Category
+        - combobox "Category" [ref=f2e91] [cursor=pointer]:
+          - option "All categories"
+          - option "Consoles"
+          - option "Gaming PCs"
+          - option "PC Components"
+          - option "Games" [selected]
+          - option "Peripherals"
+          - option "Controllers"
+          - option "Monitors"
+          - option "Retro"
+          - option "VR"
+          - option "Gaming Setup"
+          - option "Collectibles"
+          - option "Broken / For Parts"
+      - generic [ref=f2e92]:
+        - generic [ref=f2e93]: Platform family
+        - combobox "Platform family" [ref=f2e94] [cursor=pointer]:
+          - option "All families"
+          - option "PlayStation" [selected]
+          - option "Xbox"
+          - option "Nintendo"
+          - option "PC"
+          - option "Sega"
+          - option "Atari & Other Legacy"
+      - generic [ref=f2e95]:
+        - generic [ref=f2e96]: Genre
+        - combobox "Genre" [ref=f2e97] [cursor=pointer]:
+          - option "Any genre" [selected]
+          - option "Action"
+          - option "Adventure"
+          - option "Role-playing (RPG)"
+          - option "Shooter"
+          - option "Sports"
+          - option "Racing"
+          - option "Fighting"
+          - option "Strategy"
+          - option "Simulation"
+          - option "Puzzle"
+          - option "Platformer"
+          - option "Horror"
+          - option "Family"
+          - option "Other"
+      - generic [ref=f2e98]:
+        - generic [ref=f2e99]: Edition
+        - textbox "Edition" [ref=f2e100]
+      - generic [ref=f2e101]:
+        - generic [ref=f2e102]: Original packaging
+        - combobox "Original packaging" [ref=f2e103] [cursor=pointer]:
+          - option "Any original packaging" [selected]
+          - option "Original case / box"
+          - option "Replacement case"
+          - option "No case / loose"
+      - generic [ref=f2e104]:
+        - generic [ref=f2e105]: Manuals or inserts included
+        - combobox "Manuals or inserts included" [ref=f2e106] [cursor=pointer]:
+          - option "Any" [selected]
+          - option "Yes"
+          - option "No"
+      - generic [ref=f2e107]:
+        - generic [ref=f2e108]: Region
+        - combobox "Region" [ref=f2e109] [cursor=pointer]:
+          - option "Any region" [selected]
+          - option "PAL"
+          - option "NTSC-U"
+          - option "NTSC-J"
+          - option "Region free"
+          - option "Other / Unknown"
+      - generic [ref=f2e110]:
+        - generic [ref=f2e111]: Age rating
+        - combobox "Age rating" [ref=f2e112] [cursor=pointer]:
+          - option "Any age rating" [selected]
+          - option "PEGI 3"
+          - option "PEGI 7"
+          - option "PEGI 12"
+          - option "PEGI 16"
+          - option "PEGI 18"
+      - group "Price range" [ref=f2e113]:
+        - generic [ref=f2e115]:
+          - generic [ref=f2e116]: Minimum price
+          - spinbutton "Minimum price" [ref=f2e117]
+          - generic [ref=f2e118]: Maximum price
+          - spinbutton "Maximum price" [ref=f2e119]
+      - generic [ref=f2e120]:
+        - generic [ref=f2e121]: Condition
+        - combobox "Condition" [ref=f2e122] [cursor=pointer]:
+          - option "Any condition"
+          - option "New"
+          - option "Like new"
+          - option "Good" [selected]
+          - option "Fair"
+          - option "For parts"
+      - generic [ref=f2e123]:
+        - generic [ref=f2e124]: Location
+        - textbox "Location" [ref=f2e125]:
+          - /placeholder: City or region
+      - generic [ref=f2e126]:
+        - generic [ref=f2e127]: Seller type
+        - combobox "Seller type" [ref=f2e128] [cursor=pointer]:
+          - option "All sellers" [selected]
+          - option "Private"
+          - option "Business"
+      - generic [ref=f2e129]:
+        - generic [ref=f2e130]: Listing type
+        - combobox "Listing type" [ref=f2e131] [cursor=pointer]:
+          - option "All types" [selected]
+          - option "For sale"
+          - option "Wanted"
+          - option "Trade"
+          - option "Sale or trade"
+      - generic [ref=f2e132]:
+        - link "Reset" [ref=f2e133] [cursor=pointer]:
+          - /url: /marketplace?q=metal+gear
+        - button "Apply filters" [ref=f2e134] [cursor=pointer]

@@ -1,128 +1,268 @@
 import { expect, test } from "@playwright/test";
-import { createClient, type User } from "@supabase/supabase-js";
 
-const url = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
-const admin = createClient(url, serviceKey, { auth: { persistSession: false } });
-const stamp = Date.now();
-let seller: User;
-const listingIds: string[] = [];
+test("Browse is search-first, navigable, and read-only", async ({ page }, testInfo) => {
+  const mobile = testInfo.project.name === "webkit";
+  await page.setViewportSize(mobile ? { width: 390, height: 844 } : { width: 1440, height: 900 });
+  await page.goto("/browse");
 
-test.beforeAll(async () => {
-  const created = await admin.auth.admin.createUser({
-    email: `ggmarket.browse.${stamp}@example.invalid`,
-    password: `Gg!${crypto.randomUUID()}aA1`,
-    email_confirm: true,
-    user_metadata: { username: `browse_${String(stamp).slice(-8)}`, display_name: "Browse Test Seller" },
-  });
-  if (created.error || !created.data.user) throw created.error;
-  seller = created.data.user;
-  const category = await admin.from("categories").select("id").eq("active", true).limit(1).single();
-  if (category.error) throw category.error;
-  const rows = Array.from({ length: 5 }, (_, index) => ({
-    seller_id: seller.id,
-    category_id: category.data.id,
-    title: `Browse discovery listing ${stamp}-${index}`,
-    description: "Controlled active listing for Browse carousel interaction verification.",
-    price: 80 + index * 25,
-    currency: "EUR",
-    condition: "good",
-    status: "active",
-    location: "QA City",
-    shipping_available: true,
-    meetup_available: false,
-    view_count: 50 - index,
-    attributes: {},
-  }));
-  const inserted = await admin.from("listings").insert(rows).select("id");
-  if (inserted.error) throw inserted.error;
-  listingIds.push(...inserted.data.map((listing) => listing.id));
-});
+  await expect(page.locator("main")).toHaveCount(1);
+  await expect(page.getByRole("heading", { name: "Find what plays next" })).toBeVisible();
 
-test.afterAll(async () => {
-  if (listingIds.length) await admin.from("listings").delete().in("id", listingIds);
-  if (seller) await admin.auth.admin.deleteUser(seller.id);
-});
-
-test("Browse is a distinct discovery experience with working navigation", async ({ page }, testInfo) => {
-  test.setTimeout(180_000);
-  await page.setViewportSize(
-    testInfo.project.name === "webkit"
-      ? { width: 390, height: 844 }
-      : { width: 1440, height: 900 },
-  );
-
-  await page.goto("/marketplace");
-  await expect(page.getByRole("heading", { name: "Marketplace" })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Filters" })).toBeVisible();
-
-  if (testInfo.project.name === "webkit")
-    await page.getByRole("navigation", { name: "Mobile navigation" }).getByRole("link", { name: "Browse" }).click();
-  else
-    await page.getByRole("navigation", { name: "Main navigation" }).getByRole("link", { name: "Browse" }).click();
-  await expect(page).toHaveURL("/browse");
-  await expect(page.getByRole("region", { name: "Featured discoveries" })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Filters" })).toHaveCount(0);
-
-  const hero = page.getByRole("region", { name: "Featured discoveries" });
-  const expectedSlides = [
-    { title: "Find your next gaming obsession.", asset: "browse-fresh-drops.webp", href: "/marketplace?sort=newest" },
-    { title: "More frames. Better plays.", asset: "browse-pc-performance.webp", href: "/marketplace?category=pc-components" },
-    { title: "Pick your next platform.", asset: "browse-console-corner.webp", href: "/marketplace?category=consoles" },
-    { title: "Old school. Still legendary.", asset: "browse-retro-vault.webp", href: "/marketplace?category=retro" },
-  ];
-  const renderedSources = new Set<string>();
-  for (const [index, expectedSlide] of expectedSlides.entries()) {
-    const dot = page.getByRole("button", { name: new RegExp(`Show slide ${index + 1}:`) });
-    await dot.click();
-    await expect(dot).toHaveAttribute("aria-current", "true");
-    await expect(hero.getByRole("heading", { name: expectedSlide.title })).toBeVisible();
-    await expect(hero.getByRole("link")).toHaveAttribute("href", expectedSlide.href);
-    const image = hero.locator("img");
-    await expect(image).toHaveAttribute("alt", /\S+/);
-    await expect.poll(() => image.evaluate((element) => {
-      const renderedImage = element as HTMLImageElement;
-      return renderedImage.complete && renderedImage.naturalWidth > 0;
-    })).toBe(true);
-    const source = await image.getAttribute("src");
-    expect(source).toContain(expectedSlide.asset);
-    renderedSources.add(source!);
+  if (mobile) {
+    const search = page.getByRole("region", { name: "Browse marketplace" }).getByRole("search");
+    await expect(search).toBeVisible();
+    await expect(page.getByRole("link", { name: "Filter & sort" })).toBeVisible();
+    await search.getByRole("textbox", { name: "Search marketplace" }).fill("gaming");
+    await search.getByRole("button", { name: "Search" }).click();
+    await expect(page).toHaveURL(/\/marketplace\?q=gaming/);
+  } else {
+    await expect(page.getByRole("navigation", { name: "Main navigation" })).toBeVisible();
   }
-  expect(renderedSources.size).toBe(expectedSlides.length);
 
-  const freshRail = page.getByRole("region", { name: "Fresh drops listings" });
-  await expect(freshRail).toBeVisible();
-  const railBox = await freshRail.boundingBox();
-  expect(railBox).toBeTruthy();
-  if (testInfo.project.name === "webkit")
-    await freshRail.evaluate((element) => element.scrollBy({ left: 320, behavior: "instant" }));
-  else {
-    await page.mouse.move(railBox!.x + railBox!.width / 2, railBox!.y + railBox!.height / 2);
-    await page.mouse.wheel(320, 0);
-  }
-  await expect.poll(() => freshRail.evaluate((element) => element.scrollLeft)).toBeGreaterThan(0);
-
+  await page.goto("/browse");
   const category = page.locator('a[href^="/marketplace?category="]').first();
   await expect(category).toBeVisible();
   await category.click();
   await expect(page).toHaveURL(/\/marketplace\?category=/);
 
   await page.goto("/browse");
-  const newestLink = page.locator('a[href="/marketplace?sort=newest"]').first();
-  if (await newestLink.count()) {
-    await newestLink.click();
-    await expect(page).toHaveURL(/\/marketplace\?sort=newest/);
-  }
+  await page.locator('a[href="/marketplace?sort=newest"]:visible').first().click();
+  await expect(page).toHaveURL(/\/marketplace\?sort=newest/);
+
+  await page.goto("/marketplace");
+  await expect(page.getByRole("heading", { name: "Marketplace", exact: true })).toBeVisible();
+  if (mobile) await expect(page.getByRole("button", { name: /^Filters/ })).toBeVisible();
+  else await expect(page.getByRole("heading", { name: "Filters" })).toBeVisible();
+});
+
+test("marketplace filters, reset links, and sorting stay URL-backed", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/marketplace");
+  await page.getByRole("button", { name: /^Filters/ }).click();
+  const dialog = page.getByRole("dialog", { name: "Filters" });
+  const category = dialog.getByLabel("Category");
+  const categoryOption = category.locator("option").nth(1);
+  const categoryValue = await categoryOption.getAttribute("value");
+  const categoryLabel = await categoryOption.textContent();
+  await category.selectOption({ index: 1 });
+  await expect(page).toHaveURL(new RegExp(`category=${categoryValue}`));
+  await expect(page.getByRole("group", { name: "Active filters" })).toBeVisible();
+  await page.getByRole("link", { name: new RegExp(`Remove category filter: ${categoryLabel}`) }).click();
+  await expect(page).not.toHaveURL(/category=/);
+
+  await page.goto("/search?q=Ps5&condition=good");
+  await page.getByLabel("Sort listings").selectOption("price-asc");
+  await expect(page).toHaveURL(/\/search\?.*q=Ps5/);
+  await expect(page).toHaveURL(/condition=good/);
+  await expect(page).toHaveURL(/sort=price-asc/);
+  await expect(page).not.toHaveURL(/page=/);
+
+  const response = await page.goto("/search?q=ps5&seller=private");
+  expect(response?.status()).toBeLessThan(500);
+  await expect(page.getByLabel("Sort listings")).toHaveValue("");
+  await expect(page.getByRole("link", { name: "Clear all" })).toHaveAttribute("href", "/search?q=ps5");
+
+  await page.goto("/marketplace?seller=business");
+  const renderedCards = await page.locator("article").count();
+  await expect(page.getByText(new RegExp(`^${renderedCards} listings?$`))).toBeVisible();
+  await expect(page.getByText("No matching listings")).toHaveCount(renderedCards === 0 ? 1 : 0);
+});
+
+test("Browse keeps search visible at the tablet breakpoint", async ({ page }) => {
+  await page.setViewportSize({ width: 768, height: 1024 });
+  await page.goto("/browse");
+  await expect(page.getByRole("region", { name: "Browse marketplace" }).getByRole("search")).toBeVisible();
+});
+
+test("structured gaming paths, compatibility filters, and history are URL-backed", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/marketplace?category=games&family=playstation&platform=ps5");
+  await expect(page.getByRole("navigation", { name: "Category breadcrumb" })).toContainText("PlayStation 5");
+  const activeFilters = page.getByRole("group", { name: "Active filters" });
+  await expect(activeFilters).toContainText("PlayStation 5");
+  await expect(activeFilters.getByRole("link", { name: /Remove family filter/i })).not.toHaveAttribute("href", /platform=/);
+
+  await page.getByRole("link", { name: "PlayStation Portable (PSP)" }).click();
+  await expect(page).toHaveURL(/platform=psp/);
+  await page.goBack();
+  await expect(page).toHaveURL(/platform=ps5/);
+  await page.goForward();
+  await expect(page).toHaveURL(/platform=psp/);
+
+  await page.goto("/marketplace?category=controllers&subcategory=gamepad&compatibility=ps5");
+  await expect(page.getByRole("group", { name: "Active filters" })).toContainText("PlayStation 5");
+  await page.getByRole("button", { name: /^Filters/ }).click();
+  const dialog = page.getByRole("dialog", { name: "Filters" });
+  await expect(dialog.getByLabel("Compatible platform")).toHaveValue("ps5");
+
+  await page.goto("/search?q=PSP+games");
+  await expect(page.getByRole("navigation", { name: "Category breadcrumb" })).toContainText("PlayStation Portable (PSP)");
+});
+
+test("game family selection reveals exact consoles and removes obsolete format state", async ({ page }, testInfo) => {
+  await page.setViewportSize(testInfo.project.name === "webkit" ? { width: 390, height: 844 } : { width: 1440, height: 900 });
+  await page.goto("/marketplace?category=games&q=metal+gear&condition=good&physical_format=umd");
+  await expect(page).not.toHaveURL(/physical_format=/);
+
+  if (testInfo.project.name === "webkit") await page.getByRole("button", { name: /^Filters/ }).click();
+  const filters = testInfo.project.name === "webkit"
+    ? page.getByRole("dialog", { name: "Filters" })
+    : page.getByRole("complementary").filter({ hasText: "Filters" });
+  await expect(filters.getByText("Physical Format", { exact: true })).toHaveCount(0);
+
+  await filters.getByLabel("Platform family").selectOption("playstation");
+  await expect(page).toHaveURL(/family=playstation/);
+  await expect(page).toHaveURL(/q=metal(?:\+|%20)gear/);
+  await expect(page).toHaveURL(/condition=good/);
+  const platform = filters.getByLabel("Console / Platform");
+  await expect(platform).toBeVisible();
+  await expect(platform).toBeFocused();
+  await expect(platform.locator("option")).toHaveText([
+    "All PlayStation", "PlayStation 5", "PlayStation 4", "PlayStation 3", "PlayStation 2", "PlayStation 1", "PlayStation Portable (PSP)", "PlayStation Vita",
+  ]);
+
+  await platform.selectOption("ps5");
+  await expect(page).toHaveURL(/platform=ps5/);
+  await expect(filters.getByLabel("Console / Platform")).toHaveValue("ps5");
+  await expect(filters.getByLabel("Console / Platform")).toBeFocused();
+
+  await filters.getByLabel("Console / Platform").selectOption("psp");
+  await expect(page).toHaveURL(/platform=psp/);
+  await expect(filters.getByLabel("Console / Platform")).toHaveValue("psp");
+  await expect(filters.getByLabel("Console / Platform")).toBeFocused();
+  await page.keyboard.press("Tab");
+  await expect(filters.locator(":focus")).toHaveCount(1);
+  await page.keyboard.press("Shift+Tab");
+  await expect(filters.getByLabel("Console / Platform")).toBeFocused();
+
+  await filters.getByLabel("Platform family").selectOption("xbox");
+  await expect(page).toHaveURL(/family=xbox/);
+  await expect(page).not.toHaveURL(/platform=psp/);
+  await expect(filters.getByLabel("Console / Platform")).toBeFocused();
+  await expect(filters.getByLabel("Console / Platform").locator("option")).toHaveText([
+    "All Xbox", "Xbox Series X", "Xbox Series X|S", "Xbox One", "Xbox 360", "Original Xbox",
+  ]);
+  await filters.getByLabel("Console / Platform").selectOption("xbox-one");
+  await expect(page).toHaveURL(/platform=xbox-one/);
+  await expect(filters.getByLabel("Console / Platform")).toHaveValue("xbox-one");
+  await expect(filters.getByLabel("Console / Platform")).toBeFocused();
+
+  await filters.getByLabel("Platform family").selectOption("nintendo");
+  await expect(page).toHaveURL(/family=nintendo/);
+  await expect(page).not.toHaveURL(/platform=xbox-one/);
+  await expect(filters.getByLabel("Console / Platform")).toBeFocused();
+  await filters.getByLabel("Console / Platform").selectOption("switch");
+  await expect(page).toHaveURL(/platform=switch/);
+  await expect(filters.getByLabel("Console / Platform")).toHaveValue("switch");
+  await expect(filters.getByLabel("Console / Platform")).toBeFocused();
+
+  await filters.getByLabel("Platform family").selectOption("");
+  await expect(page).not.toHaveURL(/(?:family|platform)=/);
+  await expect(page).toHaveURL(/q=metal(?:\+|%20)gear/);
+  await expect(page).toHaveURL(/condition=good/);
+});
+
+test("taxonomy navigation and category changes discard incompatible structured filters", async ({ page }, testInfo) => {
+  await page.setViewportSize(testInfo.project.name === "webkit" ? { width: 390, height: 844 } : { width: 1440, height: 900 });
+  await page.goto("/marketplace?category=pc-components&subcategory=gpu&vram_gb=12&condition=good");
+  await page.getByRole("link", { name: "Processors", exact: true }).click();
+  await expect(page).toHaveURL(/category=pc-components.*subcategory=cpu/);
+  await expect(page).toHaveURL(/condition=good/);
+  await expect(page).not.toHaveURL(/vram_gb=/);
+
+  if (testInfo.project.name === "webkit") await page.getByRole("button", { name: /^Filters/ }).click();
+  const filters = testInfo.project.name === "webkit"
+    ? page.getByRole("dialog", { name: "Filters" })
+    : page.getByRole("complementary").filter({ hasText: "Filters" });
+  await filters.getByLabel("Category").selectOption("controllers");
+  await expect(page).toHaveURL(/category=controllers/);
+  await expect(page).toHaveURL(/condition=good/);
+  await expect(page).not.toHaveURL(/(?:family|platform|subcategory|vram_gb)=/);
+});
+
+test("boolean taxonomy filters expose explicit Any, Yes, and No choices", async ({ page }, testInfo) => {
+  await page.setViewportSize(testInfo.project.name === "webkit" ? { width: 390, height: 844 } : { width: 1440, height: 900 });
+  await page.goto("/marketplace?category=peripherals&subcategory=steering-wheel");
+  if (testInfo.project.name === "webkit") await page.getByRole("button", { name: /^Filters/ }).click();
+  const filters = testInfo.project.name === "webkit"
+    ? page.getByRole("dialog", { name: "Filters" })
+    : page.getByRole("complementary").filter({ hasText: "Filters" });
+  const feedback = filters.getByLabel("Force feedback");
+  await expect(feedback.locator("option")).toHaveText(["Any", "Yes", "No"]);
+  await feedback.selectOption("true");
+  await filters.getByRole("button", { name: "Apply filters" }).click();
+  await expect(page).toHaveURL(/force_feedback=true/);
+});
+
+test("Browse category directory leads through games, controllers, and PC hardware", async ({ page }, testInfo) => {
+  await page.setViewportSize(testInfo.project.name === "webkit" ? { width: 390, height: 844 } : { width: 1440, height: 900 });
+  await page.goto("/browse");
+  const directory = page.getByRole("region", { name: "Gaming category directory" });
+  await directory.getByRole("link", { name: /^Games/ }).click();
+  await page.getByRole("link", { name: "PlayStation", exact: true }).click();
+  await page.getByRole("link", { name: "PlayStation 5", exact: true }).click();
+  await expect(page).toHaveURL(/category=games.*family=playstation.*platform=ps5/);
 
   await page.goto("/browse");
-  const listingLink = page.locator('a[aria-label^="View "]').first();
-  if (await listingLink.count()) {
-    await listingLink.click();
-    await expect(page).toHaveURL(/\/listing\/[0-9a-f-]{36}$/);
-  }
+  await directory.getByRole("link", { name: /^Controllers/ }).click();
+  await page.getByRole("link", { name: "Gamepads", exact: true }).click();
+  if (testInfo.project.name === "webkit") await page.getByRole("button", { name: /^Filters/ }).click();
+  const filters = testInfo.project.name === "webkit" ? page.getByRole("dialog", { name: "Filters" }) : page.getByRole("complementary").filter({ hasText: "Filters" });
+  await expect(filters.getByLabel("Product type")).toHaveValue("gamepad");
+  await filters.getByLabel("Compatible platform").selectOption("ps5");
+  await filters.getByRole("button", { name: "Apply filters" }).click();
+  await expect(page).toHaveURL(/category=controllers.*subcategory=gamepad.*compatibility=ps5/);
 
-  await page.goto("/");
-  await page.locator("#hero-search").fill("gaming");
-  await page.getByRole("button", { name: "Search" }).click();
-  await expect(page).toHaveURL(/\/search\?q=gaming/);
+  await page.goto("/browse");
+  await directory.getByRole("link", { name: /^PC Components/ }).click();
+  await page.getByRole("link", { name: "Graphics cards", exact: true }).click();
+  await expect(page).toHaveURL(/category=pc-components.*subcategory=gpu/);
+  if (testInfo.project.name === "webkit") await page.getByRole("button", { name: /^Filters/ }).click();
+  const gpuFilters = testInfo.project.name === "webkit" ? page.getByRole("dialog", { name: "Filters" }) : page.getByRole("complementary").filter({ hasText: "Filters" });
+  await expect(gpuFilters.getByLabel("Product type")).toHaveValue("gpu");
+  await gpuFilters.getByLabel("GPU chipset manufacturer").selectOption("nvidia");
+  await expect(page).toHaveURL(/gpu_chipset_vendor=nvidia/);
+  await expect(gpuFilters.getByLabel("GPU family \/ generation")).toBeFocused();
+  await gpuFilters.getByLabel("GPU family / generation").selectOption("rtx-40");
+  await expect(page).toHaveURL(/gpu_series=rtx-40/);
+  await gpuFilters.getByLabel("GPU model").selectOption("rtx-4070");
+  await expect(page).toHaveURL(/gpu_model=rtx-4070/);
+  await gpuFilters.getByLabel("VRAM (GB)").fill("12");
+  await gpuFilters.getByRole("button", { name: "Apply filters" }).click();
+  await expect(page).toHaveURL(/category=pc-components.*subcategory=gpu.*gpu_chipset_vendor=nvidia.*gpu_series=rtx-40.*gpu_model=rtx-4070.*vram_gb=12/);
+});
+
+test("PC hardware filters reveal dependencies and clear incompatible descendants", async ({ page }, testInfo) => {
+  await page.setViewportSize(testInfo.project.name === "webkit" ? { width: 390, height: 844 } : { width: 1440, height: 900 });
+  await page.goto("/marketplace?category=pc-components&subcategory=cpu&q=boxed&condition=good");
+  if (testInfo.project.name === "webkit") await page.getByRole("button", { name: /^Filters/ }).click();
+  const filters = testInfo.project.name === "webkit"
+    ? page.getByRole("dialog", { name: "Filters" })
+    : page.getByRole("complementary").filter({ hasText: "Filters" });
+
+  await filters.getByLabel("Manufacturer").selectOption("intel");
+  await expect(filters.getByLabel("Socket")).toBeFocused();
+  await filters.getByLabel("Socket").selectOption("lga1700");
+  await filters.getByLabel("Processor family").selectOption("core-i7");
+  await filters.getByLabel("Generation / series").selectOption("12th-gen");
+  await filters.getByLabel("Processor model").selectOption("core-i7-12700k");
+  await expect(page).toHaveURL(/manufacturer=intel/);
+  await expect(page).toHaveURL(/socket=lga1700/);
+  await expect(page).toHaveURL(/cpu_family=core-i7/);
+  await expect(page).toHaveURL(/cpu_generation=12th-gen/);
+  await expect(page).toHaveURL(/cpu_model=core-i7-12700k/);
+  await expect(page).toHaveURL(/q=boxed/);
+  await expect(page).toHaveURL(/condition=good/);
+
+  await filters.getByLabel("Manufacturer").selectOption("amd");
+  await expect(page).toHaveURL(/manufacturer=amd/);
+  await expect(page).not.toHaveURL(/(?:socket|cpu_family|cpu_generation|cpu_model)=/);
+  await expect(filters.getByLabel("Socket")).toBeFocused();
+  await expect(filters.getByLabel("Socket").locator('option[value="am5"]')).toHaveCount(1);
+  await expect(filters.getByLabel("Socket").locator('option[value="lga1700"]')).toHaveCount(0);
+  await filters.getByLabel("Socket").selectOption("am5");
+  await filters.getByLabel("Processor family").selectOption("ryzen-7");
+  await filters.getByLabel("Generation / series").selectOption("ryzen-7000");
+  await filters.getByLabel("Processor model").selectOption("ryzen-7-7800x3d");
+  await expect(page).toHaveURL(/cpu_model=ryzen-7-7800x3d/);
 });
