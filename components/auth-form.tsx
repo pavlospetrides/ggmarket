@@ -3,28 +3,34 @@
 import Link from "next/link";
 import { CircleCheck } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useRef, useState, useSyncExternalStore, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { safeRedirectPath } from "@/lib/security";
 import { createClient } from "@/lib/supabase/client";
+import { useHydrated } from "./use-hydrated";
+import { PasswordField } from "./password-field";
 
-const subscribeHydration = () => () => undefined;
+const loginErrors: Record<string, string> = {
+  invalid_credentials: "Invalid email or password.",
+  invalid_input: "Enter a valid email and password.",
+  unavailable: "Login is temporarily unavailable. Please try again.",
+  signup_failed: "Account creation failed. The email may already be registered.",
+  invalid_callback: "This verification link is invalid or has expired.",
+};
 
 export function AuthForm({ mode }: { mode: "login" | "register" }) {
   const router = useRouter();
   const params = useSearchParams();
+  const hydrated = useHydrated();
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const errorRef = useRef<HTMLParagraphElement>(null);
-  const hydrated = useSyncExternalStore(
-    subscribeHydration,
-    () => true,
-    () => false,
-  );
+  const next = safeRedirectPath(params.get("next"));
+  const visibleError = error || loginErrors[params.get("error") ?? ""] || "";
 
   useEffect(() => {
-    if (error) errorRef.current?.focus();
-  }, [error]);
+    if (visibleError) errorRef.current?.focus();
+  }, [visibleError]);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -44,7 +50,8 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
           password,
         });
         if (authError) throw new Error("Invalid email or password.");
-        router.replace(safeRedirectPath(params.get("next")));
+        router.replace(next);
+        router.refresh();
       } else {
         const username = String(formData.get("username"));
         const { data, error: authError } = await supabase.auth.signUp({
@@ -52,12 +59,13 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
           password,
           options: {
             data: { username, display_name: username },
-            emailRedirectTo: `${location.origin}/auth/callback`,
+            emailRedirectTo: `${location.origin}/auth/callback?next=${encodeURIComponent("/settings/verification")}`,
           },
         });
         if (authError) throw authError;
         if (data.session) {
           router.replace("/profile");
+          router.refresh();
         } else {
           setSuccess(true);
         }
@@ -71,7 +79,7 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
     }
   }
 
-  if (success) {
+  if (success || params.get("status") === "check_email") {
     return (
       <div className="text-center">
         <div className="mx-auto grid size-14 place-items-center rounded-full bg-[#143926] text-[var(--success)]">
@@ -86,7 +94,8 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
   }
 
   return (
-    <form onSubmit={submit} className="space-y-4" aria-busy={loading}>
+    <form action={mode === "login" ? "/auth/login" : "/auth/register"} method="post" onSubmit={submit} className="space-y-4" aria-busy={loading} data-hydrated={hydrated}>
+      {mode === "login" && <input type="hidden" name="next" value={next} />}
       {mode === "register" && (
         <div>
           <label className="label" htmlFor="username">
@@ -101,7 +110,7 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
             minLength={3}
             maxLength={24}
             pattern="[a-zA-Z0-9_.]+"
-            aria-describedby={error ? "auth-form-error" : undefined}
+            aria-describedby={visibleError ? "auth-form-error" : undefined}
             required
           />
         </div>
@@ -117,36 +126,26 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
           type="email"
           autoComplete="email"
           spellCheck={false}
-          aria-describedby={error ? "auth-form-error" : undefined}
+          aria-describedby={visibleError ? "auth-form-error" : undefined}
           required
         />
       </div>
-      <div>
-        <div className="flex justify-between">
-          <label className="label" htmlFor="password">
-            Password
-          </label>
-          {mode === "login" && (
+      <PasswordField
+        id="password"
+        name="password"
+        label="Password"
+        autoComplete={mode === "login" ? "current-password" : "new-password"}
+        describedBy={visibleError ? "auth-form-error" : undefined}
+        labelAction={mode === "login" ? (
             <Link
               href="/forgot-password"
               className="mb-1 text-xs text-[#aa98ff]"
             >
               Forgot password?
             </Link>
-          )}
-        </div>
-        <input
-          className="input"
-          id="password"
-          name="password"
-          type="password"
-          autoComplete={mode === "login" ? "current-password" : "new-password"}
-          minLength={8}
-          aria-describedby={error ? "auth-form-error" : undefined}
-          required
-        />
-      </div>
-      {error && (
+          ) : undefined}
+      />
+      {visibleError && (
         <p
           id="auth-form-error"
           ref={errorRef}
@@ -154,10 +153,10 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
           role="alert"
           className="rounded-xl border border-[#5d2931] bg-[#29151a] p-3 text-sm text-[#ff9ca6]"
         >
-          {error}
+          {visibleError}
         </p>
       )}
-      <button type="submit" disabled={loading || !hydrated} className="btn-primary w-full">
+      <button type="submit" disabled={loading} className="btn-primary w-full">
         {loading
           ? "Please wait…"
           : mode === "login"

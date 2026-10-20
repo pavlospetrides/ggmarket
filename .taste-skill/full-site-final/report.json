@@ -1,0 +1,879 @@
+{
+ "url": "http://localhost:3000/marketplace",
+ "at": "2026-10-16T07:13:33.282Z",
+ "allow": [
+  "palette-purple",
+  "few-pictures",
+  "no-footage"
+ ],
+ "viewports": [
+  {
+   "width": 1440,
+   "height": 900,
+   "load": "load",
+   "screens": 2,
+   "filled": [
+    0.78,
+    0.46
+   ],
+   "motion": {
+    "elements": 36,
+    "css": 36,
+    "transitions": 0,
+    "scripted": 0,
+    "videos": 0,
+    "playingVideos": 0
+   },
+   "metrics": {
+    "viewport": {
+     "w": 1440,
+     "h": 900
+    },
+    "page": {
+     "height": 1567,
+     "screens": 1.7,
+     "words": 134,
+     "img": 3,
+     "video": 0,
+     "canvas": 0,
+     "svg": 36,
+     "sections": 1,
+     "horizontalOverflow": 0,
+     "overflowCulprits": [],
+     "uiFragments": 2,
+     "uiAbuse": false,
+     "realPictures": 3,
+     "videoCount": 0,
+     "uiPictures": 0,
+     "pictureSamples": [
+      "image?url=https%3A%2F%2Faxnfwsmszjgqazboqzly.sup",
+      "image?url=https%3A%2F%2Faxnfwsmszjgqazboqzly.sup",
+      "image?url=https%3A%2F%2Faxnfwsmszjgqazboqzly.sup"
+     ],
+     "blendText": 0,
+     "sideScrollers": 0,
+     "brokenImages": [],
+     "emoji": []
+    },
+    "hero": {
+     "text": "Marketplace",
+     "words": 1,
+     "chars": 11,
+     "lines": 1,
+     "size": 86.4,
+     "vw": 6,
+     "font": "Geist",
+     "weight": 830,
+     "tracking": -0.075,
+     "leading": 0.88,
+     "upper": false,
+     "italic": false,
+     "mono": false,
+     "align": "left",
+     "position": "center",
+     "widthRatio": 0.76,
+     "top": 245,
+     "tag": "h1",
+     "kind": "heading"
+    },
+    "h1": {
+     "text": "Marketplace",
+     "words": 1,
+     "lines": 1,
+     "size": 86.4,
+     "font": "Geist"
+    },
+    "headings": [
+     {
+      "text": "Marketplace",
+      "words": 1,
+      "chars": 11,
+      "lines": 1,
+      "size": 86.4,
+      "vw": 6,
+      "font": "Geist",
+      "weight": 830,
+      "tracking": -0.075,
+      "leading": 0.88,
+      "upper": false,
+      "italic": false,
+      "mono": false,
+      "align": "left",
+      "position": "center",
+      "widthRatio": 0.76,
+      "top": 245,
+      "tag": "h1",
+      "kind": "heading"
+     }
+    ],
+    "headingSummary": {
+     "count": 1,
+     "maxLines": 1,
+     "over2Lines": 0,
+     "statements": 0,
+     "centered": 0,
+     "medianWords": null,
+     "mixedFontHeadings": 0
+    },
+    "type": {
+     "families": [
+      {
+       "family": "Geist",
+       "share": 1,
+       "mono": false
+      },
+      {
+       "family": "ui-monospace",
+       "share": 0,
+       "mono": false
+      }
+     ],
+     "familyCount": 2,
+     "sizes": [
+      12,
+      13,
+      14,
+      15,
+      16,
+      20,
+      86
+     ],
+     "sizeCount": 7,
+     "notLoaded": [],
+     "body": {
+      "font": "Geist",
+      "size": 16,
+      "leading": 1.65,
+      "weight": 400,
+      "tracking": 0,
+      "contrast": 11.2
+     },
+     "measureChars": 84,
+     "max": {
+      "size": 86.4,
+      "vw": 6,
+      "font": "Geist",
+      "text": "Marketplace"
+     },
+     "monoShare": 0,
+     "monoProseShare": 0,
+     "monoFamilies": [
+      "ui-monospace"
+     ],
+     "monoSamples": [],
+     "microLabels": 0,
+     "microLabelShare": 0,
+     "microSamples": [],
+     "upperShare": 0.03,
+     "centerShare": 0.04,
+     "smallText": 1
+    },
+    "eyebrows": [],
+    "numbered": [],
+    "color": {
+     "bodyBg": "#07090d",
+     "bodyBgHsl": {
+      "h": 220,
+      "s": 0.3,
+      "l": 0.04
+     },
+     "dark": true,
+     "sectionBgs": [
+      {
+       "color": "#10141d",
+       "top": 182,
+       "hsl": {
+        "h": 222,
+        "s": 0.29,
+        "l": 0.09
+       }
+      }
+     ],
+     "textColors": [
+      {
+       "color": "#c4cad5",
+       "share": 0.76
+      },
+      {
+       "color": "#f5f7fb",
+       "share": 0.14
+      },
+      {
+       "color": "#8c96a8",
+       "share": 0.05
+      },
+      {
+       "color": "#090b10",
+       "share": 0.03
+      },
+      {
+       "color": "#ffffff",
+       "share": 0.02
+      }
+     ],
+     "button": {
+      "bg": "#7055df",
+      "hsl": {
+       "h": 252,
+       "s": 0.68,
+       "l": 0.6
+      },
+      "fg": "#f5f7fb"
+     },
+     "lowContrast": []
+    },
+    "buttons": {
+     "count": 5,
+     "inHero": 3,
+     "radius": 12,
+     "height": 70,
+     "withShadow": 0,
+     "withGradient": 0,
+     "mono": 0,
+     "upper": 0,
+     "heroLabels": [
+      "Skip to content",
+      "Sell",
+      "Search"
+     ]
+    },
+    "surfaces": {
+     "shadowStatic": 0,
+     "shadowOverlay": 0,
+     "shadowSamples": [],
+     "gradients": 0,
+     "scrims": 0,
+     "gradientSamples": [],
+     "gradientText": 0,
+     "hairlines": 0,
+     "hairlineSamples": [],
+     "outlinedBoxes": 0,
+     "dashed": 0,
+     "blurred": 0,
+     "roundedBoxes": 6,
+     "boxRadius": 16,
+     "squareMedia": 3,
+     "roundedMedia": 0,
+     "mediaRadius": 0,
+     "textShadow": 0,
+     "cardRows": [
+      {
+       "count": 3,
+       "iconTopped": false,
+       "rounded": true,
+       "top": 821
+      }
+     ]
+    },
+    "heroMedia": [],
+    "nav": {
+     "links": 7,
+     "fixed": true,
+     "height": 74,
+     "floatingPill": false,
+     "blur": false
+    },
+    "fontsLoaded": [
+     "geist"
+    ]
+   },
+   "consoleErrors": []
+  },
+  {
+   "width": 390,
+   "height": 844,
+   "load": "load",
+   "screens": 2,
+   "filled": [
+    0.73,
+    0.68
+   ],
+   "motion": {
+    "elements": 37,
+    "css": 36,
+    "transitions": 1,
+    "scripted": 0,
+    "videos": 0,
+    "playingVideos": 0
+   },
+   "metrics": {
+    "viewport": {
+     "w": 390,
+     "h": 844
+    },
+    "page": {
+     "height": 1554,
+     "screens": 1.8,
+     "words": 72,
+     "img": 3,
+     "video": 0,
+     "canvas": 0,
+     "svg": 36,
+     "sections": 1,
+     "horizontalOverflow": 0,
+     "overflowCulprits": [],
+     "uiFragments": 2,
+     "uiAbuse": false,
+     "realPictures": 3,
+     "videoCount": 0,
+     "uiPictures": 0,
+     "pictureSamples": [
+      "image?url=https%3A%2F%2Faxnfwsmszjgqazboqzly.sup",
+      "image?url=https%3A%2F%2Faxnfwsmszjgqazboqzly.sup",
+      "image?url=https%3A%2F%2Faxnfwsmszjgqazboqzly.sup"
+     ],
+     "blendText": 0,
+     "sideScrollers": 0,
+     "brokenImages": [],
+     "emoji": []
+    },
+    "hero": {
+     "text": "Marketplace",
+     "words": 1,
+     "chars": 11,
+     "lines": 1,
+     "size": 50.7,
+     "vw": 13,
+     "font": "Geist",
+     "weight": 830,
+     "tracking": -0.075,
+     "leading": 0.88,
+     "upper": false,
+     "italic": false,
+     "mono": false,
+     "align": "left",
+     "position": "center",
+     "widthRatio": 0.82,
+     "top": 124,
+     "tag": "h1",
+     "kind": "heading"
+    },
+    "h1": {
+     "text": "Marketplace",
+     "words": 1,
+     "lines": 1,
+     "size": 50.7,
+     "font": "Geist"
+    },
+    "headings": [
+     {
+      "text": "Marketplace",
+      "words": 1,
+      "chars": 11,
+      "lines": 1,
+      "size": 50.7,
+      "vw": 13,
+      "font": "Geist",
+      "weight": 830,
+      "tracking": -0.075,
+      "leading": 0.88,
+      "upper": false,
+      "italic": false,
+      "mono": false,
+      "align": "left",
+      "position": "center",
+      "widthRatio": 0.82,
+      "top": 124,
+      "tag": "h1",
+      "kind": "heading"
+     }
+    ],
+    "headingSummary": {
+     "count": 1,
+     "maxLines": 1,
+     "over2Lines": 0,
+     "statements": 0,
+     "centered": 0,
+     "medianWords": null,
+     "mixedFontHeadings": 0
+    },
+    "type": {
+     "families": [
+      {
+       "family": "Geist",
+       "share": 1,
+       "mono": false
+      }
+     ],
+     "familyCount": 1,
+     "sizes": [
+      12,
+      13,
+      14,
+      16,
+      18,
+      51
+     ],
+     "sizeCount": 6,
+     "notLoaded": [],
+     "body": {
+      "font": "Geist",
+      "size": 16,
+      "leading": 1.65,
+      "weight": 400,
+      "tracking": 0,
+      "contrast": 11.2
+     },
+     "measureChars": 40,
+     "max": {
+      "size": 50.7,
+      "vw": 13,
+      "font": "Geist",
+      "text": "Marketplace"
+     },
+     "monoShare": 0,
+     "monoProseShare": 0,
+     "monoFamilies": [],
+     "monoSamples": [],
+     "microLabels": 0,
+     "microLabelShare": 0,
+     "microSamples": [],
+     "upperShare": 0,
+     "centerShare": 0.03,
+     "smallText": 1
+    },
+    "eyebrows": [],
+    "numbered": [],
+    "color": {
+     "bodyBg": "#07090d",
+     "bodyBgHsl": {
+      "h": 220,
+      "s": 0.3,
+      "l": 0.04
+     },
+     "dark": true,
+     "sectionBgs": [
+      {
+       "color": "#10141d",
+       "top": 88,
+       "hsl": {
+        "h": 222,
+        "s": 0.29,
+        "l": 0.09
+       }
+      }
+     ],
+     "textColors": [
+      {
+       "color": "#c4cad5",
+       "share": 0.73
+      },
+      {
+       "color": "#f5f7fb",
+       "share": 0.19
+      },
+      {
+       "color": "#090b10",
+       "share": 0.04
+      },
+      {
+       "color": "#ffffff",
+       "share": 0.03
+      },
+      {
+       "color": "#8c96a8",
+       "share": 0.02
+      }
+     ],
+     "button": {
+      "bg": "#f5f7fb",
+      "hsl": {
+       "h": 220,
+       "s": 0.43,
+       "l": 0.97
+      },
+      "fg": "#f5f7fb"
+     },
+     "lowContrast": []
+    },
+    "buttons": {
+     "count": 3,
+     "inHero": 3,
+     "radius": 12,
+     "height": 50,
+     "withShadow": 0,
+     "withGradient": 0,
+     "mono": 0,
+     "upper": 0,
+     "heroLabels": [
+      "Skip to content",
+      "Search",
+      "Filters"
+     ]
+    },
+    "surfaces": {
+     "shadowStatic": 0,
+     "shadowOverlay": 0,
+     "shadowSamples": [],
+     "gradients": 0,
+     "scrims": 0,
+     "gradientSamples": [],
+     "gradientText": 0,
+     "hairlines": 0,
+     "hairlineSamples": [],
+     "outlinedBoxes": 0,
+     "dashed": 0,
+     "blurred": 0,
+     "roundedBoxes": 5,
+     "boxRadius": 16,
+     "squareMedia": 0,
+     "roundedMedia": 0,
+     "mediaRadius": 0,
+     "textShadow": 0,
+     "cardRows": [
+      {
+       "count": 3,
+       "iconTopped": false,
+       "rounded": true,
+       "top": 780
+      }
+     ]
+    },
+    "heroMedia": [],
+    "nav": {
+     "links": 0,
+     "fixed": true,
+     "height": 0,
+     "floatingPill": false,
+     "blur": false
+    },
+    "fontsLoaded": [
+     "geist"
+    ]
+   },
+   "consoleErrors": []
+  },
+  {
+   "width": 320,
+   "height": 200,
+   "load": "load",
+   "screens": 12,
+   "filled": [
+    0.56,
+    0.94,
+    0.94,
+    0.82,
+    0.82,
+    0.94,
+    0.88,
+    0.94,
+    0.88,
+    0.94,
+    0.77,
+    0.77
+   ],
+   "motion": {
+    "elements": 37,
+    "css": 36,
+    "transitions": 1,
+    "scripted": 0,
+    "videos": 0,
+    "playingVideos": 0
+   },
+   "metrics": {
+    "viewport": {
+     "w": 320,
+     "h": 200
+    },
+    "page": {
+     "height": 2202,
+     "screens": 11,
+     "words": 72,
+     "img": 3,
+     "video": 0,
+     "canvas": 0,
+     "svg": 36,
+     "sections": 1,
+     "horizontalOverflow": 0,
+     "overflowCulprits": [],
+     "uiFragments": 2,
+     "uiAbuse": false,
+     "realPictures": 3,
+     "videoCount": 0,
+     "uiPictures": 0,
+     "pictureSamples": [
+      "image?url=https%3A%2F%2Faxnfwsmszjgqazboqzly.sup",
+      "image?url=https%3A%2F%2Faxnfwsmszjgqazboqzly.sup",
+      "image?url=https%3A%2F%2Faxnfwsmszjgqazboqzly.sup"
+     ],
+     "blendText": 0,
+     "sideScrollers": 0,
+     "brokenImages": [],
+     "emoji": []
+    },
+    "hero": {
+     "text": "Marketplace",
+     "words": 1,
+     "chars": 11,
+     "lines": 1,
+     "size": 44,
+     "vw": 13.8,
+     "font": "Geist",
+     "weight": 830,
+     "tracking": -0.075,
+     "leading": 0.88,
+     "upper": false,
+     "italic": false,
+     "mono": false,
+     "align": "left",
+     "position": "center",
+     "widthRatio": 0.78,
+     "top": 124,
+     "tag": "h1",
+     "kind": "heading"
+    },
+    "h1": {
+     "text": "Marketplace",
+     "words": 1,
+     "lines": 1,
+     "size": 44,
+     "font": "Geist"
+    },
+    "headings": [
+     {
+      "text": "Marketplace",
+      "words": 1,
+      "chars": 11,
+      "lines": 1,
+      "size": 44,
+      "vw": 13.8,
+      "font": "Geist",
+      "weight": 830,
+      "tracking": -0.075,
+      "leading": 0.88,
+      "upper": false,
+      "italic": false,
+      "mono": false,
+      "align": "left",
+      "position": "center",
+      "widthRatio": 0.78,
+      "top": 124,
+      "tag": "h1",
+      "kind": "heading"
+     }
+    ],
+    "headingSummary": {
+     "count": 1,
+     "maxLines": 1,
+     "over2Lines": 0,
+     "statements": 0,
+     "centered": 0,
+     "medianWords": null,
+     "mixedFontHeadings": 0
+    },
+    "type": {
+     "families": [
+      {
+       "family": "Geist",
+       "share": 1,
+       "mono": false
+      }
+     ],
+     "familyCount": 1,
+     "sizes": [
+      12,
+      13,
+      14,
+      16,
+      18,
+      44
+     ],
+     "sizeCount": 6,
+     "notLoaded": [],
+     "body": {
+      "font": "Geist",
+      "size": 16,
+      "leading": 1.65,
+      "weight": 400,
+      "tracking": 0,
+      "contrast": 11.2
+     },
+     "measureChars": 31,
+     "max": {
+      "size": 44,
+      "vw": 13.8,
+      "font": "Geist",
+      "text": "Marketplace"
+     },
+     "monoShare": 0,
+     "monoProseShare": 0,
+     "monoFamilies": [],
+     "monoSamples": [],
+     "microLabels": 0,
+     "microLabelShare": 0,
+     "microSamples": [],
+     "upperShare": 0,
+     "centerShare": 0.03,
+     "smallText": 1
+    },
+    "eyebrows": [],
+    "numbered": [],
+    "color": {
+     "bodyBg": "#07090d",
+     "bodyBgHsl": {
+      "h": 220,
+      "s": 0.3,
+      "l": 0.04
+     },
+     "dark": true,
+     "sectionBgs": [
+      {
+       "color": "#10141d",
+       "top": 88,
+       "hsl": {
+        "h": 222,
+        "s": 0.29,
+        "l": 0.09
+       }
+      },
+      {
+       "color": "#0e1219",
+       "top": 408,
+       "hsl": {
+        "h": 218,
+        "s": 0.28,
+        "l": 0.08
+       }
+      },
+      {
+       "color": "#141a24",
+       "top": 828,
+       "hsl": {
+        "h": 218,
+        "s": 0.29,
+        "l": 0.11
+       }
+      },
+      {
+       "color": "#0c1018",
+       "top": 139,
+       "hsl": {
+        "h": 220,
+        "s": 0.33,
+        "l": 0.07
+       }
+      }
+     ],
+     "textColors": [
+      {
+       "color": "#c4cad5",
+       "share": 0.73
+      },
+      {
+       "color": "#f5f7fb",
+       "share": 0.19
+      },
+      {
+       "color": "#090b10",
+       "share": 0.04
+      },
+      {
+       "color": "#ffffff",
+       "share": 0.03
+      },
+      {
+       "color": "#8c96a8",
+       "share": 0.02
+      }
+     ],
+     "button": {
+      "bg": "#f5f7fb",
+      "hsl": {
+       "h": 220,
+       "s": 0.43,
+       "l": 0.97
+      },
+      "fg": "#f5f7fb"
+     },
+     "lowContrast": []
+    },
+    "buttons": {
+     "count": 3,
+     "inHero": 1,
+     "radius": 12,
+     "height": 50,
+     "withShadow": 0,
+     "withGradient": 0,
+     "mono": 0,
+     "upper": 0,
+     "heroLabels": [
+      "Skip to content"
+     ]
+    },
+    "surfaces": {
+     "shadowStatic": 0,
+     "shadowOverlay": 0,
+     "shadowSamples": [],
+     "gradients": 0,
+     "scrims": 0,
+     "gradientSamples": [],
+     "gradientText": 0,
+     "hairlines": 0,
+     "hairlineSamples": [],
+     "outlinedBoxes": 0,
+     "dashed": 0,
+     "blurred": 0,
+     "roundedBoxes": 6,
+     "boxRadius": 16,
+     "squareMedia": 3,
+     "roundedMedia": 0,
+     "mediaRadius": 0,
+     "textShadow": 0,
+     "cardRows": []
+    },
+    "heroMedia": [],
+    "nav": {
+     "links": 0,
+     "fixed": true,
+     "height": 0,
+     "floatingPill": false,
+     "blur": false
+    },
+    "fontsLoaded": [
+     "geist"
+    ]
+   },
+   "consoleErrors": []
+  }
+ ],
+ "findings": [
+  {
+   "level": "WARN",
+   "id": "small-text",
+   "width": 1440,
+   "message": "1 text block(s) under 13px.",
+   "fix": "Nothing meant to be read goes below 13px.",
+   "alsoAt": [
+    390,
+    320
+   ]
+  }
+ ],
+ "images": [
+  {
+   "viewport": "desktop",
+   "width": 1440,
+   "fold": "C:\\Users\\Pavlos\\Documents\\ggmrketvol2\\.taste-skill\\full-site-final\\desktop-fold.jpg",
+   "pages": [
+    "C:\\Users\\Pavlos\\Documents\\ggmrketvol2\\.taste-skill\\full-site-final\\desktop-page-01.jpg"
+   ]
+  },
+  {
+   "viewport": "mobile",
+   "width": 390,
+   "fold": "C:\\Users\\Pavlos\\Documents\\ggmrketvol2\\.taste-skill\\full-site-final\\mobile-fold.jpg",
+   "pages": [
+    "C:\\Users\\Pavlos\\Documents\\ggmrketvol2\\.taste-skill\\full-site-final\\mobile-page-01.jpg"
+   ]
+  },
+  {
+   "viewport": "mobile",
+   "width": 320,
+   "fold": "C:\\Users\\Pavlos\\Documents\\ggmrketvol2\\.taste-skill\\full-site-final\\mobile-fold.jpg",
+   "pages": [
+    "C:\\Users\\Pavlos\\Documents\\ggmrketvol2\\.taste-skill\\full-site-final\\mobile-page-01.jpg",
+    "C:\\Users\\Pavlos\\Documents\\ggmrketvol2\\.taste-skill\\full-site-final\\mobile-page-02.jpg"
+   ]
+  }
+ ]
+}

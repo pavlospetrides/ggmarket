@@ -2,31 +2,38 @@
 
 import { useState, type FormEvent } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { useHydrated } from "./use-hydrated";
 
-export function ForgotPasswordForm() {
-  const [status, setStatus] = useState("");
+export function ForgotPasswordForm({ initialStatus = "" }: { initialStatus?: string }) {
+  const hydrated = useHydrated();
+  const [status, setStatus] = useState(initialStatus);
   const [busy, setBusy] = useState(false);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setBusy(true);
     const formData = new FormData(event.currentTarget);
-    const { error } = await createClient().auth.resetPasswordForEmail(
-      String(formData.get("email")),
-      {
-        redirectTo: `${location.origin}/auth/callback?next=/reset-password`,
-      },
-    );
-    setStatus(
-      error
-        ? "The reset email could not be sent."
-        : "If an account exists, a reset link has been sent.",
-    );
-    setBusy(false);
+    try {
+      const { error } = await createClient().auth.resetPasswordForEmail(
+        String(formData.get("email")),
+        {
+          redirectTo: `${location.origin}/auth/callback?next=/reset-password`,
+        },
+      );
+      setStatus(
+        error
+          ? "The reset email could not be sent."
+          : "If an account exists, a reset link has been sent.",
+      );
+    } catch {
+      setStatus("The reset email could not be sent.");
+    } finally {
+      setBusy(false);
+    }
   }
 
   return (
-    <form onSubmit={submit} className="space-y-4" aria-busy={busy}>
+    <form action="/auth/forgot-password" method="post" onSubmit={submit} className="space-y-4" aria-busy={busy} data-hydrated={hydrated}>
       <div>
         <label className="label" htmlFor="email">
           Email

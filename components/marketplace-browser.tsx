@@ -2,41 +2,43 @@
 import { SearchX, SlidersHorizontal, X } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { CategoryGrid } from "./category-grid";
 import { ListingGrid } from "./listing-grid";
 import { SearchBar } from "./search-bar";
 import { TaxonomyBreadcrumbs } from "./taxonomy-breadcrumbs";
 import { TaxonomyNavigation } from "./taxonomy-navigation";
+import { useHydrated } from "./use-hydrated";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "./ui/sheet";
 import { conditions } from "@/lib/constants";
 import { pageHref } from "@/lib/pagination";
 import { COMPATIBILITY_OPTIONS, formatTaxonomyAttribute, getTaxonomyFields, getTaxonomyRoot, isDeprecatedTaxonomyAttribute, isTaxonomyFilterKey, resolveTaxonomyQuery, taxonomyFilterEntries, updateTaxonomyFilterParams } from "@/lib/gaming-taxonomy";
-import type { Category, ListingQuery, PaginatedListings } from "@/lib/types";
+import { pcHardwareDependentKeys } from "@/lib/pc-hardware-taxonomy";
+import type { Category, ListingAttributes, ListingQuery, PaginatedListings } from "@/lib/types";
 
 const value = (params: ListingQuery, key: string) =>
   typeof params[key] === "string" ? (params[key] as string) : "";
 const filterKeys = ["category", "min", "max", "condition", "location", "seller", "intent"] as const;
-const subscribeToHydration = () => () => {};
-const getClientHydrationSnapshot = () => true;
-const getServerHydrationSnapshot = () => false;
 export function MarketplaceBrowser({
   result,
   params,
   categories,
   favoriteIds,
+  viewerId,
   actionPath,
 }: {
   result: PaginatedListings;
   params: ListingQuery;
   categories: Category[];
   favoriteIds: string[];
+  viewerId: string | null;
   actionPath: "/marketplace" | "/search";
 }) {
   const router = useRouter();
   const { items, total, page, pageSize } = result;
   const [filters, setFilters] = useState(false);
-  const hydrated = useSyncExternalStore(subscribeToHydration, getClientHydrationSnapshot, getServerHydrationSnapshot);
+  const [filterNavigationPending, startFilterNavigation] = useTransition();
+  const hydrated = useHydrated();
   const pendingFilterFocus = useRef("");
   const query = value(params, "q");
   const resolvedTaxonomy = useMemo(() => resolveTaxonomyQuery(params), [params]);
@@ -83,20 +85,30 @@ export function MarketplaceBrowser({
     .map(([key, current]) => `${key}=${current}`)
     .join("&");
   useEffect(() => {
-    if (!pendingFilterFocus.current) return;
+    if (filterNavigationPending || !pendingFilterFocus.current) return;
     const targetId = pendingFilterFocus.current;
     const frame = requestAnimationFrame(() => {
       document.getElementById(targetId)?.focus();
       pendingFilterFocus.current = "";
     });
     return () => cancelAnimationFrame(frame);
-  }, [filterFormKey]);
+  }, [filterFormKey, filterNavigationPending]);
   const updateHierarchy = (prefix: "desktop" | "mobile", key: "family" | "platform" | "model", nextValue: string) => {
     pendingFilterFocus.current = key === "family" && nextValue ? `${prefix}-taxonomy-secondary` : `${prefix}-taxonomy-${key === "family" ? "primary" : "secondary"}`;
-    router.push(pageHref(actionPath, updateTaxonomyFilterParams(params, key, nextValue), 1));
+    const href = pageHref(actionPath, updateTaxonomyFilterParams(params, key, nextValue), 1);
+    startFilterNavigation(() => router.push(href, { scroll: false }));
+  };
+  const updatePcFilter = (prefix: "desktop" | "mobile", key: string, nextValue: string) => {
+    const next = updateTaxonomyFilterParams(taxonomyDisplayParams, key, nextValue);
+    const nextFields = getTaxonomyFields("pc-components", next as ListingAttributes);
+    const currentIndex = nextFields.findIndex((field) => field.key === key);
+    const nextField = nextValue ? nextFields[currentIndex + 1] : undefined;
+    pendingFilterFocus.current = `${prefix}-${nextField?.key ?? (key === "subcategory" ? "taxonomy-primary" : key)}`;
+    const href = pageHref(actionPath, next, 1);
+    startFilterNavigation(() => router.push(href, { scroll: false }));
   };
   const sidebar = (prefix: "desktop" | "mobile") => (
-    <form action={actionPath} className="space-y-7" key={`${prefix}-${filterFormKey}`}>
+    <form action={actionPath} className="space-y-7" key={`${prefix}-${filterFormKey}`} aria-busy={filterNavigationPending}>
       {query && <input type="hidden" name="q" value={query} />}
       {value(params, "sort") && <input type="hidden" name="sort" value={value(params, "sort")} />}
       <div>
@@ -108,7 +120,6 @@ export function MarketplaceBrowser({
           id={`${prefix}-category`}
           name="category"
           defaultValue={value(params, "category")}
-          disabled={!hydrated}
           onChange={(event) => {
             setFilters(false);
             router.push(categoryHref(event.currentTarget.value));
@@ -125,14 +136,14 @@ export function MarketplaceBrowser({
       {selectedRoot?.children?.length ? <>
         <div>
           <label className="label" htmlFor={`${prefix}-taxonomy-primary`}>{selectedCategorySlug === "games" || selectedCategorySlug === "consoles" ? "Platform family" : "Product type"}</label>
-          <select className="input" id={`${prefix}-taxonomy-primary`} name={selectedCategorySlug === "games" || selectedCategorySlug === "consoles" ? "family" : "subcategory"} defaultValue={resolvedTaxonomyValue(selectedCategorySlug === "games" || selectedCategorySlug === "consoles" ? "family" : "subcategory")} disabled={(selectedCategorySlug === "games" || selectedCategorySlug === "consoles") && !hydrated} onChange={selectedCategorySlug === "games" || selectedCategorySlug === "consoles" ? (event) => updateHierarchy(prefix, "family", event.currentTarget.value) : undefined}>
+          <select className="input" id={`${prefix}-taxonomy-primary`} name={selectedCategorySlug === "games" || selectedCategorySlug === "consoles" ? "family" : "subcategory"} defaultValue={resolvedTaxonomyValue(selectedCategorySlug === "games" || selectedCategorySlug === "consoles" ? "family" : "subcategory")} disabled={filterNavigationPending} onChange={selectedCategorySlug === "games" || selectedCategorySlug === "consoles" ? (event) => updateHierarchy(prefix, "family", event.currentTarget.value) : selectedCategorySlug === "pc-components" ? (event) => updatePcFilter(prefix, "subcategory", event.currentTarget.value) : undefined}>
             <option value="">All {selectedCategorySlug === "games" || selectedCategorySlug === "consoles" ? "families" : "product types"}</option>
             {selectedRoot.children.map((item) => <option value={item.id} key={item.id}>{item.label}</option>)}
           </select>
         </div>
         {(selectedCategorySlug === "games" || selectedCategorySlug === "consoles") && selectedRoot.children.find((item) => item.id === resolvedTaxonomyValue("family"))?.children?.length ? <div>
           <label className="label" htmlFor={`${prefix}-taxonomy-secondary`}>{selectedCategorySlug === "games" ? "Console / Platform" : "Exact console model"}</label>
-          <select className="input" id={`${prefix}-taxonomy-secondary`} name={selectedCategorySlug === "games" ? "platform" : "model"} defaultValue={resolvedTaxonomyValue(selectedCategorySlug === "games" ? "platform" : "model")} disabled={!hydrated} onChange={(event) => updateHierarchy(prefix, selectedCategorySlug === "games" ? "platform" : "model", event.currentTarget.value)}>
+          <select className="input" id={`${prefix}-taxonomy-secondary`} name={selectedCategorySlug === "games" ? "platform" : "model"} defaultValue={resolvedTaxonomyValue(selectedCategorySlug === "games" ? "platform" : "model")} disabled={filterNavigationPending} onChange={(event) => updateHierarchy(prefix, selectedCategorySlug === "games" ? "platform" : "model", event.currentTarget.value)}>
             <option value="">All {selectedRoot.children.find((item) => item.id === resolvedTaxonomyValue("family"))?.label ?? (selectedCategorySlug === "games" ? "platforms" : "models")}</option>
             {selectedRoot.children.find((item) => item.id === resolvedTaxonomyValue("family"))?.children?.map((item) => <option value={item.id} key={item.id}>{item.label}</option>)}
           </select>
@@ -142,9 +153,9 @@ export function MarketplaceBrowser({
         <label className="label" htmlFor={`${prefix}-compatibility`}>Compatible platform</label>
         <select className="input" id={`${prefix}-compatibility`} name="compatibility" defaultValue={resolvedTaxonomyValue("compatibility")}><option value="">Any compatible platform</option>{COMPATIBILITY_OPTIONS.map((item) => <option value={item.value} key={item.value}>{item.label}</option>)}</select>
       </div> : null}
-      {getTaxonomyFields(selectedCategorySlug, { subcategory: resolvedTaxonomyValue("subcategory") }).filter((field) => field.key !== "compatibility" && !(field.key === "model" && selectedCategorySlug === "consoles") && ["select", "text", "number", "boolean"].includes(field.type)).map((field) => <div key={`${prefix}-${field.key}`}>
+      {getTaxonomyFields(selectedCategorySlug, taxonomyDisplayParams as ListingAttributes).filter((field) => field.key !== "compatibility" && !(field.key === "model" && selectedCategorySlug === "consoles") && ["select", "multiselect", "text", "number", "boolean"].includes(field.type)).map((field) => <div key={`${prefix}-${field.key}`}>
         <label className="label" htmlFor={`${prefix}-${field.key}`}>{field.label}</label>
-        {field.type === "select" ? <select className="input" id={`${prefix}-${field.key}`} name={field.key} defaultValue={resolvedTaxonomyValue(field.key)}><option value="">Any {field.label.toLowerCase()}</option>{field.options?.map((item) => <option value={item.value} key={item.value}>{item.label}</option>)}</select> : field.type === "boolean" ? <select className="input" id={`${prefix}-${field.key}`} name={field.key} defaultValue={resolvedTaxonomyValue(field.key)}><option value="">Any</option><option value="true">Yes</option><option value="false">No</option></select> : <input className="input" id={`${prefix}-${field.key}`} name={field.key} type={field.type} min={field.min} max={field.max} defaultValue={resolvedTaxonomyValue(field.key)} />}
+        {field.type === "select" || field.type === "multiselect" ? <select className="input" id={`${prefix}-${field.key}`} name={field.key} defaultValue={resolvedTaxonomyValue(field.key)} disabled={filterNavigationPending && selectedCategorySlug === "pc-components"} onChange={selectedCategorySlug === "pc-components" && pcHardwareDependentKeys(resolvedTaxonomyValue("subcategory"), field.key).length ? (event) => updatePcFilter(prefix, field.key, event.currentTarget.value) : undefined}><option value="">Any {field.label.toLowerCase()}</option>{field.options?.map((item) => <option value={item.value} key={item.value}>{item.label}</option>)}</select> : field.type === "boolean" ? <select className="input" id={`${prefix}-${field.key}`} name={field.key} defaultValue={resolvedTaxonomyValue(field.key)}><option value="">Any</option><option value="true">Yes</option><option value="false">No</option></select> : <input className="input" id={`${prefix}-${field.key}`} name={field.key} type={field.type} min={field.min} max={field.max} defaultValue={resolvedTaxonomyValue(field.key)} />}
       </div>)}
       <fieldset>
         <legend className="label">Price range</legend>
@@ -240,22 +251,24 @@ export function MarketplaceBrowser({
         <a href={resetHref} className="btn-secondary">
           Reset
         </a>
-        <button className="btn-primary w-full">Apply filters</button>
+        <button className="btn-primary w-full" disabled={filterNavigationPending}>Apply filters</button>
       </div>
     </form>
   );
   return (
     <div className="container-page py-7 md:py-12">
       <TaxonomyBreadcrumbs actionPath={actionPath} categorySlug={selectedCategorySlug || undefined} params={taxonomyDisplayParams} />
-      <div className="page-header">
-        <h1 className="page-title">
+      <header className={`marketplace-command-deck ${actionPath === "/search" ? "marketplace-command-deck--search" : ""}`}>
+        <h1>
           {query ? `Results for “${query}”` : "Marketplace"}
         </h1>
-        <p className="page-description">Find consoles, components, games, and gear from gamers and specialist sellers.</p>
-        <div className="mt-5 max-w-2xl">
+        <p>Find consoles, components, games, and gear from gamers and specialist sellers.</p>
+        <div className="marketplace-command-deck__search">
           <SearchBar action={actionPath} defaultValue={query} id="marketplace-query" />
         </div>
-      </div>
+        <p className="marketplace-command-deck__count">{total} {total === 1 ? "listing indexed" : "listings indexed"}</p>
+        <div className="marketplace-command-deck__bars" aria-hidden="true"><i /><i /><i /></div>
+      </header>
       {!query && !params.category && (
         <div className="mb-9">
           <CategoryGrid categories={categories} limit={8} />
@@ -274,15 +287,16 @@ export function MarketplaceBrowser({
             {sidebar("desktop")}
           </div>
         </aside>
-        <section className="min-w-0">
-          <div className="mb-5 flex flex-col items-stretch gap-2 rounded-[var(--radius-md)] bg-[var(--surface)] p-2 min-[360px]:flex-row min-[360px]:items-center min-[360px]:justify-between min-[360px]:gap-3 min-[360px]:pl-3">
+        <section className="min-w-0" aria-labelledby="marketplace-results-heading">
+          <h2 id="marketplace-results-heading" className="sr-only">Marketplace results</h2>
+           <div className="mb-5 grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-2 rounded-[var(--radius-md)] bg-[var(--surface)] p-2 min-[375px]:grid-cols-[minmax(0,1fr)_auto_minmax(7.5rem,10rem)] min-[375px]:pl-3 md:flex md:justify-between md:gap-3">
             <p className="text-sm text-[var(--muted)]">
               <strong className="text-white">{total}</strong> {total === 1 ? "listing" : "listings"}
             </p>
-            <div className="flex gap-2">
-              <Sheet open={filters} onOpenChange={setFilters}>
+            <div className="contents md:flex md:gap-2">
+              {hydrated ? <Sheet open={filters} onOpenChange={setFilters}>
                 <SheetTrigger asChild>
-                  <button type="button" className="btn-secondary md:hidden">
+                  <button type="button" className="btn-secondary touch-manipulation md:hidden">
                     <SlidersHorizontal className="size-4" aria-hidden="true" /> Filters {activeFilterCount > 0 && <span className="grid size-5 place-items-center rounded-full bg-[var(--primary)] text-[10px]">{activeFilterCount}</span>}
                   </button>
                 </SheetTrigger>
@@ -293,8 +307,14 @@ export function MarketplaceBrowser({
                   </SheetHeader>
                   <div className="overscroll-contain overflow-y-auto px-5 pb-[calc(2rem+env(safe-area-inset-bottom))]">{sidebar("mobile")}</div>
                 </SheetContent>
-              </Sheet>
-              <form action={actionPath}>
+              </Sheet> : <details className="relative md:hidden">
+                <summary className="btn-secondary min-h-11 cursor-pointer list-none touch-manipulation"><SlidersHorizontal className="size-4" aria-hidden="true" /> <span>Filters</span></summary>
+                <div className="fixed inset-x-0 bottom-0 z-[61] max-h-[92dvh] overflow-y-auto rounded-t-[1.5rem] bg-[var(--surface)] px-5 pb-[calc(2rem+env(safe-area-inset-bottom))] pt-5 shadow-2xl">
+                  <h2 className="mb-4 text-xl font-bold">Filters</h2>
+                  {sidebar("mobile")}
+                </div>
+              </details>}
+              <form action={actionPath} className={hydrated ? "col-span-2 grid min-w-0 grid-cols-1 gap-2 min-[375px]:col-span-1 md:flex md:w-auto" : "col-span-2 grid min-w-0 grid-cols-[minmax(0,1fr)_auto] gap-2 md:flex md:w-auto"}>
                 {Object.entries(params)
                   .filter(
                     ([key, item]) =>
@@ -309,7 +329,7 @@ export function MarketplaceBrowser({
                     />
                   ))}
                 <select
-                  className="input min-h-11 w-40"
+                   className="input min-h-11 min-w-0 w-full md:w-40"
                   name="sort"
                   defaultValue={value(params, "sort") || (query ? "" : "newest")}
                   onChange={(event) => {
@@ -318,7 +338,6 @@ export function MarketplaceBrowser({
                     router.push(pageHref(actionPath, next, 1));
                   }}
                   aria-label="Sort listings"
-                  disabled={!hydrated}
                 >
                   {query && <option value="">Relevance</option>}
                   <option value="newest">Newest</option>
@@ -326,6 +345,7 @@ export function MarketplaceBrowser({
                   <option value="price-asc">Price: low</option>
                   <option value="price-desc">Price: high</option>
                 </select>
+                {!hydrated && <button type="submit" className="btn-secondary min-h-11 px-3">Apply sort</button>}
               </form>
             </div>
           </div>
@@ -335,7 +355,7 @@ export function MarketplaceBrowser({
           </div>}
           {items.length ? (
             <>
-              <ListingGrid listings={items} favoriteIds={new Set(favoriteIds)} eagerFirst sparseEditorial />
+              <ListingGrid listings={items} viewerId={viewerId} favoriteIds={new Set(favoriteIds)} eagerFirst sparseEditorial />
               {total > pageSize && <nav className="mt-9 flex items-center justify-between gap-3 pt-5" aria-label="Marketplace pages">
                 {page > 1 ? <Link className="btn-secondary" href={pageHref(actionPath, params, page - 1)}>Previous</Link> : <span />}
                 <p className="text-sm text-[var(--muted)]">Page <strong className="text-white">{page}</strong> of {Math.ceil(total / pageSize)}</p>

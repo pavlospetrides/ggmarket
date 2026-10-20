@@ -3,8 +3,8 @@ import { ArrowRight, PackageSearch } from "lucide-react";
 
 export default function NotFound() {
   return (
-    <div className="container-page grid min-h-[60dvh] min-w-0 place-items-center py-8 text-center">
-      <div className="w-full min-w-0 max-w-lg rounded-[var(--radius-xl)] bg-[var(--surface)] p-6 sm:p-10">
+    <div className="system-state container-page grid min-h-[60dvh] min-w-0 place-items-center py-8 text-center">
+      <div className="system-state__panel w-full min-w-0 max-w-lg rounded-[var(--radius-xl)] bg-[var(--surface)] p-6 sm:p-10">
         <PackageSearch className="mx-auto size-12 text-[var(--primary-hover)]" aria-hidden="true" />
         <p className="mt-5 text-sm font-semibold text-[var(--primary-hover)]">Listing unavailable</p>
         <h1 className="mt-4 text-4xl font-[850] leading-tight tracking-tight [overflow-wrap:anywhere]">This listing has left the lobby</h1>

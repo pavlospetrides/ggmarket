@@ -1,5 +1,11 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { isTrustedMutationRequest } from "@/lib/request-security";
+import {
+  getSupabaseCookieOptions,
+  hasSupabaseAuthStorageCookie,
+  withPrivateNoStore,
+} from "./lib/supabase/cookie-security";
 
 function secure(response: NextResponse, request: NextRequest) {
   response.headers.set("X-Content-Type-Options", "nosniff");
@@ -19,20 +25,22 @@ function secure(response: NextResponse, request: NextRequest) {
       "max-age=31536000; includeSubDomains",
     );
   }
+  if (
+    hasSupabaseAuthStorageCookie(request.cookies.getAll()) ||
+    hasSupabaseAuthStorageCookie(response.cookies.getAll())
+  ) {
+    withPrivateNoStore(response);
+  }
   return response;
 }
 
 export async function proxy(request: NextRequest) {
   if (
-    request.nextUrl.pathname.startsWith("/api/") &&
+    (request.nextUrl.pathname.startsWith("/api/") ||
+      request.nextUrl.pathname.startsWith("/auth/")) &&
     !["GET", "HEAD", "OPTIONS"].includes(request.method)
   ) {
-    const origin = request.headers.get("origin");
-    const fetchSite = request.headers.get("sec-fetch-site");
-    if (
-      (origin && origin !== request.nextUrl.origin) ||
-      (!origin && fetchSite === "cross-site")
-    ) {
+    if (!isTrustedMutationRequest(request.headers, request.nextUrl.protocol)) {
       return secure(
         NextResponse.json({ error: "Cross-site request denied." }, { status: 403 }),
         request,
@@ -44,6 +52,7 @@ export async function proxy(request: NextRequest) {
   const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
   if (!url || !key) return secure(response, request);
   const supabase = createServerClient(url, key, {
+    cookieOptions: getSupabaseCookieOptions(),
     cookies: {
       getAll: () => request.cookies.getAll(),
       setAll(items) {

@@ -43,11 +43,12 @@ describe("listing presentation contracts", () => {
     expect(entrance).not.toMatch(/\b(?:both|forwards)\b/);
   });
 
-  it("gives favorites a 44px touch target without changing optimistic action semantics", () => {
+  it("gives favorites a 44px touch target with an accessible filled-red toggle state", () => {
     const source = read("components/favorite-button.tsx");
     expect(source).toContain("size-11");
-    expect(source).toContain("aria-pressed={active}");
-    expect(source).toContain('method: next ? "POST" : "DELETE"');
+    expect(source).toContain("aria-pressed={snapshot.active}");
+    expect(source).toContain("fill-[#ff6978] text-[#ff6978]");
+    expect(source).toContain('method: currentOperation.next ? "POST" : "DELETE"');
   });
 
   it("orders card condition before title and keeps wanted budgets shrinkable", () => {
@@ -71,6 +72,16 @@ describe("listing presentation contracts", () => {
     expect(source).toContain('aria-live="polite"');
     expect(source).toContain("focus-visible:ring-2");
     expect(source).toContain("onKeyDown={navigateExpandedGallery}");
+    expect(source).toContain("data-gallery-index={selected}");
+    expect(source).toContain("onPointerDown={startSwipe}");
+    expect(source).toContain("onPointerUp={finishSwipe}");
+  });
+
+  it("keeps the primary listing image useful when gallery hydration fails", () => {
+    const source = read("components/listing-gallery.tsx");
+    expect(source).toContain("<a href={images[selected]}");
+    expect(source).toContain("event.preventDefault(); setExpanded(true)");
+    expect(source).toMatch(/disabled=\{!hydrated\}/);
   });
 
   it("keeps gallery and report focus containment owned by the shared dialog", () => {
@@ -82,6 +93,29 @@ describe("listing presentation contracts", () => {
       expect(source).not.toContain("document.body.style.overflow");
     }
     expect(read("components/report-button.tsx")).toContain("overscroll-contain");
+  });
+
+  it("gives mutations safe native fallbacks while gating controls that require hydration", () => {
+    const favoriteSource = read("components/favorite-button.tsx");
+    expect(favoriteSource).toMatch(/<form[^>]*action="\/api\/favorites"[^>]*method="post"/);
+    expect(favoriteSource).toContain('type="hidden" name="intent"');
+    expect(favoriteSource).not.toContain("!hydrated");
+
+    const messageSource = read("components/message-seller-button.tsx");
+    expect(messageSource).toContain('<form action="/api/conversations" method="post"');
+    expect(messageSource).toContain('type="hidden" name="listingId"');
+    expect(messageSource).toContain("if (!hydrated) return;");
+    expect(messageSource).not.toMatch(/disabled=\{[^}]*!hydrated/);
+
+    for (const file of [
+      "components/listing-client-tools.tsx",
+      "components/listing-gallery.tsx",
+      "components/report-button.tsx",
+    ]) {
+      const source = read(file);
+      expect(source, file).toContain("useHydrated");
+      expect(source, file).toMatch(/disabled=\{[^}]*!hydrated/);
+    }
   });
 
   it("announces a successful report after the submit control is replaced", () => {

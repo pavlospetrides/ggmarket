@@ -46,15 +46,15 @@ describe("seller taxonomy payloads", () => {
   it("keeps free-text exact models separate from console hierarchy models", () => {
     expect(buildListingTaxonomyAttributes(
       { categorySlug: "pc-components", subcategory: "gpu" },
-      { exact_model: "RTX 4070 Super", manufacturer: "NVIDIA" },
-    )).toMatchObject({ subcategory: "gpu", exact_model: "RTX 4070 Super" });
+      { gpu_chipset_vendor: "nvidia", gpu_series: "rtx-40", gpu_model: "rtx-4070", manufacturer: "asus", exact_model: "DUAL-RTX4070-O12G" },
+    )).toMatchObject({ subcategory: "gpu", gpu_model: "rtx-4070", exact_model: "DUAL-RTX4070-O12G" });
   });
 
   it("drops hidden fields when a seller changes product type", () => {
     expect(buildListingTaxonomyAttributes(
       { categorySlug: "pc-components", subcategory: "cpu" },
-      { exact_model: "Ryzen 7 7800X3D", socket: "AM5", vram_gb: 12, used_for_mining: true },
-    )).toEqual({ taxonomy_version: "1", subcategory: "cpu", exact_model: "Ryzen 7 7800X3D", socket: "AM5" });
+      { manufacturer: "amd", socket: "am5", cpu_family: "ryzen-7", cpu_generation: "ryzen-7000", cpu_model: "ryzen-7-7800x3d", vram_gb: 12, used_for_mining: true },
+    )).toEqual({ taxonomy_version: "1", subcategory: "cpu", manufacturer: "amd", socket: "am5", cpu_family: "ryzen-7", cpu_generation: "ryzen-7000", cpu_model: "ryzen-7-7800x3d" });
   });
 
   it("removes incompatible taxonomy fields but preserves unrelated seller work", () => {
@@ -67,12 +67,15 @@ describe("seller taxonomy payloads", () => {
     };
     expect(buildListingTaxonomyAttributes(
       { categorySlug: "pc-components", subcategory: "gpu" },
-      { manufacturer: "NVIDIA", vram_gb: 12 },
+      { gpu_chipset_vendor: "nvidia", gpu_series: "rtx-40", gpu_model: "rtx-4070", manufacturer: "asus", vram_gb: 12 },
       preserved,
     )).toEqual({
       taxonomy_version: "1",
       subcategory: "gpu",
-      manufacturer: "NVIDIA",
+      gpu_chipset_vendor: "nvidia",
+      gpu_series: "rtx-40",
+      gpu_model: "rtx-4070",
+      manufacturer: "asus",
       vram_gb: 12,
       physical_format: "blu-ray-disc",
       seller_note: "Includes receipt",

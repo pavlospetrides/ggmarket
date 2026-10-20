@@ -29,6 +29,15 @@ describe("taxonomy UI integrity contracts", () => {
     expect(source).toContain('<option value="false">No</option>');
   });
 
+  it("resolves buyer PC fields from complete URL state and refreshes dependent selectors", () => {
+    const source = read("components/marketplace-browser.tsx");
+
+    expect(source).toContain("getTaxonomyFields(selectedCategorySlug, taxonomyDisplayParams as ListingAttributes)");
+    expect(source).toContain("pcHardwareDependentKeys");
+    expect(source).toContain('field.type === "multiselect"');
+    expect(source).toContain("updateTaxonomyFilterParams(taxonomyDisplayParams, key, nextValue)");
+  });
+
   it("renders listing specifications in a deliberate stable order", () => {
     const source = read("app/listing/[id]/page.tsx");
 
@@ -38,8 +47,22 @@ describe("taxonomy UI integrity contracts", () => {
     expect(source).toContain("{orderedAttributes.length ?");
   });
 
+  it("shows structured hardware details in the seller preview", () => {
+    const source = read("components/sell-wizard.tsx");
+
+    expect(source).toContain("previewTaxonomyAttributes");
+    expect(source).toContain("formatTaxonomyAttribute");
+    expect(source).toContain("Preview specifications");
+  });
+
   it("does not require untouched taxonomy fields during ordinary legacy edits", () => {
     expect(read("components/taxonomy-attribute-fields.tsx")).toContain("enforceRequired && field.required");
     expect(read("components/manage-listing-form.tsx")).toContain("enforceRequired={taxonomyDirty}");
+  });
+
+  it("uses the selected PC product type when clearing seller field dependencies", () => {
+    const source = read("components/taxonomy-attribute-fields.tsx");
+
+    expect(source).toContain("updatePcHardwareAttribute(resolvedAttributes, key, value)");
   });
 });

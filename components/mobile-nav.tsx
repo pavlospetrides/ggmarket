@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Home, MessageCircle, Plus, Search, UserRound } from "lucide-react";
+import { Heart, Home, Plus, Search, UserRound } from "lucide-react";
 import { usePathname } from "next/navigation";
 
 export function MobileNav() {
@@ -10,7 +10,7 @@ export function MobileNav() {
   const items = [
     ["Home", "/", Home],
     ["Browse", "/browse", Search],
-    ["Messages", "/messages", MessageCircle],
+    ["Favorites", "/favorites", Heart],
     ["Profile", "/profile", UserRound],
   ] as const;
   return (
@@ -27,7 +27,7 @@ export function MobileNav() {
             key={href}
             href={href}
             aria-current={selected ? "page" : undefined}
-            className={`flex min-h-12 flex-col items-center justify-center gap-1 rounded-xl text-[11px] font-bold transition-colors ${selected ? "text-[var(--primary-hover)]" : "text-[var(--muted)]"}`}
+            className={`flex min-h-12 flex-col items-center justify-center gap-1 rounded-xl text-[13px] font-bold transition-colors ${selected ? "text-[var(--primary-hover)]" : "text-[var(--muted)]"}`}
           >
             <Icon className={`size-5 ${selected ? "stroke-[2.5]" : ""}`} />
             {label}
@@ -36,7 +36,7 @@ export function MobileNav() {
         <Link
           href="/sell"
           aria-current={pathname.startsWith("/sell") ? "page" : undefined}
-          className="-mt-6 flex min-h-12 flex-col items-center justify-center gap-1 text-[10px] font-extrabold"
+          className="-mt-6 flex min-h-12 flex-col items-center justify-center gap-1 text-[13px] font-extrabold"
         >
           <span className="grid size-12 place-items-center rounded-[14px] bg-[var(--primary)] transition-transform active:scale-95">
             <Plus className="size-6" />
@@ -50,7 +50,7 @@ export function MobileNav() {
             key={href}
             href={href}
             aria-current={selected ? "page" : undefined}
-            className={`flex min-h-12 flex-col items-center justify-center gap-1 rounded-xl text-[11px] font-bold transition-colors ${selected ? "text-[var(--primary-hover)]" : "text-[var(--muted)]"}`}
+            className={`flex min-h-12 flex-col items-center justify-center gap-1 rounded-xl text-[13px] font-bold transition-colors ${selected ? "text-[var(--primary-hover)]" : "text-[var(--muted)]"}`}
           >
             <Icon className={`size-5 ${selected ? "stroke-[2.5]" : ""}`} />
             {label}

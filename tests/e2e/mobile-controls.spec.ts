@@ -60,8 +60,8 @@ test("mobile controls mutate and persist through real taps", async ({ page }) =>
   await expect(page).toHaveURL(/\/browse/);
   await nav.getByRole("link", { name: "Home" }).click();
   await expect(page).toHaveURL("/");
-  await nav.getByRole("link", { name: "Messages" }).click();
-  await expect(page).toHaveURL(/\/messages/);
+  await nav.getByRole("link", { name: "Favorites" }).click();
+  await expect(page).toHaveURL(/\/favorites/);
   await nav.getByRole("link", { name: "Profile" }).click();
   await expect(page).toHaveURL(/\/profile/);
 

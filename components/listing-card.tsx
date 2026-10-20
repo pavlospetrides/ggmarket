@@ -7,12 +7,16 @@ import { FavoriteButton } from "./favorite-button";
 
 export function ListingCard({
   listing,
+  viewerId,
   initialFavorite = false,
   eager = false,
+  onFavoriteChange,
 }: {
   listing: Listing;
+  viewerId: string | null;
   initialFavorite?: boolean;
   eager?: boolean;
+  onFavoriteChange?: (listingId: string, active: boolean) => void;
 }) {
   const intent =
     typeof listing.attributes.intent === "string"
@@ -24,7 +28,7 @@ export function ListingCard({
       ? `${formatPrice(budgetMin)}–${formatPrice(listing.price)}`
       : formatPrice(listing.price);
   return (
-    <article data-ui className="card card-interactive group min-w-0 overflow-hidden bg-[var(--surface)]">
+    <article className="card card-interactive group min-w-0 overflow-hidden bg-[var(--surface)]">
       <div className="relative">
         <Link
           href={`/listing/${listing.id}`}
@@ -61,8 +65,10 @@ export function ListingCard({
           </div>
         </Link>
         <FavoriteButton
+          viewerId={viewerId}
           listingId={listing.id}
           initialFavorite={initialFavorite}
+          onFavoriteChange={onFavoriteChange}
           className="absolute right-2.5 top-2.5 z-10"
         />
       </div>

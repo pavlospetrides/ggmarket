@@ -6,17 +6,27 @@ const read = (path: string) => readFileSync(new URL(`../${path}`, import.meta.ur
 describe("Task 7 accessible form contracts", () => {
   it("associates and focuses authentication errors while exposing busy state", () => {
     const auth = read("components/auth-form.tsx");
+    const settings = read("components/settings-form.tsx");
     const forgot = read("components/forgot-password-form.tsx");
     const reset = read("components/reset-password-form.tsx");
+    const password = read("components/password-field.tsx");
 
     expect(auth).toContain('id="auth-form-error"');
-    expect(auth).toContain('aria-describedby={error ? "auth-form-error" : undefined}');
+    expect(auth).toContain('aria-describedby={visibleError ? "auth-form-error" : undefined}');
     expect(auth).toContain('aria-busy={loading}');
     expect(auth).toContain("errorRef.current?.focus()");
+    expect(auth).toContain('action={mode === "login" ? "/auth/login" : "/auth/register"}');
+    expect(auth).toContain('disabled={loading}');
+    expect(auth).toContain("<PasswordField");
+    expect(password).toContain('type="button"');
+    expect(password).toContain('aria-label={`${visible ? "Hide" : "Show"} ${toggleLabel}`}');
+    expect(settings).toContain('formAction="/auth/logout"');
+    expect(settings).toContain('formMethod="post"');
+    expect(settings).toContain("submitter?.formAction.endsWith(\"/auth/logout\")");
     expect(forgot).toContain('aria-busy={busy}');
     expect(forgot).toContain('aria-live="polite"');
     expect(reset).toContain('id="password-confirmation-error"');
-    expect(reset).toContain('aria-invalid={Boolean(error)}');
+    expect(reset).toContain('invalid={Boolean(error)}');
     expect(reset).toContain("confirmationRef.current?.focus()");
   });
 

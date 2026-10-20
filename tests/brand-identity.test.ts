@@ -29,7 +29,8 @@ describe("GGMarket brand identity", () => {
   });
 
   it("uses the new symbol for large footer branding and app metadata", () => {
-    expect(read("app/page.tsx")).toContain('<BrandMark className="footer-symbol"');
+    expect(read("components/site-footer.tsx")).toContain('<BrandMark className="footer-symbol"');
+    expect(read("app/layout.tsx")).toContain("<SiteFooter />");
     expect(read("app/globals.css")).toContain(".footer-symbol { width: 4rem;");
     expect(read("app/globals.css")).toContain("font-size: clamp(2.2rem, 10.5vw, 3rem)");
     expect(read("app/manifest.ts")).toContain('/brand/ggmarket-mark-dark.svg');

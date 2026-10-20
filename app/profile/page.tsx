@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { ProfileView } from "@/components/profile-view";
 import { requireUser } from "@/lib/auth";
-import { getCurrentProfile, getProfileByUsername } from "@/lib/data";
+import { getCurrentProfile, getFavoriteIds, getProfileByUsername } from "@/lib/data";
 
 export const metadata: Metadata = {
   title: "Your profile",
@@ -12,7 +12,10 @@ export default async function ProfilePage({ searchParams }: { searchParams: Prom
   const user = await requireUser();
   const current = await getCurrentProfile(user.id);
   const query = await searchParams;
-  const profile = await getProfileByUsername(current.username, query.listingsPage, query.reviewsPage);
+  const [profile, favoriteIds] = await Promise.all([
+    getProfileByUsername(current.username, query.listingsPage, query.reviewsPage),
+    getFavoriteIds(user.id),
+  ]);
 
   if (!profile) throw new Error("Profile could not be loaded");
 
@@ -23,6 +26,8 @@ export default async function ProfilePage({ searchParams }: { searchParams: Prom
       reviews={profile.reviews}
       stats={profile.stats}
       pagination={profile.pagination}
+      viewerId={user.id}
+      favoriteIds={favoriteIds}
       own
     />
   );

@@ -4,9 +4,14 @@ import { createClient } from "@/lib/supabase/server";
 import { readJson } from "@/lib/security";
 
 export async function GET() {
-  const user = await getUser(); if (!user) return NextResponse.json({ items: [], unread: 0 }); const supabase = await createClient();
-  const { data, error } = await supabase!.from("notifications").select("id,type,title,body,href,read_at,created_at").eq("user_id", user.id).order("created_at", { ascending: false }).limit(12);
-  if (error) return NextResponse.json({ items: [], unread: 0 }); return NextResponse.json({ items: data ?? [], unread: (data ?? []).filter((item) => !item.read_at).length });
+  const headers = { "cache-control": "private, no-store" };
+  const user = await getUser(); if (!user) return NextResponse.json({ items: [], unread: 0 }, { headers }); const supabase = await createClient();
+  const [itemsResult, unreadResult] = await Promise.all([
+    supabase!.from("notifications").select("id,type,title,body,href,read_at,created_at").eq("user_id", user.id).order("created_at", { ascending: false }).limit(80),
+    supabase!.from("notifications").select("id", { count: "exact", head: true }).eq("user_id", user.id).is("read_at", null),
+  ]);
+  if (itemsResult.error || unreadResult.error) return NextResponse.json({ items: [], unread: 0 }, { headers });
+  return NextResponse.json({ items: itemsResult.data ?? [], unread: unreadResult.count ?? 0 }, { headers });
 }
 
 export async function PATCH(request: Request) {

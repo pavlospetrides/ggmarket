@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { ProfileView } from "@/components/profile-view";
-import { getProfileByUsername } from "@/lib/data";
+import { getUser } from "@/lib/auth";
+import { getFavoriteIds, getProfileByUsername } from "@/lib/data";
 
 export default async function SellerPage({
   params,
@@ -11,9 +12,13 @@ export default async function SellerPage({
 }) {
   const { username } = await params;
   const query = await searchParams;
-  const profile = await getProfileByUsername(username, query.listingsPage, query.reviewsPage);
+  const [profile, user] = await Promise.all([
+    getProfileByUsername(username, query.listingsPage, query.reviewsPage),
+    getUser(),
+  ]);
 
   if (!profile) notFound();
+  const favoriteIds = user ? await getFavoriteIds(user.id) : new Set<string>();
 
   return (
     <ProfileView
@@ -22,6 +27,8 @@ export default async function SellerPage({
       reviews={profile.reviews}
       stats={profile.stats}
       pagination={profile.pagination}
+      viewerId={user?.id ?? null}
+      favoriteIds={favoriteIds}
     />
   );
 }

@@ -1,15 +1,25 @@
 "use client";
 import Link from "next/link";
 import { ArrowLeft, Circle, HandCoins, RefreshCw, Send, X } from "lucide-react";
-import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { formatPrice } from "@/lib/constants";
+import { createClientUuid } from "@/lib/client-id";
+import {
+  createChatScope,
+  createPendingMessage,
+  failPendingMessage,
+  mergeChatMessages,
+  retryFailedMessage,
+  type ChatMessage,
+  type PersistedMessageRow,
+} from "@/lib/chat-state";
 import type {
-  ChatMessage,
   ChatOffer,
   ChatTrade,
   ConversationSummary,
 } from "@/lib/phase2-data";
+import { useHydrated } from "./use-hydrated";
 
 type Conversation = {
   id: string;
@@ -39,12 +49,19 @@ export function ChatInterface({
   currentUserId,
   conversation,
   conversations,
+  initialClientId,
 }: {
   currentUserId: string;
   conversation: Conversation;
   conversations: ConversationSummary[];
+  initialClientId: string;
 }) {
+  const hydrated = useHydrated();
+  const scope = createChatScope(currentUserId, conversation.id);
+  const scopeRef = useRef(scope);
+  scopeRef.current = scope;
   const [messages, setMessages] = useState(conversation.messages);
+  const [conversationList, setConversationList] = useState(conversations);
   const [offers, setOffers] = useState(conversation.offers);
   const [trades, setTrades] = useState(conversation.trades);
   const [online, setOnline] = useState(false);
@@ -55,6 +72,9 @@ export function ChatInterface({
   const [busy, setBusy] = useState(false);
   const [pendingActionId, setPendingActionId] = useState<string | null>(null);
   const [error, setError] = useState("");
+  const [composer, setComposer] = useState("");
+  const [nextClientId, setNextClientId] = useState(initialClientId);
+  const sendInFlight = useRef(false);
   const channelRef = useRef<ReturnType<
     ReturnType<typeof createClient>["channel"]
   > | null>(null);
@@ -72,7 +92,17 @@ export function ChatInterface({
     [messages, offers, trades],
   );
 
+  const updateConversationPreview = useCallback((body: string, createdAt: string) => {
+    setConversationList((current) => current
+      .map((item) => item.id === conversation.id
+        ? { ...item, lastMessage: body, lastMessageAt: createdAt, unread: 0 }
+        : item)
+      .toSorted((a, b) => +new Date(b.lastMessageAt) - +new Date(a.lastMessageAt)));
+  }, [conversation.id]);
+
   useEffect(() => {
+    const effectScope = scope;
+    const abortController = new AbortController();
     const supabase = createClient();
     const channel = supabase.channel(`conversation:${conversation.id}`, {
       config: { private: true, presence: { key: currentUserId } },
@@ -88,25 +118,11 @@ export function ChatInterface({
           filter: `conversation_id=eq.${conversation.id}`,
         },
         (payload) => {
-          const row = payload.new as {
-            id: string;
-            sender_id: string;
-            body: string;
-            created_at: string;
-          };
-          setMessages((current) =>
-            current.some((item) => item.id === row.id)
-              ? current
-              : [
-                  ...current,
-                  {
-                    id: row.id,
-                    senderId: row.sender_id,
-                    body: row.body,
-                    createdAt: row.created_at,
-                  },
-                ],
-          );
+          const row = payload.new as PersistedMessageRow;
+          if (scopeRef.current !== effectScope || row.conversation_id !== conversation.id) return;
+          setMessages((current) => mergeChatMessages(current, [row]));
+          updateConversationPreview(row.body, row.created_at);
+          if (row.sender_id !== currentUserId) void markRead();
         },
       )
       .on(
@@ -170,23 +186,69 @@ export function ChatInterface({
       })
       .subscribe(async (status) => {
         if (status === "SUBSCRIBED") {
+          await reconcileMessages();
+          if (scopeRef.current !== effectScope) return;
           setConnection("live");
           await channel.track({
             userId: currentUserId,
             onlineAt: new Date().toISOString(),
           });
-        } else if (status === "CHANNEL_ERROR" || status === "TIMED_OUT")
+        } else if (status === "CHANNEL_ERROR" || status === "TIMED_OUT" || status === "CLOSED")
           setConnection("error");
       });
-    void fetch(`/api/conversations/${conversation.id}/messages`, {
-      method: "PATCH",
-    }).catch(() => setError("Messages could not be marked as read."));
+
+    async function reconcileMessages() {
+      try {
+        const response = await fetch(`/api/conversations/${conversation.id}/messages`, {
+          signal: abortController.signal,
+          cache: "no-store",
+        });
+        const result = await response.json() as { messages?: PersistedMessageRow[]; error?: string };
+        if (!response.ok) throw new Error(result.error || "Messages could not be synchronized.");
+        if (scopeRef.current !== effectScope) return;
+        setMessages((current) => mergeChatMessages(current, result.messages ?? []));
+        const latest = result.messages?.at(-1);
+        if (latest) updateConversationPreview(latest.body, latest.created_at);
+      } catch (reason) {
+        if (abortController.signal.aborted || scopeRef.current !== effectScope) return;
+        setConnection("error");
+        if (reason instanceof Error && reason.message) setError(reason.message);
+      }
+    }
+
+    async function markRead() {
+      try {
+        const response = await fetch(`/api/conversations/${conversation.id}/messages`, {
+          method: "PATCH",
+          signal: abortController.signal,
+        });
+        if (!response.ok) throw new Error("Messages could not be marked as read.");
+      } catch {
+        if (!abortController.signal.aborted && scopeRef.current === effectScope) {
+          setError("Messages could not be marked as read.");
+        }
+      }
+    }
+
+    function recoverWhenVisible() {
+      if (document.visibilityState === "visible") void reconcileMessages();
+    }
+
+    void markRead();
+    const reconciliationTimer = window.setInterval(recoverWhenVisible, 12_000);
+    document.addEventListener("visibilitychange", recoverWhenVisible);
+    window.addEventListener("online", recoverWhenVisible);
     return () => {
+      abortController.abort();
+      window.clearInterval(reconciliationTimer);
+      document.removeEventListener("visibilitychange", recoverWhenVisible);
+      window.removeEventListener("online", recoverWhenVisible);
       if (typingTimer.current) clearTimeout(typingTimer.current);
+      if (channelRef.current === channel) channelRef.current = null;
       void channel.untrack();
       void supabase.removeChannel(channel);
     };
-  }, [conversation.currency, conversation.id, conversation.other.id, currentUserId]);
+  }, [conversation.currency, conversation.id, conversation.other.id, currentUserId, scope, updateConversationPreview]);
   useEffect(() => {
     endRef.current?.scrollIntoView({ block: "end" });
   }, [timeline.length]);
@@ -198,21 +260,10 @@ export function ChatInterface({
       payload: { userId: currentUserId, typing: typingNow },
     });
   }
-  async function sendMessage(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    if (busy) return;
-    const form = event.currentTarget;
-    const input = new FormData(form).get("message");
-    if (typeof input !== "string" || !input.trim()) return;
-    const clientId = crypto.randomUUID();
-    const optimistic = {
-      id: clientId,
-      senderId: currentUserId,
-      body: input.trim(),
-      createdAt: new Date().toISOString(),
-    };
-    setMessages((current) => [...current, optimistic]);
-    form.reset();
+  async function persistMessage(clientId: string, body: string, clearComposer: boolean) {
+    if (sendInFlight.current) return;
+    const requestScope = scope;
+    sendInFlight.current = true;
     broadcastTyping(false);
     setError("");
     setBusy(true);
@@ -222,29 +273,51 @@ export function ChatInterface({
         {
           method: "POST",
           headers: { "content-type": "application/json" },
-          body: JSON.stringify({ body: input, clientId }),
+          body: JSON.stringify({ body, clientId }),
         },
       );
-      const result = await response.json();
+      const result = await response.json() as PersistedMessageRow & { error?: string };
       if (!response.ok) throw new Error(result.error || "Request failed");
-      setMessages((current) =>
-        current.map((item) =>
-          item.id === clientId
-            ? {
-                id: result.id,
-                senderId: result.sender_id,
-                body: result.body,
-                createdAt: result.created_at,
-              }
-            : item,
-        ),
-      );
-    } catch {
-      setMessages((current) => current.filter((item) => item.id !== clientId));
-      setError("Message could not be sent. Try again.");
+      if (scopeRef.current !== requestScope) return;
+      setMessages((current) => mergeChatMessages(current, [result]));
+      updateConversationPreview(result.body, result.created_at);
+      if (clearComposer) setComposer((current) => current.trim() === body ? "" : current);
+      setNextClientId(createClientUuid());
+    } catch (reason) {
+      if (scopeRef.current !== requestScope) return;
+      setMessages((current) => failPendingMessage(current, clientId));
+      const failure = reason instanceof Error ? reason.message : "";
+      setError(failure && failure !== "Request failed" && failure !== "Message could not be sent."
+        ? failure
+        : "Message could not be sent. Try again.");
     } finally {
-      setBusy(false);
+      if (scopeRef.current === requestScope) setBusy(false);
+      sendInFlight.current = false;
     }
+  }
+
+  function sendMessage(event: FormEvent<HTMLFormElement>) {
+    if (!hydrated) return;
+    event.preventDefault();
+    if (sendInFlight.current || !composer.trim()) return;
+    const body = composer.trim();
+    const clientId = nextClientId;
+    const optimistic = createPendingMessage({
+      clientId,
+      senderId: currentUserId,
+      body,
+      createdAt: new Date().toISOString(),
+    });
+    setMessages((current) => [...current, optimistic]);
+    updateConversationPreview(body, optimistic.createdAt);
+    void persistMessage(clientId, body, true);
+  }
+
+  function retryMessage(message: ChatMessage) {
+    if (!message.clientId || sendInFlight.current) return;
+    setMessages((current) => retryFailedMessage(current, message.clientId!));
+    setComposer(message.body);
+    void persistMessage(message.clientId, message.body, true);
   }
   async function makeOffer(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -347,7 +420,7 @@ export function ChatInterface({
           <div className="border-b border-[var(--border)] p-4 text-lg font-bold">
             Messages
           </div>
-          {conversations.map((item) => (
+          {conversationList.map((item) => (
             <Link
               key={item.id}
               href={`/messages/${item.id}`}
@@ -413,12 +486,19 @@ export function ChatInterface({
                   className={`flex ${item.senderId === currentUserId ? "justify-end" : "justify-start"}`}
                 >
                   <div
-                    className={`min-w-0 max-w-[82%] rounded-2xl px-4 py-2.5 text-sm shadow-sm ${item.senderId === currentUserId ? "rounded-br-md bg-gradient-to-br from-[#8063f8] to-[#6748dc]" : "rounded-bl-md border border-white/[.055] bg-[var(--surface-alt)]"}`}
+                    data-message-status={item.status}
+                    className={`min-w-0 max-w-[82%] rounded-2xl px-4 py-2.5 text-sm shadow-sm ${item.senderId === currentUserId ? "rounded-br-md bg-gradient-to-br from-[#8063f8] to-[#6748dc]" : "rounded-bl-md border border-white/[.055] bg-[var(--surface-alt)]"} ${item.status === "failed" ? "ring-1 ring-[var(--danger)]" : ""}`}
                   >
                     <p className="[overflow-wrap:anywhere]">{item.body}</p>
-                    <time className="mt-1 block text-right text-[10px] opacity-65">
-                      {chatTimeFormatter.format(new Date(item.createdAt))}
-                    </time>
+                    <span className="mt-1 flex items-center justify-end gap-2 text-[10px] opacity-70">
+                      <time>{chatTimeFormatter.format(new Date(item.createdAt))}</time>
+                      {item.status === "pending" && <span>Sending…</span>}
+                      {item.status === "failed" && (
+                        <button type="button" onClick={() => retryMessage(item)} disabled={busy} className="font-bold underline underline-offset-2">
+                          Retry
+                        </button>
+                      )}
+                    </span>
                   </div>
                 </div>
               ) : item.kind === "offer" ? (
@@ -543,7 +623,7 @@ export function ChatInterface({
             {error && (
               <p role="alert" className="mb-2 text-xs text-[var(--danger)]">
                 {error}{" "}
-                <button onClick={() => setError("")} aria-label="Dismiss">
+                <button type="button" onClick={() => setError("")} aria-label="Dismiss">
                   <X className="inline size-3" />
                 </button>
               </p>
@@ -568,12 +648,13 @@ export function ChatInterface({
                   placeholder="Offer amount (€)"
                   required
                 />
-                <button disabled={busy} className="btn-secondary">
+                <button type="submit" disabled={busy} className="btn-secondary">
                   Send offer
                 </button>
               </form>
             </details>
-            <form onSubmit={sendMessage} className="flex gap-2">
+            <form action={`/api/conversations/${conversation.id}/messages`} method="post" onSubmit={sendMessage} className="flex gap-2" data-hydrated={hydrated}>
+              <input type="hidden" name="clientId" value={nextClientId} />
               <label className="sr-only" htmlFor="chat-message">
                 Message
               </label>
@@ -584,11 +665,15 @@ export function ChatInterface({
                 maxLength={2000}
                 autoComplete="off"
                 placeholder="Type a message…"
-                onChange={(event) =>
-                  broadcastTyping(Boolean(event.target.value))
-                }
+                value={composer}
+                onChange={(event) => {
+                  setComposer(event.target.value);
+                  broadcastTyping(Boolean(event.target.value));
+                }}
+                required
               />
               <button
+                type="submit"
                 disabled={busy}
                 className="btn-primary px-4"
                 aria-label="Send message"

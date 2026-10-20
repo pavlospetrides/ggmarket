@@ -27,8 +27,11 @@ import { formatTaxonomyAttribute, isDeprecatedTaxonomyAttribute } from "@/lib/ga
 
 const LISTING_ATTRIBUTE_ORDER = [
   "product_name", "subcategory", "family", "platform", "model", "compatibility",
-  "manufacturer", "series", "exact_model", "socket", "chipset", "vram_gb",
-  "capacity_gb", "form_factor", "switch_type", "connection", "dpi", "genre",
+  "manufacturer", "gpu_chipset_vendor", "gpu_series", "gpu_model", "series", "exact_model",
+  "platform_vendor", "socket", "cpu_family", "cpu_generation", "cpu_architecture", "cpu_model", "chipset",
+  "memory_use", "ram_form_factor", "ram_type", "capacity_gb", "module_count", "module_capacity_gb", "speed_mts", "cas_latency",
+  "storage_form_factor", "storage_protocol", "interface", "vram_gb", "memory_type", "wattage", "efficiency", "modularity",
+  "case_size", "motherboard_support", "compatible_sockets", "form_factor", "switch_type", "connection", "dpi", "genre",
   "game_series", "release_year", "multiplayer", "pegi", "game_features",
   "publisher", "edition", "packaging", "manuals", "region", "force_feedback", "pedals_included", "original_box",
   "warranty", "intent", "wanted_budget_min",
@@ -58,8 +61,8 @@ export default async function ListingPage({
   const { id } = await params;
   const [item, user] = await Promise.all([getListing(id), getUser()]);
   if (!item) notFound();
-  const [isFavorite, extras] = await Promise.all([
-    user ? getFavoriteIds(user.id).then((ids) => ids.has(id)) : false,
+  const [favoriteIds, extras] = await Promise.all([
+    user ? getFavoriteIds(user.id) : new Set<string>(),
     getListingExtras(item),
   ]);
   const budgetMin = Number(item.attributes.wanted_budget_min || 0);
@@ -76,7 +79,7 @@ export default async function ListingPage({
           {item.category.name}
         </Link>
       </nav>
-      <div className="grid gap-7 lg:grid-cols-[minmax(0,1.28fr)_minmax(320px,.72fr)] lg:gap-9">
+      <div className="listing-product-stage grid gap-7 lg:grid-cols-[minmax(0,1.28fr)_minmax(320px,.72fr)] lg:gap-9">
         <div className="contents lg:block lg:min-w-0">
           <div className="order-1 min-w-0 lg:order-none"><ListingGallery images={item.images} title={item.title} /></div>
           <section className="order-3 mt-0 min-w-0 rounded-[var(--radius-xl)] bg-[var(--surface)] p-5 sm:p-7 lg:mt-6">
@@ -122,8 +125,9 @@ export default async function ListingPage({
                 </h1>
               </div>
               <FavoriteButton
+                viewerId={user?.id ?? null}
                 listingId={item.id}
-                initialFavorite={isFavorite}
+                initialFavorite={favoriteIds.has(id)}
                 className="shrink-0"
               />
             </div>
@@ -260,7 +264,7 @@ export default async function ListingPage({
         <section className="mt-12">
           <h2 className="section-title">More from this seller</h2>
           <div className="mt-5">
-            <ListingGrid listings={extras.other} />
+            <ListingGrid listings={extras.other} viewerId={user?.id ?? null} favoriteIds={favoriteIds} />
           </div>
         </section>
       )}
@@ -268,7 +272,7 @@ export default async function ListingPage({
         <section className="mt-12">
           <h2 className="section-title">Similar listings</h2>
           <div className="mt-5">
-            <ListingGrid listings={extras.similar} />
+            <ListingGrid listings={extras.similar} viewerId={user?.id ?? null} favoriteIds={favoriteIds} />
           </div>
         </section>
       )}

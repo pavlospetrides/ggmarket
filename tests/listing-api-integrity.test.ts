@@ -184,4 +184,62 @@ describe("listing PATCH taxonomy integrity", () => {
     await expect(response.json()).resolves.toEqual({ error: "Some product details are invalid for this category." });
     expect(state.updatePayload).toBeNull();
   });
+
+  it("accepts a complete dependent CPU payload and preserves unrelated legacy metadata", async () => {
+    state.category.slug = "pc-components";
+    state.current.attributes = { seller_note: "Includes invoice", legacy_import_id: "old-42" };
+
+    const response = await patch({
+      ...validUpdate,
+      attributes: {
+        taxonomy_version: "1",
+        subcategory: "cpu",
+        manufacturer: "intel",
+        socket: "lga1700",
+        cpu_family: "core-i7",
+        cpu_generation: "12th-gen",
+        cpu_model: "core-i7-12700k",
+      },
+    });
+
+    expect(response.status).toBe(200);
+    expect(state.updatePayload?.attributes).toMatchObject({
+      seller_note: "Includes invoice",
+      legacy_import_id: "old-42",
+      subcategory: "cpu",
+      manufacturer: "intel",
+      socket: "lga1700",
+      cpu_model: "core-i7-12700k",
+    });
+  });
+
+  it("accepts controlled PC compatibility arrays and rejects incompatible dependent selections", async () => {
+    state.category.slug = "pc-components";
+
+    const caseResponse = await patch({
+      ...validUpdate,
+      attributes: {
+        taxonomy_version: "1",
+        subcategory: "case",
+        case_size: "mid-tower",
+        motherboard_support: ["atx", "micro-atx"],
+        exact_model: "Fractal North",
+      },
+    });
+    expect(caseResponse.status).toBe(200);
+
+    const invalidCpuResponse = await patch({
+      ...validUpdate,
+      attributes: {
+        taxonomy_version: "1",
+        subcategory: "cpu",
+        manufacturer: "intel",
+        socket: "am5",
+        cpu_family: "core-i7",
+        cpu_generation: "12th-gen",
+        cpu_model: "core-i7-12700k",
+      },
+    });
+    expect(invalidCpuResponse.status).toBe(400);
+  });
 });

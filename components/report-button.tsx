@@ -4,9 +4,11 @@ import { Flag } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogTitle, DialogTrigger } from "./ui/dialog";
+import { useHydrated } from "./use-hydrated";
 
 export function ReportButton({ listingId }: { listingId: string }) {
   const router = useRouter();
+  const hydrated = useHydrated();
   const [open, setOpen] = useState(false);
   const [sent, setSent] = useState(false);
   const [error, setError] = useState("");
@@ -39,7 +41,7 @@ export function ReportButton({ listingId }: { listingId: string }) {
 
   return <Dialog open={open} onOpenChange={setOpen}>
     <DialogTrigger asChild>
-      <button type="button" className="inline-flex min-h-11 items-center gap-2 rounded-lg px-1 text-sm text-[var(--text-secondary)] transition-colors hover:text-white"><Flag className="size-4 shrink-0" aria-hidden="true" /> Report listing</button>
+      <button type="button" disabled={!hydrated} className="inline-flex min-h-11 items-center gap-2 rounded-lg px-1 text-sm text-[var(--text-secondary)] transition-colors hover:text-white disabled:opacity-60"><Flag className="size-4 shrink-0" aria-hidden="true" /> Report listing</button>
     </DialogTrigger>
     <DialogContent closeLabel="Close report dialog" className="bottom-0 left-0 top-auto max-h-[92dvh] w-full max-w-none translate-x-0 translate-y-0 overscroll-contain rounded-b-none rounded-t-3xl border border-[var(--border)] pb-[max(1.5rem,env(safe-area-inset-bottom))] sm:bottom-auto sm:left-1/2 sm:top-1/2 sm:w-[min(calc(100%-2rem),28rem)] sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-[var(--radius-xl)]">
       <DialogTitle>Report listing</DialogTitle>

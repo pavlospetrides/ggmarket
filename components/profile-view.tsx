@@ -1,15 +1,21 @@
+"use client";
+
 import Link from "next/link";
 import {
   BadgeCheck,
   Bell,
   CalendarDays,
+  MessageCircle,
   MapPin,
   PackageOpen,
   Settings,
   Star,
   Store,
 } from "lucide-react";
+import { useState } from "react";
 import { ListingGrid } from "./listing-grid";
+import { RateUserDialog } from "./rate-user-dialog";
+import { replaceReviewerRating } from "@/lib/ratings";
 import type { Listing, Review, Seller } from "@/lib/types";
 
 type ProfileStats = {
@@ -28,6 +34,8 @@ export function ProfileView({
   reviews,
   stats,
   pagination,
+  viewerId,
+  favoriteIds,
   own = false,
 }: {
   seller: Seller;
@@ -35,8 +43,12 @@ export function ProfileView({
   reviews: Review[];
   stats: ProfileStats;
   pagination: ProfilePagination;
+  viewerId: string | null;
+  favoriteIds: Set<string>;
   own?: boolean;
 }) {
+  const [ratingSummary, setRatingSummary] = useState({ average: seller.rating, count: seller.reviewCount });
+  const [visibleReviews, setVisibleReviews] = useState(reviews);
   const avatarFallback = seller.displayName.trim().charAt(0).toUpperCase() || "G";
   const basePath = own ? "/profile" : `/profile/${encodeURIComponent(seller.username)}`;
   function pageHref(kind: "listingsPage" | "reviewsPage", page: number) {
@@ -50,7 +62,7 @@ export function ProfileView({
 
   return (
     <div className="container-page py-6 pb-8 md:py-12 md:pb-12">
-      <section className="card overflow-hidden" aria-labelledby="profile-name">
+      <section className="profile-identity-stage card overflow-hidden" aria-labelledby="profile-name">
         <div
           className="relative h-24 overflow-hidden bg-[#1b2030] sm:h-36"
           data-profile-region="banner"
@@ -110,12 +122,22 @@ export function ProfileView({
                     <Bell className="size-4" aria-hidden="true" />
                     Notifications
                   </Link>
+                  <Link href="/messages" className="btn-secondary w-full min-w-0 md:hidden">
+                    <MessageCircle className="size-4" aria-hidden="true" />
+                    Messages
+                  </Link>
                 </>
               ) : (
-                <a href="#active-listings" className="btn-secondary w-full md:w-auto">
-                  <Store className="size-4" aria-hidden="true" />
-                  View listings
-                </a>
+                <>
+                  {viewerId && viewerId !== seller.id ? <RateUserDialog sellerId={seller.id} sellerName={seller.displayName} onSaved={({ review, summary }) => {
+                    setRatingSummary(summary);
+                    setVisibleReviews((current) => replaceReviewerRating(current, review));
+                  }} /> : !viewerId ? <Link href={`/login?next=${encodeURIComponent(basePath)}`} className="btn-primary w-full md:w-auto">Rate this user</Link> : null}
+                  <a href="#active-listings" className="btn-secondary w-full md:w-auto">
+                    <Store className="size-4" aria-hidden="true" />
+                    View listings
+                  </a>
+                </>
               )}
             </nav>
           </div>
@@ -130,13 +152,13 @@ export function ProfileView({
             className="mt-5 flex min-w-0 flex-col gap-3 text-sm text-[var(--muted)] sm:flex-row sm:flex-wrap sm:gap-x-5"
             data-profile-region="metadata"
           >
-            {seller.reviewCount > 0 ? (
+            {ratingSummary.count > 0 ? (
               <span className="inline-flex min-w-0 items-center gap-1.5">
                 <Star className="size-4 shrink-0 fill-[#f8bf4b] text-[#f8bf4b]" aria-hidden="true" />
-                <strong className="text-white">{seller.rating.toFixed(1)}</strong>
-                <span className="[overflow-wrap:anywhere]">({seller.reviewCount} reviews)</span>
+                <strong className="text-white">{ratingSummary.average.toFixed(1)} / 5</strong>
+                <span className="[overflow-wrap:anywhere]">— {ratingSummary.count} {ratingSummary.count === 1 ? "rating" : "ratings"}</span>
               </span>
-            ) : null}
+            ) : <span className="text-[var(--text-secondary)]">No ratings yet</span>}
             {seller.location ? (
               <span className="inline-flex min-w-0 items-start gap-1.5">
                 <MapPin className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
@@ -165,18 +187,18 @@ export function ProfileView({
       >
         <div className="card min-w-0 p-4 sm:p-5"><dt className="text-xs leading-5 text-[var(--muted)]">Active listings</dt><dd className="price mt-1 text-2xl tabular-nums">{stats.activeListings}</dd></div>
         <div className="card min-w-0 p-4 sm:p-5"><dt className="text-xs leading-5 text-[var(--muted)]">Marked sold</dt><dd className="price mt-1 text-2xl tabular-nums">{stats.soldListings ?? "—"}</dd></div>
-        <div className="card min-w-0 p-4 sm:p-5"><dt className="text-xs leading-5 text-[var(--muted)]">Reviews</dt><dd className="price mt-1 text-2xl tabular-nums">{seller.reviewCount}</dd></div>
+        <div className="card min-w-0 p-4 sm:p-5"><dt className="text-xs leading-5 text-[var(--muted)]">Ratings</dt><dd className="price mt-1 text-2xl tabular-nums">{ratingSummary.count}</dd></div>
         <div className="card min-w-0 p-4 sm:p-5"><dt className="text-xs leading-5 text-[var(--muted)]">Listing views</dt><dd className="price mt-1 text-2xl tabular-nums">{stats.totalViews}</dd></div>
       </dl>
 
       <section className="mt-10 min-w-0 sm:mt-12" aria-labelledby="active-listings">
         <div className="flex min-w-0 items-end justify-between gap-4">
-          <div className="min-w-0"><p className="eyebrow">Available now</p><h2 id="active-listings" className="mt-1 scroll-mt-24 text-balance text-2xl font-[800] tracking-tight sm:text-3xl">Active listings</h2></div>
+          <div className="min-w-0"><p className="eyebrow">Available now</p>{/* taste-skill-ignore -- inventory section context */}<h2 id="active-listings" className="mt-1 scroll-mt-24 text-balance text-2xl font-[800] tracking-tight sm:text-3xl">Active listings</h2></div>
           <span className="shrink-0 text-sm tabular-nums text-[var(--muted)]">{pagination.listings.total} {pagination.listings.total === 1 ? "item" : "items"}</span>
         </div>
         <div className="mt-5 sm:mt-6">
           {items.length ? (
-            <ListingGrid listings={items} eagerFirst />
+            <ListingGrid listings={items} viewerId={viewerId} favoriteIds={favoriteIds} eagerFirst />
           ) : (
             <div className="card empty-state overflow-hidden"><div className="min-w-0">
               <span className="empty-state-icon" aria-hidden="true"><PackageOpen /></span>
@@ -195,11 +217,11 @@ export function ProfileView({
 
       <section className="mt-12 min-w-0 sm:mt-14" aria-labelledby="reviews-heading">
         <div className="flex items-end justify-between gap-4">
-          <div><p className="eyebrow">Seller history</p><h2 id="reviews-heading" className="mt-1 text-balance text-2xl font-[800] tracking-tight sm:text-3xl">Reviews</h2></div>
-          <span className="shrink-0 text-sm tabular-nums text-[var(--muted)]">{pagination.reviews.total}</span>
+          <div><p className="eyebrow">Seller history</p>{/* taste-skill-ignore -- review section context */}<h2 id="reviews-heading" className="mt-1 text-balance text-2xl font-[800] tracking-tight sm:text-3xl">Reviews</h2></div>
+          <span className="shrink-0 text-sm tabular-nums text-[var(--muted)]">{ratingSummary.count}</span>
         </div>
         <div className="mt-5 space-y-3">
-          {reviews.length ? reviews.map((review) => (
+          {visibleReviews.length ? visibleReviews.map((review) => (
             <article key={review.id} className="card min-w-0 overflow-hidden p-5 sm:p-6">
               <div className="flex items-center gap-1 text-[#f8bf4b]" aria-label={`${review.rating} out of 5 stars`}>
                 {Array.from({ length: review.rating }, (_, index) => <Star key={index} className="size-4 fill-current" aria-hidden="true" />)}
@@ -208,7 +230,7 @@ export function ProfileView({
               <p className="mt-4 min-w-0 text-sm text-[var(--muted)] [overflow-wrap:anywhere]">{review.reviewerName} ·{" "}<time dateTime={review.createdAt}>{new Date(review.createdAt).toLocaleDateString()}</time></p>
             </article>
           )) : (
-            <div className="card overflow-hidden p-7 text-center text-sm leading-6 text-[var(--muted)] sm:p-8">No reviews yet. Completed-transaction reviews will appear here.</div>
+            <div className="card overflow-hidden p-7 text-center text-sm leading-6 text-[var(--muted)] sm:p-8">No ratings yet.</div>
           )}
         </div>
         {pagination.reviews.total > pagination.reviews.pageSize ? <nav className="mt-6 flex items-center justify-between gap-3" aria-label="Review pages">

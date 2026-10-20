@@ -18,15 +18,17 @@ import { conditions, formatPrice } from "@/lib/constants";
 import { createClient } from "@/lib/supabase/client";
 import type { Category } from "@/lib/types";
 import { isAllowedImageFile } from "@/lib/security";
-import { getTaxonomyFields } from "@/lib/gaming-taxonomy";
+import { createClientUuid } from "@/lib/client-id";
+import { formatTaxonomyAttribute, getTaxonomyFields } from "@/lib/gaming-taxonomy";
 import type { ListingAttributes } from "@/lib/types";
 import { TaxonomyAttributeFields } from "./taxonomy-attribute-fields";
 import { buildListingTaxonomyAttributes, isTaxonomySelectionComplete, TaxonomySelector, type TaxonomySelection } from "./taxonomy-selector";
+import { useHydrated } from "./use-hydrated";
 
 const schema = z
   .object({
     title: z.string().trim().min(6).max(120),
-    description: z.string().trim().min(20).max(5000),
+    description: z.string().trim().min(1).max(5000),
     price: z.number().positive().max(1_000_000),
     budgetMin: z.number().positive().max(1_000_000),
     categoryId: z.string().uuid(),
@@ -55,7 +57,8 @@ const steps = [
 
 export function SellWizard({ categories }: { categories: Category[] }) {
   const router = useRouter();
-  const [requestId] = useState(() => crypto.randomUUID());
+  const hydrated = useHydrated();
+  const [requestId] = useState(() => createClientUuid());
   const [step, setStep] = useState(0);
   const [photos, setPhotos] = useState<Photo[]>([]);
   const [message, setMessage] = useState("");
@@ -84,6 +87,12 @@ export function SellWizard({ categories }: { categories: Category[] }) {
   const values = useWatch({ control: form.control });
   const hasUnsavedChanges = form.formState.isDirty || photos.length > 0;
   const category = categories.find((item) => item.id === values.categoryId);
+  const previewTaxonomyAttributes = category
+    ? Object.entries(buildListingTaxonomyAttributes(taxonomySelection, taxonomyAttributes))
+      .filter(([key]) => key !== "taxonomy_version" && !key.startsWith("_"))
+      .slice(0, 8)
+      .map(([key, attributeValue]) => formatTaxonomyAttribute(key, attributeValue))
+    : [];
   const error = (name: keyof Values) => form.formState.errors[name]?.message;
 
   useEffect(() => {
@@ -127,6 +136,16 @@ export function SellWizard({ categories }: { categories: Category[] }) {
       URL.revokeObjectURL(current[index].url);
       return current.filter((_, itemIndex) => itemIndex !== index);
     });
+  }
+  function selectCategory(item: Category) {
+    form.setValue("categoryId", item.id, {
+      shouldDirty: true,
+      shouldTouch: true,
+      shouldValidate: true,
+    });
+    setTaxonomySelection({ categorySlug: item.slug });
+    setTaxonomyAttributes({});
+    setTaxonomyError("");
   }
   async function next() {
     if (step === 2 && !photos.length) {
@@ -199,7 +218,7 @@ export function SellWizard({ categories }: { categories: Category[] }) {
       for (const [index, photo] of photos.entries()) {
         const extension =
           photo.file.name.split(".").pop()?.toLowerCase() || "jpg";
-        const path = `${auth.user.id}/${listingId}/${crypto.randomUUID()}.${extension}`;
+        const path = `${auth.user.id}/${listingId}/${createClientUuid()}.${extension}`;
         const { error: uploadError } = await supabase.storage
           .from("listing-images")
           .upload(path, photo.file, {
@@ -236,12 +255,13 @@ export function SellWizard({ categories }: { categories: Category[] }) {
       router.refresh();
     } catch (reason) {
       if (listingId)
-        await fetch(`/api/listings/${listingId}`, { method: "DELETE" });
+        await fetch(`/api/listings/${listingId}`, { method: "DELETE" }).catch(() => undefined);
       setMessage(
         reason instanceof Error
           ? reason.message
           : "Listing could not be published.",
       );
+    } finally {
       setPublishing(false);
     }
   }
@@ -262,8 +282,10 @@ export function SellWizard({ categories }: { categories: Category[] }) {
         </div>
         <ol className="mt-4 hidden grid-cols-6 gap-2 sm:grid">{steps.map((label, index) => <li key={label} className={`truncate text-[10px] font-bold ${index <= step ? "text-[#b9aaff]" : "text-[var(--muted)]"}`}><span className={`mr-1.5 inline-grid size-5 place-items-center rounded-full ${index < step ? "bg-[var(--success)] text-[#07100b]" : index === step ? "bg-[var(--primary)] text-white" : "bg-[var(--surface-alt)]"}`}>{index < step ? <Check className="size-3" /> : index + 1}</span>{label}</li>)}</ol>
       </div>
-      <form onSubmit={form.handleSubmit(publish)} className="surface-panel p-5 sm:p-8" aria-busy={publishing}>
-        <p className="sr-only" role="status" aria-live="polite">{message}</p>
+      <form data-hydrated={hydrated} onSubmit={form.handleSubmit(publish)} className="surface-panel p-5 sm:p-8" aria-busy={!hydrated || publishing}>
+        <p className={hydrated ? "sr-only" : "mb-4 text-sm text-[var(--muted)]"} role="status" aria-live="polite">{hydrated ? message : "Preparing listing formâ€¦"}</p>
+        <fieldset disabled={!hydrated || publishing} className="min-w-0 border-0 p-0">
+        <legend className="sr-only">Listing information</legend>
         <div className="min-h-[390px]">
           {step === 0 && (
             <fieldset>
@@ -288,26 +310,19 @@ export function SellWizard({ categories }: { categories: Category[] }) {
                   <option value="sale_or_trade">Sale or trade</option>
                 </select>
               </div>
-              <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3">
+              <input type="hidden" {...form.register("categoryId")} />
+              <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3" role="group" aria-label="Listing category" aria-describedby={error("categoryId") ? "categoryId-error" : undefined}>
                 {categories.map((item) => (
-                  <label
+                  <button
+                    type="button"
+                    data-gg-debug-control="sell-category"
                     key={item.id}
+                    onClick={() => selectCategory(item)}
+                    aria-pressed={values.categoryId === item.id}
                     className={`cursor-pointer rounded-[var(--radius-md)] border p-4 text-sm transition has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-[var(--focus)] has-[:focus-visible]:ring-offset-2 has-[:focus-visible]:ring-offset-[var(--background)] active:scale-[.98] ${values.categoryId === item.id ? "border-[var(--primary)] bg-[#211a3a] shadow-[0_0_0_3px_rgba(132,104,255,.1)]" : "border-[var(--border)] bg-[#0b0f17] hover:border-[var(--border-hover)] hover:bg-[var(--surface-alt)]"}`}
                   >
-                    <input
-                      type="radio"
-                      value={item.id}
-                      className="sr-only"
-                      aria-describedby={error("categoryId") ? "categoryId-error" : undefined}
-                      {...form.register("categoryId", { onChange: (event) => {
-                        const nextCategory = categories.find((candidate) => candidate.id === event.target.value);
-                        setTaxonomySelection({ categorySlug: nextCategory?.slug ?? "" });
-                        setTaxonomyAttributes({});
-                        setTaxonomyError("");
-                      } })}
-                    />
                     <span className="font-bold">{item.name}</span>
-                  </label>
+                  </button>
                 ))}
               </div>
               {error("categoryId") && (
@@ -581,6 +596,15 @@ export function SellWizard({ categories }: { categories: Category[] }) {
                   <p className="mt-3 line-clamp-3 text-sm text-[var(--muted)]">
                     {values.description}
                   </p>
+                  {previewTaxonomyAttributes.length ? <div className="mt-5 border-t border-[var(--border)] pt-4">
+                    <h4 className="text-xs font-bold uppercase tracking-[.12em] text-[var(--muted)]">Preview specifications</h4>
+                    <dl className="mt-3 grid gap-2 min-[390px]:grid-cols-2">
+                      {previewTaxonomyAttributes.map((attribute) => <div className="rounded-lg bg-[var(--surface-alt)] px-3 py-2" key={attribute.label}>
+                        <dt className="text-[11px] text-[var(--muted)]">{attribute.label}</dt>
+                        <dd className="mt-0.5 text-sm font-semibold [overflow-wrap:anywhere]">{attribute.value}</dd>
+                      </div>)}
+                    </dl>
+                  </div> : null}
                 </div>
               </div>
               {message && (
@@ -613,7 +637,7 @@ export function SellWizard({ categories }: { categories: Category[] }) {
             </button>
           ) : (
             <button
-              disabled={publishing}
+              disabled={publishing || (step === 0 && !values.categoryId)}
               type="button"
               onClick={(event) => {
                 event.preventDefault();
@@ -625,6 +649,7 @@ export function SellWizard({ categories }: { categories: Category[] }) {
             </button>
           )}
         </div>
+        </fieldset>
       </form>
     </div>
   );

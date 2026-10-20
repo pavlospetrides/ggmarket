@@ -446,7 +446,7 @@ export async function getProfileByUsername(
   let { data: reviewRows, error: reviewError, count: reviewCount } = await supabase
     .from("reviews")
     .select(
-      "id,rating,comment,created_at,reviewer:profiles!reviews_reviewer_id_fkey(display_name)",
+      "id,reviewer_id,rating,comment,created_at,reviewer:profiles!reviews_reviewer_id_fkey(display_name)",
       { count: "exact" },
     )
     .eq("seller_id", profile.id)
@@ -470,7 +470,7 @@ export async function getProfileByUsername(
     const retry = await supabase
       .from("reviews")
       .select(
-        "id,rating,comment,created_at,reviewer:profiles!reviews_reviewer_id_fkey(display_name)",
+        "id,reviewer_id,rating,comment,created_at,reviewer:profiles!reviews_reviewer_id_fkey(display_name)",
         { count: "exact" },
       )
       .eq("seller_id", profile.id)
@@ -519,6 +519,7 @@ export async function getProfileByUsername(
     reviewerName:
       one(review.reviewer as Related<{ display_name: string }>)?.display_name ??
       "GGMarket member",
+    reviewerId: review.reviewer_id,
   }));
   const { data: statsData } = await supabase.rpc("seller_marketplace_stats", {
     target_seller: profile.id,

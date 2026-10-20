@@ -9,6 +9,8 @@ import {
   normalizeTaxonomyAttributes,
   mergeListingAttributes,
   sanitizeTaxonomyAttributesForWrite,
+  inferTaxonomyIntent,
+  taxonomyFilterEntries,
   validateTaxonomyAttributes,
 } from "../lib/gaming-taxonomy";
 
@@ -53,8 +55,15 @@ describe("gaming taxonomy", () => {
     expect(gameKeys).not.toContain("physical_format");
     expect(gameKeys).not.toContain("vram_gb");
 
-    const gpuKeys = getTaxonomyFields("pc-components", { subcategory: "gpu" }).map((field) => field.key);
-    expect(gpuKeys).toEqual(expect.arrayContaining(["manufacturer", "series", "exact_model", "vram_gb", "used_for_mining"]));
+    const initialGpuKeys = getTaxonomyFields("pc-components", { subcategory: "gpu" }).map((field) => field.key);
+    expect(initialGpuKeys).toEqual(["gpu_chipset_vendor"]);
+    const gpuKeys = getTaxonomyFields("pc-components", {
+      subcategory: "gpu",
+      gpu_chipset_vendor: "nvidia",
+      gpu_series: "rtx-40",
+      gpu_model: "rtx-4070",
+    }).map((field) => field.key);
+    expect(gpuKeys).toEqual(expect.arrayContaining(["manufacturer", "gpu_series", "gpu_model", "exact_model", "vram_gb", "used_for_mining"]));
     expect(gpuKeys).not.toContain("pegi");
 
     expect(getTaxonomyFields("peripherals", { subcategory: "steering-wheel" }).map((field) => field.key)).toEqual(expect.arrayContaining(["compatibility", "pedals_included", "force_feedback"]));
@@ -120,6 +129,9 @@ describe("gaming taxonomy", () => {
       label: "Seller note",
       value: "First owner",
     });
+    expect(formatTaxonomyAttribute("manufacturer", "asus")).toEqual({ label: "Manufacturer", value: "ASUS" });
+    expect(formatTaxonomyAttribute("capacity_gb", 2000)).toEqual({ label: "Capacity (GB)", value: "2,000" });
+    expect(formatTaxonomyAttribute("interface", "pcie-4")).toEqual({ label: "Interface", value: "PCIe 4.0" });
   });
 
   it("merges edits without dropping unknown legacy attributes", () => {
@@ -158,9 +170,79 @@ describe("gaming taxonomy", () => {
     expect(isDeprecatedTaxonomyAttribute("genre")).toBe(false);
   });
 
+  it("trims submitted taxonomy text without rewriting unknown legacy metadata", () => {
+    expect(sanitizeTaxonomyAttributesForWrite({
+      taxonomy_version: "1",
+      subcategory: "gpu",
+      exact_model: "  DUAL-RTX4070-O12G  ",
+      seller_note: "  Keep original spacing  ",
+    })).toEqual({
+      taxonomy_version: "1",
+      subcategory: "gpu",
+      exact_model: "DUAL-RTX4070-O12G",
+      seller_note: "  Keep original spacing  ",
+    });
+  });
+
   it("keeps each configured root aligned to a stable database category slug", () => {
     expect(GAMING_TAXONOMY.map((root) => root.categorySlug)).toEqual(expect.arrayContaining([
       "games", "consoles", "controllers", "peripherals", "pc-components", "gaming-pcs", "monitors", "vr", "gaming-setup",
     ]));
+  });
+
+  it("exposes the complete PC hardware hierarchy through the shared taxonomy facade", () => {
+    const pc = getTaxonomyRoot("pc-components");
+    expect(pc?.children?.map((item) => item.id)).toEqual(expect.arrayContaining([
+      "cpu", "gpu", "ram", "motherboard", "psu", "ssd", "hdd", "case",
+      "air-cooler", "aio-cooler", "custom-loop", "case-fan", "fan-controller",
+      "network-card", "sound-card", "capture-card", "expansion-card",
+      "optical-drive", "internal-adapter", "other-pc-component",
+    ]));
+    expect(pc?.children).toHaveLength(20);
+  });
+
+  it("resolves dependent PC fields and validation through the shared taxonomy facade", () => {
+    const initialKeys = getTaxonomyFields("pc-components", { subcategory: "cpu" }).map((field) => field.key);
+    expect(initialKeys).toEqual(["manufacturer"]);
+
+    const cpu = {
+      taxonomy_version: "1",
+      subcategory: "cpu",
+      manufacturer: "intel",
+      socket: "lga1700",
+      cpu_family: "core-i7",
+      cpu_generation: "12th-gen",
+      cpu_model: "core-i7-12700k",
+    } as const;
+    expect(getTaxonomyFields("pc-components", cpu).map((field) => field.key)).toEqual(expect.arrayContaining(["socket", "cpu_family", "cpu_generation", "cpu_model"]));
+    expect(validateTaxonomyAttributes("pc-components", cpu)).toEqual({ success: true });
+    expect(validateTaxonomyAttributes("pc-components", { ...cpu, socket: "am5" }).success).toBe(false);
+  });
+
+  it("parses PC hardware URL filters with their canonical scalar and array types", () => {
+    expect(taxonomyFilterEntries({
+      subcategory: "case",
+      motherboard_support: "atx",
+      max_gpu_length_mm: "420",
+      rgb: "true",
+    })).toEqual(expect.arrayContaining([
+      { key: "subcategory", value: "case", mode: "scalar" },
+      { key: "motherboard_support", value: "atx", mode: "array" },
+      { key: "max_gpu_length_mm", value: 420, mode: "scalar" },
+      { key: "rgb", value: true, mode: "scalar" },
+    ]));
+  });
+
+  it("promotes exact PC model searches into structured filters without losing residual text", () => {
+    expect(inferTaxonomyIntent("used RTX 4070 warranty")).toEqual({
+      category: "pc-components",
+      attributes: {
+        subcategory: "gpu",
+        gpu_chipset_vendor: "nvidia",
+        gpu_series: "rtx-40",
+        gpu_model: "rtx-4070",
+      },
+      residualQuery: "used warranty",
+    });
   });
 });

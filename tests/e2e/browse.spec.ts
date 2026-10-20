@@ -30,7 +30,7 @@ test("Browse is search-first, navigable, and read-only", async ({ page }, testIn
   await expect(page).toHaveURL(/\/marketplace\?sort=newest/);
 
   await page.goto("/marketplace");
-  await expect(page.getByRole("heading", { name: "Marketplace" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Marketplace", exact: true })).toBeVisible();
   if (mobile) await expect(page.getByRole("button", { name: /^Filters/ })).toBeVisible();
   else await expect(page.getByRole("heading", { name: "Filters" })).toBeVisible();
 });
@@ -220,7 +220,49 @@ test("Browse category directory leads through games, controllers, and PC hardwar
   if (testInfo.project.name === "webkit") await page.getByRole("button", { name: /^Filters/ }).click();
   const gpuFilters = testInfo.project.name === "webkit" ? page.getByRole("dialog", { name: "Filters" }) : page.getByRole("complementary").filter({ hasText: "Filters" });
   await expect(gpuFilters.getByLabel("Product type")).toHaveValue("gpu");
+  await gpuFilters.getByLabel("GPU chipset manufacturer").selectOption("nvidia");
+  await expect(page).toHaveURL(/gpu_chipset_vendor=nvidia/);
+  await expect(gpuFilters.getByLabel("GPU family \/ generation")).toBeFocused();
+  await gpuFilters.getByLabel("GPU family / generation").selectOption("rtx-40");
+  await expect(page).toHaveURL(/gpu_series=rtx-40/);
+  await gpuFilters.getByLabel("GPU model").selectOption("rtx-4070");
+  await expect(page).toHaveURL(/gpu_model=rtx-4070/);
   await gpuFilters.getByLabel("VRAM (GB)").fill("12");
   await gpuFilters.getByRole("button", { name: "Apply filters" }).click();
-  await expect(page).toHaveURL(/category=pc-components.*subcategory=gpu.*vram_gb=12/);
+  await expect(page).toHaveURL(/category=pc-components.*subcategory=gpu.*gpu_chipset_vendor=nvidia.*gpu_series=rtx-40.*gpu_model=rtx-4070.*vram_gb=12/);
+});
+
+test("PC hardware filters reveal dependencies and clear incompatible descendants", async ({ page }, testInfo) => {
+  await page.setViewportSize(testInfo.project.name === "webkit" ? { width: 390, height: 844 } : { width: 1440, height: 900 });
+  await page.goto("/marketplace?category=pc-components&subcategory=cpu&q=boxed&condition=good");
+  if (testInfo.project.name === "webkit") await page.getByRole("button", { name: /^Filters/ }).click();
+  const filters = testInfo.project.name === "webkit"
+    ? page.getByRole("dialog", { name: "Filters" })
+    : page.getByRole("complementary").filter({ hasText: "Filters" });
+
+  await filters.getByLabel("Manufacturer").selectOption("intel");
+  await expect(filters.getByLabel("Socket")).toBeFocused();
+  await filters.getByLabel("Socket").selectOption("lga1700");
+  await filters.getByLabel("Processor family").selectOption("core-i7");
+  await filters.getByLabel("Generation / series").selectOption("12th-gen");
+  await filters.getByLabel("Processor model").selectOption("core-i7-12700k");
+  await expect(page).toHaveURL(/manufacturer=intel/);
+  await expect(page).toHaveURL(/socket=lga1700/);
+  await expect(page).toHaveURL(/cpu_family=core-i7/);
+  await expect(page).toHaveURL(/cpu_generation=12th-gen/);
+  await expect(page).toHaveURL(/cpu_model=core-i7-12700k/);
+  await expect(page).toHaveURL(/q=boxed/);
+  await expect(page).toHaveURL(/condition=good/);
+
+  await filters.getByLabel("Manufacturer").selectOption("amd");
+  await expect(page).toHaveURL(/manufacturer=amd/);
+  await expect(page).not.toHaveURL(/(?:socket|cpu_family|cpu_generation|cpu_model)=/);
+  await expect(filters.getByLabel("Socket")).toBeFocused();
+  await expect(filters.getByLabel("Socket").locator('option[value="am5"]')).toHaveCount(1);
+  await expect(filters.getByLabel("Socket").locator('option[value="lga1700"]')).toHaveCount(0);
+  await filters.getByLabel("Socket").selectOption("am5");
+  await filters.getByLabel("Processor family").selectOption("ryzen-7");
+  await filters.getByLabel("Generation / series").selectOption("ryzen-7000");
+  await filters.getByLabel("Processor model").selectOption("ryzen-7-7800x3d");
+  await expect(page).toHaveURL(/cpu_model=ryzen-7-7800x3d/);
 });

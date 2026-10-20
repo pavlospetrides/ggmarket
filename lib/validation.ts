@@ -1,4 +1,17 @@
 import { z } from "zod";
+import { PC_HARDWARE_MULTISELECT_KEYS } from "./pc-hardware-taxonomy";
+
+export const loginSchema = z.object({
+  email: z.string().trim().email().max(320),
+  password: z.string().min(8).max(1024),
+});
+
+export const registerSchema = loginSchema.extend({
+  username: z.string().trim().min(3).max(24).regex(/^[a-zA-Z0-9_.]+$/),
+});
+export const passwordResetRequestSchema = z.object({
+  email: z.string().trim().email().max(320),
+});
 
 const attributeValueSchema = z.union([
   z.string().max(500),
@@ -8,14 +21,14 @@ const attributeValueSchema = z.union([
 ]);
 const listingAttributesSchema = z.record(z.string().max(80), attributeValueSchema).superRefine((attributes, context) => {
   for (const [key, value] of Object.entries(attributes)) {
-    if (Array.isArray(value) && key !== "compatibility") context.addIssue({ code: "custom", path: [key], message: "Only compatibility can contain multiple values." });
+    if (Array.isArray(value) && key !== "compatibility" && !PC_HARDWARE_MULTISELECT_KEYS.has(key)) context.addIssue({ code: "custom", path: [key], message: "This attribute cannot contain multiple values." });
   }
 });
 
 export const listingSchema = z
   .object({
     title: z.string().trim().min(6).max(120),
-    description: z.string().trim().min(20).max(5000),
+    description: z.string().trim().min(1).max(5000),
     price: z.coerce.number().positive().max(1_000_000),
     categoryId: z.string().min(1),
     productName: z.string().trim().min(2).max(160),
@@ -35,7 +48,7 @@ export const listingSchema = z
 export const listingUpdateSchema = z
   .object({
     title: z.string().trim().min(6).max(120),
-    description: z.string().trim().min(20).max(5000),
+    description: z.string().trim().min(1).max(5000),
     price: z.coerce.number().positive().max(1_000_000),
     condition: z.enum(["new", "like_new", "good", "fair", "parts"]),
     location: z.string().trim().min(2).max(120),
@@ -67,6 +80,19 @@ export const reportSchema = z.object({
 
 export const favoriteSchema = z.object({ listingId: z.string().uuid() });
 
+export const ratingSchema = z
+  .object({
+    sellerId: z.string().uuid(),
+    rating: z.coerce.number().int().min(1).max(5),
+    comment: z
+      .string()
+      .trim()
+      .max(2000)
+      .optional()
+      .transform((value) => value || null),
+  })
+  .strict();
+
 export const profileSchema = z.object({
   username: z
     .string()
@@ -82,6 +108,7 @@ export const profileSchema = z.object({
 export const conversationSchema = z
   .object({ listingId: z.string().uuid() })
   .strict();
+export const conversationIdSchema = z.string().uuid();
 export const messageSchema = z
   .object({
     body: z.string().trim().min(1).max(2000),

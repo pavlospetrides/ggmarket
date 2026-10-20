@@ -15,5 +15,5 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
   }
   const [result, categories, user] = await Promise.all([getPaginatedListings(params), getCategories(), getUser()]);
   const favoriteIds = user ? [...await getFavoriteIds(user.id)] : [];
-  return <MarketplaceBrowser result={result} params={params} categories={categories} favoriteIds={favoriteIds} actionPath="/search" />;
+  return <MarketplaceBrowser result={result} params={params} categories={categories} favoriteIds={favoriteIds} viewerId={user?.id ?? null} actionPath="/search" />;
 }

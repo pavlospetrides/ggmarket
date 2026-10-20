@@ -28,7 +28,7 @@ export function buildListingTaxonomyAttributes(
   preserved: ListingAttributes = {},
 ): ListingAttributes {
   const selectionAttributes: ListingAttributes = { ...(selection.subcategory ? { subcategory: selection.subcategory } : {}), ...(selection.family ? { family: selection.family } : {}), ...(selection.platform ? { platform: selection.platform } : {}), ...(selection.model ? { model: selection.model } : {}) };
-  const allowedFieldKeys = new Set(getTaxonomyFields(selection.categorySlug, selectionAttributes).map((field) => field.key));
+  const allowedFieldKeys = new Set(getTaxonomyFields(selection.categorySlug, { ...fields, ...selectionAttributes }).map((field) => field.key));
   const next: ListingAttributes = {};
   for (const [key, value] of Object.entries(preserved)) {
     if (!structuralKeys.has(key) && !TAXONOMY_FIELD_KEYS.has(key)) next[key] = value;

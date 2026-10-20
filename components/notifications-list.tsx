@@ -2,56 +2,38 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Bell, CheckCheck } from "lucide-react";
-import { useState, type MouseEvent } from "react";
+import { useEffect, useState, type MouseEvent } from "react";
+import { useNotificationCenter } from "./notification-center";
+import type { NotificationItem } from "@/lib/notification-state";
 
-type Item = {
-  id: string;
-  title: string;
-  body: string | null;
-  href: string | null;
-  read_at: string | null;
-  created_at: string;
-};
-export function NotificationsList({ initial }: { initial: Item[] }) {
+export function NotificationsList({ initial }: { initial: NotificationItem[] }) {
   const router = useRouter();
-  const [items, setItems] = useState(initial);
+  const { items, error: centerError, markRead, markAllRead, seed } = useNotificationCenter();
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [busyItemId, setBusyItemId] = useState<string | null>(null);
+  useEffect(() => seed(initial), [initial, seed]);
   async function readAll() {
     if (busy || busyItemId) return;
     setBusy(true);
     setError("");
     try {
-      const response = await fetch("/api/notifications", {
-        method: "PATCH",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ all: true }),
-      });
-      if (!response.ok) throw new Error("Request failed");
-      setItems((current) =>
-        current.map((item) => ({
-          ...item,
-          read_at: item.read_at ?? new Date().toISOString(),
-        })),
-      );
+      if (!await markAllRead()) throw new Error("Request failed");
     } catch {
       setError("Notifications could not be updated. Try again.");
     } finally {
       setBusy(false);
     }
   }
-  async function openItem(event: MouseEvent<HTMLAnchorElement>, item: Item) {
+  async function openItem(event: MouseEvent<HTMLAnchorElement>, item: NotificationItem) {
     if (item.read_at) return;
     event.preventDefault();
     if (busy || busyItemId) return;
     setBusyItemId(item.id);
     setError("");
     try {
-      const response = await fetch("/api/notifications", { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify({ id: item.id }) });
-      if (!response.ok) throw new Error("Request failed");
-      setItems((current) => current.map((value) => value.id === item.id ? { ...value, read_at: new Date().toISOString() } : value));
-      router.push(item.href || "/notifications");
+      if (!await markRead(item.id)) throw new Error("Request failed");
+      router.push(item.href?.startsWith("/") && !item.href.startsWith("//") ? item.href : "/notifications");
     } catch {
       setError("This notification could not be marked as read.");
     } finally {
@@ -65,7 +47,7 @@ export function NotificationsList({ initial }: { initial: Item[] }) {
           <CheckCheck className="size-4" aria-hidden="true" /> {busy ? "Updating…" : "Mark all read"}
         </button>
       </div>
-      {error && <p role="alert" className="mb-4 text-sm text-[var(--danger)]">{error}</p>}
+      {(error || centerError) && <p role="alert" className="mb-4 text-sm text-[var(--danger)]">{error || centerError}</p>}
       <div className="space-y-3">
         {items.length ? (
           items.map((item) => (

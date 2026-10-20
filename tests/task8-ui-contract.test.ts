@@ -63,13 +63,15 @@ describe("account activity UI contracts", () => {
     const chat = read("components/chat-interface.tsx");
     const list = read("components/notifications-list.tsx");
     const bell = read("components/notification-bell.tsx");
+    const center = read("components/notification-center.tsx");
 
     expect(saved).toContain("createBusy");
     expect(saved.match(/finally/g)?.length).toBeGreaterThanOrEqual(4);
     expect(saved).toContain("The alert could not be created. Try again.");
 
     expect(chat).toContain("pendingActionId");
-    expect(chat).toContain("current.filter((item) => item.id !== clientId)");
+    expect(chat).toContain("failPendingMessage");
+    expect(chat).toContain("retryMessage");
     expect(chat).toContain("Message could not be sent. Try again.");
     expect(chat.match(/finally/g)?.length).toBeGreaterThanOrEqual(4);
 
@@ -79,7 +81,26 @@ describe("account activity UI contracts", () => {
 
     expect(bell).toContain("busy");
     expect(bell).toContain("disabled={busy}");
-    expect(bell.match(/finally/g)?.length).toBeGreaterThanOrEqual(2);
+    expect(bell).toContain("await markAllRead()");
+    expect(center.match(/Notifications could not be updated\./g)?.length).toBeGreaterThanOrEqual(2);
+    expect(center).toContain("return false");
+  });
+
+  it("keeps chat sending safe before hydration and reconciles scoped realtime state", () => {
+    const chat = read("components/chat-interface.tsx");
+
+    expect(chat).toContain('method="post"');
+    expect(chat).toContain("/messages`}");
+    expect(chat).toContain('name="clientId"');
+    expect(chat).toContain('type="submit"');
+    expect(chat).toContain("useHydrated");
+    expect(chat).toContain("data-message-status");
+    expect(chat).toContain("scopeRef.current");
+    expect(chat).toContain("AbortController");
+    expect(chat).toContain('addEventListener("visibilitychange"');
+    expect(chat).toContain('addEventListener("online"');
+    expect(chat).toContain("setInterval");
+    expect(chat).toContain("removeChannel");
   });
 
   it("keeps task routes contained and clear of mobile navigation", () => {

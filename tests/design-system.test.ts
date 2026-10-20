@@ -13,6 +13,7 @@ describe("premium marketplace visual foundation", () => {
     expect(css).toContain("--brutalist-stroke:");
     expect(css).toContain("--motion-emphasized:");
     expect(css).toContain("@media (prefers-reduced-motion: reduce)");
+    expect(css).toContain("html { scroll-behavior: auto; }");
   });
 
   it("uses one accessible category switchboard with canonical marketplace routes", () => {
@@ -40,8 +41,13 @@ describe("premium marketplace visual foundation", () => {
     expect(sheet).toContain("DialogPrimitive.Root");
     expect(dialog).toContain("DialogPrimitive.Root");
     expect(marketplace).toContain("<Sheet");
+    expect(marketplace).toContain("{hydrated ? <Sheet");
+    expect(marketplace).toContain('<details className="relative md:hidden">');
+    expect(marketplace).toContain("useTransition");
+    expect(marketplace).toContain("startFilterNavigation(() => router.push(href, { scroll: false }))");
     expect(marketplace).toContain('htmlFor={`${prefix}-min-price`}');
     expect(marketplace).toContain('htmlFor={`${prefix}-max-price`}');
+    expect(marketplace).toContain('id="marketplace-results-heading"');
     expect(css).not.toMatch(/\.input:focus\s*\{[^}]*outline:\s*0/s);
     expect(css).toContain(".input:focus-visible");
   });
@@ -67,6 +73,9 @@ describe("premium marketplace visual foundation", () => {
     expect(header).toContain('event.key === "/"');
     expect(header).toContain("searchRef.current?.focus()");
     expect(mobile).toContain('aria-label="Mobile navigation"');
+    expect(mobile).toContain('["Favorites", "/favorites", Heart]');
+    expect(mobile).not.toContain('["Messages", "/messages", MessageCircle]');
+    expect(read("components/profile-view.tsx")).toContain('href="/messages"');
     expect(mobile).not.toContain("bg-gradient-to-br");
     expect(mobile).not.toContain("backdrop-blur-2xl");
   });
@@ -108,5 +117,33 @@ describe("premium marketplace visual foundation", () => {
     expect(css).not.toContain("animation-timeline: view()");
     expect(card).toContain('sizes="(max-width: 639px) 50vw, (max-width: 1279px) 33vw, 25vw"');
     expect(card).not.toContain("border-b border-[var(--border)]");
+  });
+
+  it("gives every product route family a visible exchange masthead composition", () => {
+    const masthead = read("components/page-masthead.tsx");
+    const routes = [
+      "app/notifications/page.tsx",
+      "app/saved-searches/page.tsx",
+      "app/settings/page.tsx",
+      "app/settings/verification/page.tsx",
+      "app/sell/page.tsx",
+      "app/listing/[id]/edit/page.tsx",
+      "app/messages/page.tsx",
+      "app/profile/listings/page.tsx",
+      "app/admin/page.tsx",
+    ].map(read);
+
+    expect(masthead).toContain("exchange-masthead");
+    expect(masthead).toContain('aria-hidden="true"');
+    expect(masthead).toContain("variant");
+    for (const route of routes) expect(route).toContain("<PageMasthead");
+    expect(read("components/favorite-listings.tsx")).toContain("<PageMasthead");
+  });
+
+  it("uses dedicated route compositions for auth, marketplace, listing, and profiles", () => {
+    expect(read("components/auth-shell.tsx")).toContain("auth-exchange-rail");
+    expect(read("components/marketplace-browser.tsx")).toContain("marketplace-command-deck");
+    expect(read("app/listing/[id]/page.tsx")).toContain("listing-product-stage");
+    expect(read("components/profile-view.tsx")).toContain("profile-identity-stage");
   });
 });

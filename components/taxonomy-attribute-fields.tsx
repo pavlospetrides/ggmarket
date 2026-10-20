@@ -1,14 +1,18 @@
 "use client";
 
 import { getTaxonomyFields } from "../lib/gaming-taxonomy";
+import { updatePcHardwareAttribute } from "../lib/pc-hardware-taxonomy";
 import type { AttributeValue, ListingAttributes } from "../lib/types";
 
 export function TaxonomyAttributeFields({ categorySlug, selectionAttributes, values, onChange, enforceRequired = true }: { categorySlug: string; selectionAttributes: ListingAttributes; values: ListingAttributes; onChange: (next: ListingAttributes) => void; enforceRequired?: boolean }) {
-  const fields = getTaxonomyFields(categorySlug, selectionAttributes);
+  const resolvedAttributes = { ...values, ...selectionAttributes };
+  const fields = getTaxonomyFields(categorySlug, resolvedAttributes);
   if (!fields.length) return null;
   const update = (key: string, value: AttributeValue | undefined) => {
-    const next = { ...values };
-    if (value === undefined || value === "" || (Array.isArray(value) && value.length === 0)) delete next[key]; else next[key] = value;
+    const next = categorySlug === "pc-components" ? updatePcHardwareAttribute(resolvedAttributes, key, value) : { ...values };
+    if (categorySlug !== "pc-components") {
+      if (value === undefined || value === "" || (Array.isArray(value) && value.length === 0)) delete next[key]; else next[key] = value;
+    }
     onChange(next);
   };
   return <fieldset className="mt-6 space-y-5">

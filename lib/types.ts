@@ -19,7 +19,7 @@ export type Listing = {
   imageRecords?: { id: string; path: string; url: string }[];
 };
 
-export type Review = { id: string; rating: number; comment?: string; createdAt: string; reviewerName: string };
+export type Review = { id: string; rating: number; comment?: string; createdAt: string; reviewerName: string; reviewerId?: string };
 export type ListingQuery = Record<string, string | string[] | undefined>;
 export type PaginatedListings = {
   items: Listing[];

@@ -2,8 +2,7 @@
 
 import { LogOut } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState, type FormEvent } from "react";
-import { createClient } from "@/lib/supabase/client";
+import { useEffect, useRef, useState, type FormEvent, type MouseEvent as ReactMouseEvent } from "react";
 
 type SettingsFormProps = {
   email: string;
@@ -11,6 +10,7 @@ type SettingsFormProps = {
   displayName: string;
   location: string;
   bio: string;
+  logoutError?: boolean;
 };
 
 export function SettingsForm({
@@ -19,10 +19,11 @@ export function SettingsForm({
   displayName,
   location,
   bio,
+  logoutError = false,
 }: SettingsFormProps) {
   const router = useRouter();
   const [status, setStatus] = useState("");
-  const [error, setError] = useState("");
+  const [error, setError] = useState(logoutError ? "You could not be logged out. Please try again." : "");
   const [saving, setSaving] = useState(false);
   const [dirty, setDirty] = useState(false);
   const errorRef = useRef<HTMLParagraphElement>(null);
@@ -52,6 +53,8 @@ export function SettingsForm({
   }, [error]);
 
   async function save(event: FormEvent<HTMLFormElement>) {
+    const submitter = (event.nativeEvent as SubmitEvent).submitter as HTMLButtonElement | null;
+    if (submitter?.formAction.endsWith("/auth/logout")) return;
     event.preventDefault();
     setSaving(true);
     setStatus("");
@@ -83,16 +86,8 @@ export function SettingsForm({
     }
   }
 
-  async function logout() {
-    if (dirty && !window.confirm("Discard your unsaved changes?")) return;
-    setError("");
-    const { error: logoutError } = await createClient().auth.signOut();
-    if (logoutError) {
-      setError("You could not be logged out. Please try again.");
-      return;
-    }
-    router.push("/");
-    router.refresh();
+  function confirmLogout(event: ReactMouseEvent<HTMLButtonElement>) {
+    if (dirty && !window.confirm("Discard your unsaved changes?")) event.preventDefault();
   }
 
   return (
@@ -216,8 +211,10 @@ export function SettingsForm({
         </div>
         <div className="my-8 h-2 rounded-full bg-[var(--surface-alt)]" />
         <button
-          type="button"
-          onClick={logout}
+          type="submit"
+          formAction="/auth/logout"
+          formMethod="post"
+          onClick={confirmLogout}
           className="btn-danger"
         >
           <LogOut className="size-4" /> Log out

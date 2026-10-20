@@ -7,7 +7,7 @@ describe("structured gaming search", () => {
     ["PSP games", "games", { family: "playstation", platform: "psp" }, ""],
     ["Xbox One controller", "controllers", { compatibility: "xbox-one" }, ""],
     ["Nintendo Switch accessories", "peripherals", { compatibility: "switch" }, ""],
-    ["RTX 4070", "pc-components", { subcategory: "gpu" }, "RTX 4070"],
+    ["RTX 4070", "pc-components", { subcategory: "gpu", gpu_chipset_vendor: "nvidia", gpu_series: "rtx-40", gpu_model: "rtx-4070" }, ""],
   ])("infers %s without relying only on title text", (query, category, attributes, residualQuery) => {
     expect(inferTaxonomyIntent(query)).toEqual({ category, attributes, residualQuery });
   });
@@ -100,6 +100,34 @@ describe("structured gaming search", () => {
     });
   });
 
+  it("clears incompatible dependent PC filters while preserving search and category state", () => {
+    expect(updateTaxonomyFilterParams({
+      category: "pc-components",
+      q: "quiet build",
+      subcategory: "cpu",
+      manufacturer: "intel",
+      socket: "lga1700",
+      cpu_family: "core-i7",
+      cpu_generation: "12th-gen",
+      page: "3",
+    }, "manufacturer", "amd")).toEqual({
+      category: "pc-components",
+      q: "quiet build",
+      subcategory: "cpu",
+      manufacturer: "amd",
+    });
+
+    expect(updateTaxonomyFilterParams({
+      category: "pc-components",
+      subcategory: "cpu",
+      manufacturer: "intel",
+      socket: "lga1700",
+    }, "subcategory", "ssd")).toEqual({
+      category: "pc-components",
+      subcategory: "ssd",
+    });
+  });
+
   it("preserves numeric attribute types for exact JSONB filtering", () => {
     expect(taxonomyFilterEntries({ subcategory: "gpu", vram_gb: "12", dpi: "not-a-number" })).toEqual([
       { key: "subcategory", value: "gpu", mode: "scalar" },
@@ -124,5 +152,45 @@ describe("structured gaming search", () => {
         { key: "platform", value: "psp", mode: "scalar" },
       ],
     });
+  });
+
+  it("keeps the complete dependent PC chain for exact-model search", () => {
+    expect(resolveTaxonomyQuery({ q: "RTX 4070" })).toEqual({
+      category: "pc-components",
+      residualQuery: "",
+      inferred: true,
+      filters: [
+        { key: "subcategory", value: "gpu", mode: "scalar" },
+        { key: "gpu_chipset_vendor", value: "nvidia", mode: "scalar" },
+        { key: "gpu_series", value: "rtx-40", mode: "scalar" },
+        { key: "gpu_model", value: "rtx-4070", mode: "scalar" },
+      ],
+    });
+  });
+
+  it("drops crafted PC filters that violate the dependent hardware hierarchy", () => {
+    expect(resolveTaxonomyQuery({
+      category: "pc-components",
+      subcategory: "cpu",
+      manufacturer: "intel",
+      socket: "am5",
+      cpu_family: "core-i7",
+      cpu_generation: "12th-gen",
+    }).filters).toEqual([
+      { key: "subcategory", value: "cpu", mode: "scalar" },
+      { key: "manufacturer", value: "intel", mode: "scalar" },
+    ]);
+
+    expect(resolveTaxonomyQuery({
+      category: "pc-components",
+      subcategory: "motherboard",
+      platform_vendor: "amd",
+      socket: "am5",
+      chipset: "z790",
+    }).filters).toEqual([
+      { key: "subcategory", value: "motherboard", mode: "scalar" },
+      { key: "platform_vendor", value: "amd", mode: "scalar" },
+      { key: "socket", value: "am5", mode: "scalar" },
+    ]);
   });
 });

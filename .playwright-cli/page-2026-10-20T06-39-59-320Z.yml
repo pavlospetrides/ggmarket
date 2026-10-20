@@ -1,0 +1,141 @@
+- generic [active] [ref=f1e1]:
+  - link "Skip to content" [ref=f1e2] [cursor=pointer]:
+    - /url: "#main-content"
+  - main [ref=f1e3]:
+    - generic [ref=f1e4]:
+      - navigation "Breadcrumb" [ref=f1e5]:
+        - link "Marketplace" [ref=f1e6] [cursor=pointer]:
+          - /url: /marketplace
+        - generic [aria-hidden] [ref=f1e7]: /
+        - link "PC Components" [ref=f1e8] [cursor=pointer]:
+          - /url: /marketplace?category=pc-components
+      - generic [ref=f1e9]:
+        - generic [ref=f1e10]:
+          - generic [ref=f1e13]:
+            - link "Open full-screen gallery" [ref=f1e14]:
+              - /url: https://axnfwsmszjgqazboqzly.supabase.co/storage/v1/object/sign/listing-images/e1696070-43bf-419f-a6a1-283af14781b3/9c25e1ac-9783-4628-85ae-b6370ed431b4/c3dd86ff-0a1d-43a9-a066-77e5de77fc94.png?token=eyJraWQiOiIzZmE1MjljYi02NThlLTQ2NWQtYTkxMC04N2I3NjdhZTIyMTgiLCJhbGciOiJIUzUxMiJ9.eyJ1cmwiOiJsaXN0aW5nLWltYWdlcy9lMTY5NjA3MC00M2JmLTQxOWYtYTZhMS0yODNhZjE0NzgxYjMvOWMyNWUxYWMtOTc4My00NjI4LTg1YWUtYjYzNzBlZDQzMWI0L2MzZGQ4NmZmLTBhMWQtNDNhOS1hMDY2LTc3ZTVkZTc3ZmM5NC5wbmciLCJzY29wZSI6ImRvd25sb2FkIiwiaWF0IjoxNzkyNDc4Mzk2LCJleHAiOjE3OTI0ODE5OTZ9.oHSvDzQ7rCzSpv_x0DJBypuYOiASQMbKT_6FOnhOXfV8lXd1ctSGLxvYlzCjFnONRVKAwCJtASuonYMCSK5Ofg
+              - img "Amd 5700x — image 1" [ref=f1e15]
+            - generic: 1 / 1
+          - generic [ref=f1e16]:
+            - heading "About this item" [level=2] [ref=f1e17]
+            - paragraph [ref=f1e18]: In perfect condition!!
+            - heading "Specifications" [level=2] [ref=f1e19]
+            - generic [ref=f1e20]:
+              - generic [ref=f1e21]:
+                - term [ref=f1e22]: Product name
+                - definition [ref=f1e23]: 5600x
+              - generic [ref=f1e24]:
+                - term [ref=f1e25]: Subcategory
+                - definition [ref=f1e26]: cpu
+              - generic [ref=f1e27]:
+                - term [ref=f1e28]: Manufacturer
+                - definition [ref=f1e29]: AMD
+              - generic [ref=f1e30]:
+                - term [ref=f1e31]: Socket
+                - definition [ref=f1e32]: AMD AM4
+              - generic [ref=f1e33]:
+                - term [ref=f1e34]: Processor family
+                - definition [ref=f1e35]: AMD Ryzen 7
+              - generic [ref=f1e36]:
+                - term [ref=f1e37]: Generation / series
+                - definition [ref=f1e38]: ryzen-5000
+              - generic [ref=f1e39]:
+                - term [ref=f1e40]: Processor model
+                - definition [ref=f1e41]: ryzen-7-5700x
+              - generic [ref=f1e42]:
+                - term [ref=f1e43]: Intent
+                - definition [ref=f1e44]: sale
+        - complementary [ref=f1e45]:
+          - generic [ref=f1e46]:
+            - generic [ref=f1e47]:
+              - generic [ref=f1e48]:
+                - paragraph [ref=f1e49]: Like new
+                - heading "Amd 5700x" [level=1] [ref=f1e50]
+              - button "Add to favorites" [ref=f1e52]
+            - paragraph [ref=f1e55]: €500
+            - generic [ref=f1e56]:
+              - generic [ref=f1e57]: Limassol
+              - generic [ref=f1e62]: 20/10/2026
+              - generic [ref=f1e65]: 0 views
+            - link "pavlospetrides741" [ref=f1e70] [cursor=pointer]:
+              - /url: /profile/pavlaras
+              - generic [aria-hidden] [ref=f1e71]: p
+            - generic [ref=f1e75]:
+              - paragraph [ref=f1e76]: Shipping available
+              - paragraph [ref=f1e82]: Local meetup available
+              - paragraph [ref=f1e86]: Verify the item before paying
+            - button "Message seller" [ref=f1e91] [cursor=pointer]
+            - generic [ref=f1e95]:
+              - generic "2 favorites" [ref=f1e96]: "2"
+              - button "Share" [ref=f1e100]
+              - button "Report listing" [ref=f1e109]
+      - generic [ref=f1e112]:
+        - heading "More from this seller" [level=2] [ref=f1e113]
+        - generic [ref=f1e115]:
+          - article [ref=f1e116]:
+            - generic [ref=f1e117]:
+              - link [ref=f1e118] [cursor=pointer]:
+                - /url: /listing/d5bbdfa1-c4c5-4ac7-9b0c-76ee5022fa66
+                - img "Fc2026" [ref=f1e120]
+              - button "Add to favorites" [ref=f1e122]
+            - link "Good Fc2026 €40 Limassol · Ships pavlospetrides741" [ref=f1e125] [cursor=pointer]:
+              - /url: /listing/d5bbdfa1-c4c5-4ac7-9b0c-76ee5022fa66
+              - generic [ref=f1e126]:
+                - generic [ref=f1e127]:
+                  - generic [ref=f1e128]: Good
+                  - heading "Fc2026" [level=3] [ref=f1e129]
+                  - strong [ref=f1e130]: €40
+                - generic [ref=f1e131]:
+                  - generic [ref=f1e132]: Limassol
+                  - generic [ref=f1e137]: · Ships
+                - generic [ref=f1e138]: pavlospetrides741
+          - article [ref=f1e140]:
+            - generic [ref=f1e141]:
+              - link [ref=f1e142] [cursor=pointer]:
+                - /url: /listing/d7f477cc-985b-4ad2-9c40-7fcb68adaaff
+                - img "gtavi new" [ref=f1e144]
+              - button "Add to favorites" [ref=f1e146]
+            - link "New gtavi new €50 limassol · Ships pavlospetrides741" [ref=f1e149] [cursor=pointer]:
+              - /url: /listing/d7f477cc-985b-4ad2-9c40-7fcb68adaaff
+              - generic [ref=f1e150]:
+                - generic [ref=f1e151]:
+                  - generic [ref=f1e152]: New
+                  - heading "gtavi new" [level=3] [ref=f1e153]
+                  - strong [ref=f1e154]: €50
+                - generic [ref=f1e155]:
+                  - generic [ref=f1e156]: limassol
+                  - generic [ref=f1e161]: · Ships
+                - generic [ref=f1e162]: pavlospetrides741
+          - article [ref=f1e164]:
+            - generic [ref=f1e165]:
+              - link [ref=f1e166] [cursor=pointer]:
+                - /url: /listing/1cf0cbe7-9248-4a60-be24-f6ac9be417de
+                - img "Ps5 sli" [ref=f1e168]
+              - button "Add to favorites" [ref=f1e170]
+            - link "Like new Ps5 sli €500 Limassol · Ships pavlospetrides741" [ref=f1e173] [cursor=pointer]:
+              - /url: /listing/1cf0cbe7-9248-4a60-be24-f6ac9be417de
+              - generic [ref=f1e174]:
+                - generic [ref=f1e175]:
+                  - generic [ref=f1e176]: Like new
+                  - heading "Ps5 sli" [level=3] [ref=f1e177]
+                  - strong [ref=f1e178]: €500
+                - generic [ref=f1e179]:
+                  - generic [ref=f1e180]: Limassol
+                  - generic [ref=f1e185]: · Ships
+                - generic [ref=f1e186]: pavlospetrides741
+      - generic [ref=f1e188]:
+        - strong [ref=f1e189]: €500
+        - button "Message" [ref=f1e191] [cursor=pointer]
+  - navigation "Mobile navigation" [ref=f1e195]:
+    - generic [ref=f1e196]:
+      - link "Home" [ref=f1e197] [cursor=pointer]:
+        - /url: /
+      - link "Browse" [ref=f1e201] [cursor=pointer]:
+        - /url: /browse
+      - link [ref=f1e205] [cursor=pointer]:
+        - /url: /sell
+      - link "Favorites" [ref=f1e208] [cursor=pointer]:
+        - /url: /favorites
+      - link "Profile" [ref=f1e211] [cursor=pointer]:
+        - /url: /profile
+  - alert [ref=f1e215]

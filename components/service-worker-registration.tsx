@@ -1,3 +1,13 @@
 "use client";
 import { useEffect } from "react";
-export function ServiceWorkerRegistration() { useEffect(() => { if ("serviceWorker" in navigator && process.env.NODE_ENV === "production") void navigator.serviceWorker.register("/sw.js"); }, []); return null; }
+export function ServiceWorkerRegistration() {
+  useEffect(() => {
+    document.documentElement.dataset.ggHydrated = "true";
+    try {
+      sessionStorage.removeItem("ggmarket-sw-recovery");
+    } catch {
+      // Hydration remains successful when storage is unavailable.
+    }
+  }, []);
+  return null;
+}

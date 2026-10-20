@@ -8,6 +8,7 @@ const viewports = [
   { width: 393, height: 852 },
   { width: 430, height: 932 },
   { width: 768, height: 1024 },
+  { width: 820, height: 1180 },
   { width: 1024, height: 768 },
   { width: 1280, height: 800 },
   { width: 1440, height: 900 },
@@ -72,6 +73,9 @@ test("mobile navigation and filter controls work at required phone sizes", async
         await page.goto("/");
         await expect(page.getByRole("heading", { name: "Find your next setup" })).toBeVisible();
         const nav = page.getByRole("navigation", { name: "Mobile navigation" });
+        const favorites = nav.getByRole("link", { name: "Favorites" });
+        await expect(favorites).toHaveAttribute("href", "/favorites");
+        expect((await favorites.boundingBox())?.height).toBeGreaterThanOrEqual(44);
         await nav.getByRole("link", { name: "Browse" }).click();
         await expect(page).toHaveURL(/\/browse/);
         await expect(page.getByRole("heading", { name: "Find what plays next" })).toBeVisible();
