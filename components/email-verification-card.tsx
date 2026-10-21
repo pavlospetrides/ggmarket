@@ -16,11 +16,15 @@ export function EmailVerificationCard({ email, confirmed, initialStatus }: Email
   const hydrated = useHydrated();
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState(
-    initialStatus === "invalid_or_expired"
-      ? "This verification link is invalid or has expired. Request a new email below."
+    initialStatus === "already_verified"
+      ? "This account was already verified."
+      : initialStatus === "expired_or_used"
+        ? "This verification link has expired or was already used. Request a new email below."
+        : initialStatus === "invalid"
+          ? "This verification link is invalid. Request a new email below."
       : "",
   );
-  const [error, setError] = useState(initialStatus === "invalid_or_expired");
+  const [error, setError] = useState(initialStatus === "expired_or_used" || initialStatus === "invalid");
   const [cooldown, setCooldown] = useState(0);
 
   useEffect(() => {

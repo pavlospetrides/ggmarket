@@ -62,19 +62,30 @@ describe("mutation origin validation", () => {
 
   it("uses the configured production origin instead of client-supplied forwarding headers", () => {
     vi.stubEnv("NODE_ENV", "production");
-    vi.stubEnv("NEXT_PUBLIC_SITE_URL", "https://ggmarket.example");
+    vi.stubEnv("NEXT_PUBLIC_SITE_URL", "https://ggmarket-sage.vercel.app");
     const requestHeaders = headers({
       host: "internal:3000",
       "x-forwarded-host": "attacker.example",
       "x-forwarded-proto": "https",
     });
 
-    expect(getPublicRequestOrigin(requestHeaders, "http:")).toBe("https://ggmarket.example");
+    expect(getPublicRequestOrigin(requestHeaders, "http:")).toBe("https://ggmarket-sage.vercel.app");
     expect(isTrustedMutationRequest(new Headers({
       ...Object.fromEntries(requestHeaders.entries()),
       origin: "https://attacker.example",
       "sec-fetch-site": "cross-site",
     }), "http:")).toBe(false);
+  });
+
+  it("never uses localhost or forwarded hosts as the production public origin", () => {
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("NEXT_PUBLIC_SITE_URL", "http://localhost:3000");
+
+    expect(getPublicRequestOrigin(headers({
+      host: "localhost:3000",
+      "x-forwarded-host": "attacker.example",
+      "x-forwarded-proto": "http",
+    }), "http:")).toBe("https://ggmarket-sage.vercel.app");
   });
 
   it("rejects cross-site auth mutations in the application proxy", async () => {

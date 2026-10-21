@@ -9,8 +9,8 @@ test("email verification responds to touch without claiming success before confi
     await new Promise((resolve) => setTimeout(resolve, 100));
     await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ status: "sent" }) });
   });
-  await page.goto("/test-harness/verification?status=invalid_or_expired", { waitUntil: "domcontentloaded" });
-  await expect(page.getByText("This verification link is invalid or has expired.", { exact: false })).toBeVisible();
+  await page.goto("/test-harness/verification?status=expired_or_used", { waitUntil: "domcontentloaded" });
+  await expect(page.getByText("This verification link has expired or was already used.", { exact: false })).toBeVisible();
   const resend = page.getByRole("button", { name: "Resend verification email" });
   await resend.tap();
   await expect(page.getByRole("button", { name: "Sending…" })).toBeDisabled();
@@ -19,6 +19,25 @@ test("email verification responds to touch without claiming success before confi
 
   await page.goto("/test-harness/verification?confirmed=1&status=verified", { waitUntil: "domcontentloaded" });
   await expect(page.getByText("Account verified successfully")).toBeVisible();
+});
+
+test("expired verification links provide touch-safe resend and login navigation", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  let resendBody: unknown;
+  await page.route("**/api/verification/email", async (route) => {
+    resendBody = route.request().postDataJSON();
+    await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ status: "sent" }) });
+  });
+
+  await page.goto("/verify-email?status=expired_or_used", { waitUntil: "domcontentloaded" });
+  await expect(page.getByRole("heading", { name: "This verification link is no longer valid" })).toBeVisible();
+  await page.getByLabel("Email").fill("iphone@example.invalid");
+  await page.getByRole("button", { name: "Send a new confirmation email" }).tap();
+  await expect(page.getByRole("status")).toContainText("new confirmation email has been sent");
+  expect(resendBody).toEqual({ email: "iphone@example.invalid" });
+
+  await page.getByRole("link", { name: "Log in" }).tap();
+  await expect(page).toHaveURL(/\/login$/);
 });
 
 test("rating stars and submission work with mobile touch and update the summary", async ({ page }) => {

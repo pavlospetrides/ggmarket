@@ -56,7 +56,8 @@ The service-role key is not used by application runtime code. It can be omitted 
 
 ## Supabase configuration
 
-- In Authentication → URL Configuration, add `http://localhost:3000/auth/callback` locally and the equivalent production callback URL.
+- Production email verification has an exact configuration checklist and copy-ready Confirm Signup template in [docs/auth/production-email-verification.md](docs/auth/production-email-verification.md).
+- In Authentication → URL Configuration, use `https://ggmarket-sage.vercel.app` as the production Site URL and add `https://ggmarket-sage.vercel.app/auth/callback` as an allowed Redirect URL. Keep `http://localhost:3000/auth/callback` only for local development.
 - Enable Email provider. Choose whether email confirmation is required for your environment.
 - The migration creates the public `listing-images` bucket with a 10 MB per-file limit and JPEG/PNG/WebP restrictions.
 - Create an account normally, then assign the first administrator only through a trusted SQL session:

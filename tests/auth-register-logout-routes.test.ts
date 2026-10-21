@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const auth = vi.hoisted(() => ({
   signUp: vi.fn(),
@@ -12,6 +12,8 @@ vi.mock("@/lib/supabase/server", () => ({
 vi.mock("@/lib/security", async () => import("../lib/security"));
 vi.mock("@/lib/request-security", async () => import("../lib/request-security"));
 vi.mock("@/lib/validation", async () => import("../lib/validation"));
+
+afterEach(() => vi.unstubAllEnvs());
 
 function formRequest(path: string, values: Record<string, string>, host = "ggmarket.example") {
   return new Request(`https://0.0.0.0/${path}`, {
@@ -59,6 +61,24 @@ describe("native registration fallback", () => {
 
     expect(response.headers.get("location")).toBe("https://ggmarket.example/register?error=signup_failed");
   });
+
+  it("pins production signup confirmation to the canonical HTTPS callback", async () => {
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("NEXT_PUBLIC_SITE_URL", "http://localhost:3000");
+    auth.signUp.mockResolvedValue({ data: { session: null }, error: null });
+    const { POST } = await import("../app/auth/register/route");
+    await POST(formRequest("auth/register", {
+      username: "iphone_user",
+      email: "iphone@example.invalid",
+      password: "not-a-real-password",
+    }, "localhost:3000"));
+
+    expect(auth.signUp).toHaveBeenCalledWith(expect.objectContaining({
+      options: expect.objectContaining({
+        emailRedirectTo: "https://ggmarket-sage.vercel.app/auth/callback?next=%2Fsettings%2Fverification",
+      }),
+    }));
+  });
 });
 
 describe("native password-reset fallback", () => {
@@ -74,6 +94,18 @@ describe("native password-reset fallback", () => {
     });
     expect(response.status).toBe(303);
     expect(response.headers.get("location")).toBe("https://192.168.2.21:3000/forgot-password?status=sent");
+  });
+
+  it("pins production password recovery to the canonical HTTPS callback", async () => {
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("NEXT_PUBLIC_SITE_URL", "http://localhost:3000");
+    auth.resetPasswordForEmail.mockResolvedValue({ error: null });
+    const { POST } = await import("../app/auth/forgot-password/route");
+    await POST(formRequest("auth/forgot-password", { email: "iphone@example.invalid" }, "localhost:3000"));
+
+    expect(auth.resetPasswordForEmail).toHaveBeenCalledWith("iphone@example.invalid", {
+      redirectTo: "https://ggmarket-sage.vercel.app/auth/callback?next=/reset-password",
+    });
   });
 });
 

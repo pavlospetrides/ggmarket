@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import type { EmailOtpType } from "@supabase/supabase-js";
 import { safeRedirectPath } from "@/lib/security";
+import { getPublicRequestOrigin } from "@/lib/request-security";
 import { createClient } from "@/lib/supabase/server";
 import { withPrivateNoStore } from "../../../lib/supabase/cookie-security";
 
@@ -13,10 +14,17 @@ const emailOtpTypes = new Set<EmailOtpType>([
   "signup",
 ]);
 
-function verificationRedirect(origin: string, status: "verified" | "invalid_or_expired") {
-  const target = new URL("/settings/verification", origin);
+type VerificationStatus = "verified" | "already_verified" | "expired_or_used" | "invalid";
+
+function verificationRedirect(origin: string, status: VerificationStatus) {
+  const requiresAuthentication = status === "verified" || status === "already_verified";
+  const target = new URL(requiresAuthentication ? "/settings/verification" : "/verify-email", origin);
   target.searchParams.set("status", status);
   return withPrivateNoStore(NextResponse.redirect(target));
+}
+
+function isExpiredOrUsed(error: unknown) {
+  return Boolean(error && typeof error === "object" && "code" in error && error.code === "otp_expired");
 }
 
 export async function GET(request: Request) {
@@ -26,9 +34,10 @@ export async function GET(request: Request) {
   const requestedType = url.searchParams.get("type");
   const next = safeRedirectPath(url.searchParams.get("next"));
   const verificationFlow = next === "/settings/verification";
+  const publicOrigin = getPublicRequestOrigin(request.headers, url.protocol) ?? url.origin;
   const supabase = await createClient();
   if (!supabase) {
-    return withPrivateNoStore(NextResponse.redirect(new URL("/login?error=invalid_callback", url.origin)));
+    return withPrivateNoStore(NextResponse.redirect(new URL("/login?error=invalid_callback", publicOrigin)));
   }
 
   let error: unknown = { message: "Missing confirmation token" };
@@ -48,15 +57,16 @@ export async function GET(request: Request) {
   const { data: { user } } = await supabase.auth.getUser();
   if (verificationFlow) {
     if (!error && user?.email_confirmed_at) {
-      return verificationRedirect(url.origin, "verified");
+      return verificationRedirect(publicOrigin, "verified");
     }
-    if (user) return verificationRedirect(url.origin, "invalid_or_expired");
+    if (user?.email_confirmed_at) return verificationRedirect(publicOrigin, "already_verified");
+    return verificationRedirect(publicOrigin, isExpiredOrUsed(error) ? "expired_or_used" : "invalid");
   }
 
   return withPrivateNoStore(NextResponse.redirect(
     new URL(
       error ? "/login?error=invalid_callback" : next,
-      url.origin,
+      publicOrigin,
     ),
   ));
 }

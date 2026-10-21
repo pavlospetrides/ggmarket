@@ -5,6 +5,7 @@ import { CircleCheck } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { safeRedirectPath } from "@/lib/security";
+import { buildAuthCallbackUrl } from "@/lib/auth-redirect";
 import { createClient } from "@/lib/supabase/client";
 import { useHydrated } from "./use-hydrated";
 import { PasswordField } from "./password-field";
@@ -59,7 +60,7 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
           password,
           options: {
             data: { username, display_name: username },
-            emailRedirectTo: `${location.origin}/auth/callback?next=${encodeURIComponent("/settings/verification")}`,
+            emailRedirectTo: buildAuthCallbackUrl(location.origin, "/settings/verification"),
           },
         });
         if (authError) throw authError;

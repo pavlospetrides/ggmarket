@@ -6,6 +6,7 @@ vi.mock("@/lib/supabase/server", () => ({
   createClient: vi.fn(async () => ({ auth })),
 }));
 vi.mock("@/lib/request-security", async () => import("../lib/request-security"));
+vi.mock("@/lib/validation", async () => import("../lib/validation"));
 
 function request(host = "192.168.2.21:3000") {
   return new Request("http://0.0.0.0:3000/api/verification/email", {
@@ -18,13 +19,47 @@ describe("email verification resend API", () => {
   beforeEach(() => {
     auth.getUser.mockReset();
     auth.resend.mockReset();
+    vi.unstubAllEnvs();
   });
 
-  it("requires an authenticated user", async () => {
+  it("allows a signed-out user to request a replacement without account enumeration", async () => {
+    auth.getUser.mockResolvedValue({ data: { user: null }, error: null });
+    auth.resend.mockResolvedValue({ error: null });
+    const { POST } = await import("../app/api/verification/email/route");
+    const response = await POST(new Request("https://ggmarket.test/api/verification/email", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ email: "member@example.test" }),
+    }));
+    expect(auth.resend).toHaveBeenCalledWith({
+      type: "signup",
+      email: "member@example.test",
+      options: { emailRedirectTo: "https://ggmarket.test/auth/callback?next=%2Fsettings%2Fverification" },
+    });
+    expect(await response.json()).toEqual({ status: "sent" });
+  });
+
+  it("uses the canonical HTTPS callback in production even when the request is localhost", async () => {
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("NEXT_PUBLIC_SITE_URL", "http://localhost:3000");
+    auth.getUser.mockResolvedValue({ data: { user: null }, error: null });
+    auth.resend.mockResolvedValue({ error: null });
+    const { POST } = await import("../app/api/verification/email/route");
+    await POST(new Request("http://localhost:3000/api/verification/email", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ email: "member@example.test" }),
+    }));
+    expect(auth.resend).toHaveBeenCalledWith(expect.objectContaining({
+      options: { emailRedirectTo: "https://ggmarket-sage.vercel.app/auth/callback?next=%2Fsettings%2Fverification" },
+    }));
+  });
+
+  it("rejects a signed-out resend request without a valid email", async () => {
     auth.getUser.mockResolvedValue({ data: { user: null }, error: null });
     const { POST } = await import("../app/api/verification/email/route");
     const response = await POST(request());
-    expect(response.status).toBe(401);
+    expect(response.status).toBe(400);
     expect(auth.resend).not.toHaveBeenCalled();
   });
 
