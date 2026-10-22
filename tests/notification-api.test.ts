@@ -50,10 +50,19 @@ describe("notification API", () => {
 
   it("returns exact total and incoming-message unread counts", async () => {
     const response = await GET();
-    expect(await response.json()).toEqual({ items: [], unread: 4, unreadMessages: 2 });
+    expect(await response.json()).toEqual({ userId: "account-a", items: [], unread: 4, unreadMessages: 2 });
     expect(state.queries[2].filters).toContainEqual(["eq", "user_id", "account-a"]);
     expect(state.queries[2].filters).toContainEqual(["eq", "type", "message"]);
     expect(state.queries[2].filters).toContainEqual(["is", "read_at", null]);
+  });
+
+  it("returns an explicit anonymous scope without querying private notifications", async () => {
+    state.user = null;
+
+    const response = await GET();
+
+    expect(await response.json()).toEqual({ userId: null, items: [], unread: 0, unreadMessages: 0 });
+    expect(state.queries).toEqual([]);
   });
 
   it("batch-marks only authenticated-owner rows in the displayed snapshot", async () => {

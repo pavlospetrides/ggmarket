@@ -7,7 +7,7 @@ const privateHeaders = { "cache-control": "private, no-store" };
 
 export async function GET() {
   const user = await getUser();
-  if (!user) return NextResponse.json({ items: [], unread: 0, unreadMessages: 0 }, { headers: privateHeaders });
+  if (!user) return NextResponse.json({ userId: null, items: [], unread: 0, unreadMessages: 0 }, { headers: privateHeaders });
   const supabase = await createClient();
   const [itemsResult, unreadResult, unreadMessagesResult] = await Promise.all([
     supabase!.from("notifications").select("id,type,title,body,href,read_at,created_at").eq("user_id", user.id).order("created_at", { ascending: false }).limit(80),
@@ -15,9 +15,10 @@ export async function GET() {
     supabase!.from("notifications").select("id", { count: "exact", head: true }).eq("user_id", user.id).eq("type", "message").is("read_at", null),
   ]);
   if (itemsResult.error || unreadResult.error || unreadMessagesResult.error) {
-    return NextResponse.json({ items: [], unread: 0, unreadMessages: 0 }, { headers: privateHeaders });
+    return NextResponse.json({ userId: user.id, items: [], unread: 0, unreadMessages: 0 }, { headers: privateHeaders });
   }
   return NextResponse.json({
+    userId: user.id,
     items: itemsResult.data ?? [],
     unread: unreadResult.count ?? 0,
     unreadMessages: unreadMessagesResult.count ?? 0,

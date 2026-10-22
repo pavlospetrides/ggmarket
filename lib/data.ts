@@ -100,15 +100,15 @@ async function enrichRows(
     throw new DataAccessError("load seller details");
   const imagePaths = [...new Set(rows.flatMap((row) => row.images.map((image) => image.storage_path)))];
   const signedImages = new Map<string, string>();
-  const signedResults = await Promise.all(
-    imagePaths.map(async (path) => ({
-      path,
-      result: await supabase.storage.from("listing-images").createSignedUrl(path, 3600),
-    })),
-  );
-  for (const { path, result } of signedResults) {
-    if (result.error || !result.data?.signedUrl) throw new DataAccessError("load listing images");
-    signedImages.set(path, result.data.signedUrl);
+  if (imagePaths.length) {
+    const { data: signedResults, error: signedImagesError } = await supabase.storage
+      .from("listing-images")
+      .createSignedUrls(imagePaths, 3600);
+    if (signedImagesError || !signedResults) throw new DataAccessError("load listing images");
+    for (const result of signedResults) {
+      if (result.error || !result.path || !result.signedUrl) throw new DataAccessError("load listing images");
+      signedImages.set(result.path, result.signedUrl);
+    }
   }
   const ratings = new Map<string, number[]>();
   for (const review of reviews ?? [])
