@@ -1,6 +1,3 @@
-"use client";
-
-import type { FocusEvent, PointerEvent } from "react";
 import Link from "next/link";
 import { ArrowUpRight, Cpu, Disc3, Gamepad2, Headphones } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -13,27 +10,9 @@ const categories = [
 ] as const;
 
 export function CategorySwitchboard({ compact = false }: { compact?: boolean }) {
-  function onPointerMove(event: PointerEvent<HTMLElement>) {
-    if (event.pointerType === "touch") return;
-    const bounds = event.currentTarget.getBoundingClientRect();
-    event.currentTarget.style.setProperty("--spot-x", `${event.clientX - bounds.left}px`);
-    event.currentTarget.style.setProperty("--spot-y", `${event.clientY - bounds.top}px`);
-  }
-
-  function onFocus(event: FocusEvent<HTMLElement>) {
-    const card = (event.target as HTMLElement).closest("a");
-    if (!card) return;
-    const board = event.currentTarget.getBoundingClientRect();
-    const bounds = card.getBoundingClientRect();
-    event.currentTarget.style.setProperty("--spot-x", `${bounds.left - board.left + bounds.width / 2}px`);
-    event.currentTarget.style.setProperty("--spot-y", `${bounds.top - board.top + bounds.height / 2}px`);
-  }
-
   return (
     <div
       className={cn("category-switchboard", compact && "category-switchboard-compact")}
-      onPointerMove={onPointerMove}
-      onFocus={onFocus}
       aria-label="Explore gaming categories"
       data-testid={compact ? "mobile-category-switchboard" : "category-switchboard"}
     >

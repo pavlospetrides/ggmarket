@@ -65,7 +65,7 @@ export function NotificationBell({ panelId = "notification-panel" }: { panelId?:
         )}
       </button>
       {open && (
-        <div id={panelId} role="region" aria-labelledby={`${panelId}-title`} className="absolute right-0 top-12 z-50 w-[min(380px,calc(100vw-1.25rem))] overflow-hidden rounded-[var(--radius-lg)] border border-[var(--border-hover)] bg-[#0e121af5] p-3 shadow-[var(--shadow-lg)] backdrop-blur-2xl [animation:pop-in_.16s_ease-out]">
+        <div id={panelId} role="region" aria-labelledby={`${panelId}-title`} className="absolute right-0 top-12 z-50 w-[min(380px,calc(100vw-1.25rem))] overflow-hidden rounded-[var(--radius-lg)] border border-[var(--border-hover)] bg-[#0e121a] p-3 shadow-[var(--shadow-lg)] [animation:pop-in_.16s_ease-out]">
           <div className="flex items-center justify-between px-2 py-1">
             <div>
               <strong id={`${panelId}-title`}>Notifications</strong>

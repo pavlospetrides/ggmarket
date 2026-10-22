@@ -453,9 +453,9 @@ select.input { cursor: pointer; }
     min-height: clamp(13.5rem, 30vh, 15rem);
     margin-top: 1rem;
   }
-  .mobile-hero-ambient { position: absolute; border-radius: 999px; filter: blur(28px); opacity: .72; }
-  .mobile-hero-ambient-primary { top: 5%; right: 8%; width: 9rem; height: 6rem; background: rgb(113 78 255 / .33); }
-  .mobile-hero-ambient-secondary { bottom: 0; left: 2%; width: 7rem; height: 4rem; background: rgb(22 199 255 / .2); }
+  .mobile-hero-ambient { position: absolute; border-radius: 999px; opacity: .72; }
+  .mobile-hero-ambient-primary { top: 5%; right: 8%; width: 9rem; height: 6rem; background: radial-gradient(ellipse, rgb(113 78 255 / .33), transparent 70%); }
+  .mobile-hero-ambient-secondary { bottom: 0; left: 2%; width: 7rem; height: 4rem; background: radial-gradient(ellipse, rgb(22 199 255 / .2), transparent 70%); }
   .category-switchboard-compact { position: absolute; inset: 0; border: 1px solid rgb(164 147 255 / .16); border-radius: 1.25rem; padding: .65rem; background: rgb(10 13 24 / .92); } /* taste-skill-ignore -- functional boundary against the hero canvas */
   .category-switchboard-compact .category-switchboard-intro { align-items: center; padding: 0 .15rem .55rem; }
   .category-switchboard-compact .category-switchboard-intro p { font-size: .9rem; }

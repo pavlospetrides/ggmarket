@@ -51,6 +51,7 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
           password,
         });
         if (authError) throw new Error("Invalid email or password.");
+        window.dispatchEvent(new Event("ggmarket:auth-changed"));
         router.replace(next);
         router.refresh();
       } else {
@@ -65,6 +66,7 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
         });
         if (authError) throw authError;
         if (data.session) {
+          window.dispatchEvent(new Event("ggmarket:auth-changed"));
           router.replace(data.user?.email_confirmed_at ? "/settings/verification?status=verified&welcome=1" : "/profile");
           router.refresh();
         } else {

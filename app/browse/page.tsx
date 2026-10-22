@@ -42,7 +42,7 @@ export default async function BrowsePage() {
 
     <section className="container-page pt-4 md:pt-8">
       <div className="relative min-h-[28rem] overflow-hidden rounded-[var(--radius-xl)] bg-[#121821] sm:min-h-[38rem]">
-        <Image src="/images/browse/browse-fresh-drops.webp" alt="Gaming handheld, headset, keyboard, controller, and games" fill loading="eager" sizes="calc(100vw - 2rem)" className="object-cover" />
+        <Image src="/images/browse/browse-fresh-drops.webp" alt="Gaming handheld, headset, keyboard, controller, and games" fill preload sizes="calc(100vw - 2rem)" className="object-cover" />
         <span className="absolute inset-0 bg-[linear-gradient(90deg,rgba(5,7,10,.92),rgba(5,7,10,.18))]" aria-hidden="true" /> {/* taste-skill-ignore: neutral image scrim keeps hero copy readable */}
         <div className="relative flex min-h-[28rem] max-w-2xl flex-col justify-end p-6 sm:min-h-[38rem] sm:p-10 lg:p-14">
           <h1 className="max-w-[10ch] text-[clamp(3.25rem,8vw,8rem)] font-[790] leading-[.86] tracking-[-.07em]">Find what plays next</h1>

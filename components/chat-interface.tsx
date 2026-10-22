@@ -638,7 +638,7 @@ export function ChatInterface({
               </p>
             )}
           </div>
-          <div data-message-composer className="shrink-0 border-t border-[var(--border)] bg-[#0e121af2] px-3 pb-[max(.75rem,env(safe-area-inset-bottom))] pt-3 backdrop-blur-xl sm:p-4 md:pb-4">
+          <div data-message-composer className="shrink-0 border-t border-[var(--border)] bg-[#0e121a] px-3 pb-[max(.75rem,env(safe-area-inset-bottom))] pt-3 sm:p-4 md:pb-4">
             {error && (
               <p role="alert" className="mb-2 text-xs text-[var(--danger)]">
                 {error}{" "}

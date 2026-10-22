@@ -3,8 +3,8 @@
 import { Bell } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import type { RealtimeChannel, SupabaseClient } from "@supabase/supabase-js";
 import { applyRealtimeNotification, countUnreadMessages, createNotificationState, markNotificationItemsRead, reconcileNotificationState, switchNotificationAccount, type NotificationItem, type NotificationState } from "@/lib/notification-state";
-import { createClient } from "@/lib/supabase/client";
 
 export type NotificationContextValue = {
   items: NotificationItem[];
@@ -43,8 +43,8 @@ export function NotificationCenter({ children }: { children: ReactNode }) {
     try {
       const response = await fetch("/api/notifications", { cache: "no-store" });
       if (!response.ok) throw new Error("load failed");
-      const body = await response.json() as { items?: NotificationItem[]; unread?: number; unreadMessages?: number };
-      if (accountGeneration.current !== generation) return;
+      const body = await response.json() as { userId?: string | null; items?: NotificationItem[]; unread?: number; unreadMessages?: number };
+      if (accountGeneration.current !== generation || body.userId !== userId) return;
       setState((current) => reconcileNotificationState(current, userId, body.items ?? []));
       setUnreadScope({ userId, count: Math.max(0, Number(body.unread) || 0), messages: Math.max(0, Number(body.unreadMessages) || 0) });
       setError("");
@@ -56,14 +56,27 @@ export function NotificationCenter({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
-    const supabase = createClient();
-    let channel: ReturnType<typeof supabase.channel> | null = null;
+    let supabase: SupabaseClient | null = null;
+    let channel: RealtimeChannel | null = null;
+    let authSubscription: { unsubscribe: () => void } | null = null;
     let disposed = false;
-    let authEventSeen = false;
 
-    const activate = async (userId: string | null) => {
+    const ensureSupabase = async () => {
+      if (supabase) return supabase;
+      const { createClient } = await import("@/lib/supabase/client");
+      if (disposed) return null;
+      supabase = createClient();
+      const { data } = supabase.auth.onAuthStateChange((_event, session) => {
+        if (_event === "INITIAL_SESSION") return;
+        window.setTimeout(() => void activate(session?.user.id ?? null), 0);
+      });
+      authSubscription = data.subscription;
+      return supabase;
+    };
+
+    async function activate(userId: string | null, snapshot?: { items?: NotificationItem[]; unread?: number; unreadMessages?: number }) {
       const generation = ++accountGeneration.current;
-      if (channel) {
+      if (channel && supabase) {
         await supabase.removeChannel(channel);
         channel = null;
       }
@@ -71,16 +84,24 @@ export function NotificationCenter({ children }: { children: ReactNode }) {
       setToast(null);
       setError("");
       setConnected(false);
-      setLoading(Boolean(userId));
-      setUnreadScope({ userId, count: 0, messages: 0 });
+      setLoading(Boolean(userId) && !snapshot);
+      setUnreadScope({
+        userId,
+        count: Math.max(0, Number(snapshot?.unread) || 0),
+        messages: Math.max(0, Number(snapshot?.unreadMessages) || 0),
+      });
       setState((current) => {
-        const next = switchNotificationAccount(current, userId);
+        const switched = switchNotificationAccount(current, userId);
+        const next = userId && snapshot
+          ? reconcileNotificationState(switched, userId, snapshot.items ?? [])
+          : switched;
         stateRef.current = next;
         return next;
       });
       if (!userId) return;
 
-      void reconcile(userId, generation);
+      const client = await ensureSupabase();
+      if (!client || disposed || accountGeneration.current !== generation) return;
       const receive = (payload: { new: Record<string, unknown> }) => {
           if (accountGeneration.current !== generation || !("new" in payload) || !payload.new) return;
           const item = payload.new as NotificationItem;
@@ -96,7 +117,7 @@ export function NotificationCenter({ children }: { children: ReactNode }) {
             return result.state;
           });
         };
-      channel = supabase.channel(`user-notifications:${userId}`)
+      channel = client.channel(`user-notifications:${userId}`)
         .on("postgres_changes", { event: "INSERT", schema: "public", table: "notifications", filter: `user_id=eq.${userId}` }, receive)
         .on("postgres_changes", { event: "UPDATE", schema: "public", table: "notifications", filter: `user_id=eq.${userId}` }, receive)
         .subscribe((status) => {
@@ -108,31 +129,42 @@ export function NotificationCenter({ children }: { children: ReactNode }) {
             setConnected(false);
           }
         });
-    };
+    }
 
-    void supabase.auth.getUser().then(({ data }) => {
-      if (!authEventSeen) void activate(data.user?.id ?? null);
-    });
-    const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
-      authEventSeen = true;
-      window.setTimeout(() => void activate(session?.user.id ?? null), 0);
-    });
+    const bootstrap = async () => {
+      try {
+        const response = await fetch("/api/notifications", { cache: "no-store" });
+        if (!response.ok) throw new Error("load failed");
+        const body = await response.json() as { userId?: string | null; items?: NotificationItem[]; unread?: number; unreadMessages?: number };
+        if (disposed) return;
+        await activate(typeof body.userId === "string" ? body.userId : null, body);
+      } catch {
+        if (!disposed) {
+          setLoading(false);
+          setError("Notifications could not be loaded.");
+        }
+      }
+    };
+    void bootstrap();
     const refresh = () => {
       const current = stateRef.current.userId;
       if (current) void reconcile(current, accountGeneration.current);
+      else void bootstrap();
     };
     const visibility = () => { if (document.visibilityState === "visible") refresh(); };
     window.addEventListener("online", refresh);
     window.addEventListener("ggmarket:notifications-changed", refresh);
+    window.addEventListener("ggmarket:auth-changed", bootstrap);
     document.addEventListener("visibilitychange", visibility);
     return () => {
       disposed = true;
       accountGeneration.current += 1;
-      authListener.subscription.unsubscribe();
+      authSubscription?.unsubscribe();
       window.removeEventListener("online", refresh);
       window.removeEventListener("ggmarket:notifications-changed", refresh);
+      window.removeEventListener("ggmarket:auth-changed", bootstrap);
       document.removeEventListener("visibilitychange", visibility);
-      if (channel) void supabase.removeChannel(channel);
+      if (channel && supabase) void supabase.removeChannel(channel);
     };
   }, [reconcile]);
 

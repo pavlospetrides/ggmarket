@@ -27,7 +27,9 @@ describe("premium marketplace visual foundation", () => {
     expect(switchboard).toContain('/marketplace?category=games');
     expect(switchboard).toContain('/marketplace?category=peripherals');
     expect(switchboard).not.toContain("BrandMark");
-    expect(switchboard).toContain("onPointerMove");
+    expect(switchboard).not.toContain('"use client"');
+    expect(switchboard).not.toContain("onPointerMove");
+    expect(switchboard).toContain("category-switchboard-spotlight");
     expect(mobileHero).toContain("<CategorySwitchboard");
     expect(home).toContain("<CategorySwitchboard");
   });
