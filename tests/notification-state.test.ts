@@ -1,7 +1,10 @@
 import { describe, expect, it } from "vitest";
 import {
   applyRealtimeNotification,
+  countUnreadMessages,
   createNotificationState,
+  formatUnreadBadge,
+  markNotificationItemsRead,
   reconcileNotificationState,
   switchNotificationAccount,
   type NotificationItem,
@@ -48,5 +51,26 @@ describe("account-scoped notification state", () => {
     expect(state.items).toEqual([]);
     state = reconcileNotificationState(state, "account-b", [newer]);
     expect(state.items).toEqual([]);
+  });
+  it("counts unread incoming-message rows rather than conversations or all notifications", () => {
+    const items = [
+      older,
+      { ...newer, id: "n3", href: "/messages/c1" },
+      { ...newer, id: "n4", type: "offer" },
+      { ...newer, id: "n5", read_at: "2026-10-20T10:00:00.000Z" },
+    ];
+    expect(countUnreadMessages(items)).toBe(2);
+  });
+
+  it("marks only the panel-opening snapshot as read", () => {
+    const arrivedAfterOpen = { ...newer, id: "n3" };
+    const items = markNotificationItemsRead([older, newer, arrivedAfterOpen], [older.id, newer.id], "2026-10-20T10:00:00.000Z");
+    expect(items.filter((item) => !item.read_at).map((item) => item.id)).toEqual([arrivedAfterOpen.id]);
+  });
+
+  it("formats compact message badge totals", () => {
+    expect(formatUnreadBadge(0)).toBe("");
+    expect(formatUnreadBadge(2)).toBe("2");
+    expect(formatUnreadBadge(100)).toBe("99+");
   });
 });

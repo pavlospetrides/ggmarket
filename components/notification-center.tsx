@@ -3,21 +3,23 @@
 import { Bell } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { applyRealtimeNotification, createNotificationState, reconcileNotificationState, switchNotificationAccount, type NotificationItem, type NotificationState } from "@/lib/notification-state";
+import { applyRealtimeNotification, countUnreadMessages, createNotificationState, markNotificationItemsRead, reconcileNotificationState, switchNotificationAccount, type NotificationItem, type NotificationState } from "@/lib/notification-state";
 import { createClient } from "@/lib/supabase/client";
 
-type NotificationContextValue = {
+export type NotificationContextValue = {
   items: NotificationItem[];
   unread: number;
+  unreadMessages: number;
   loading: boolean;
   connected: boolean;
   error: string;
   markRead: (id: string) => Promise<boolean>;
   markAllRead: () => Promise<boolean>;
+  markViewed: (ids: string[]) => Promise<boolean>;
   seed: (items: NotificationItem[]) => void;
 };
 
-const NotificationContext = createContext<NotificationContextValue | null>(null);
+export const NotificationContext = createContext<NotificationContextValue | null>(null);
 
 function safeHref(href: string | null) {
   return href?.startsWith("/") && !href.startsWith("//") ? href : "/notifications";
@@ -29,7 +31,7 @@ export function NotificationCenter({ children }: { children: ReactNode }) {
   const stateRef = useRef(state);
   const [loading, setLoading] = useState(true);
   const [connected, setConnected] = useState(false);
-  const [unreadScope, setUnreadScope] = useState({ userId: null as string | null, count: 0 });
+  const [unreadScope, setUnreadScope] = useState({ userId: null as string | null, count: 0, messages: 0 });
   const [error, setError] = useState("");
   const [toast, setToast] = useState<NotificationItem | null>(null);
   const accountGeneration = useRef(0);
@@ -41,10 +43,10 @@ export function NotificationCenter({ children }: { children: ReactNode }) {
     try {
       const response = await fetch("/api/notifications", { cache: "no-store" });
       if (!response.ok) throw new Error("load failed");
-      const body = await response.json() as { items?: NotificationItem[]; unread?: number };
+      const body = await response.json() as { items?: NotificationItem[]; unread?: number; unreadMessages?: number };
       if (accountGeneration.current !== generation) return;
       setState((current) => reconcileNotificationState(current, userId, body.items ?? []));
-      setUnreadScope({ userId, count: Math.max(0, Number(body.unread) || 0) });
+      setUnreadScope({ userId, count: Math.max(0, Number(body.unread) || 0), messages: Math.max(0, Number(body.unreadMessages) || 0) });
       setError("");
     } catch {
       if (accountGeneration.current === generation) setError("Notifications could not be loaded.");
@@ -70,7 +72,7 @@ export function NotificationCenter({ children }: { children: ReactNode }) {
       setError("");
       setConnected(false);
       setLoading(Boolean(userId));
-      setUnreadScope({ userId, count: 0 });
+      setUnreadScope({ userId, count: 0, messages: 0 });
       setState((current) => {
         const next = switchNotificationAccount(current, userId);
         stateRef.current = next;
@@ -87,9 +89,9 @@ export function NotificationCenter({ children }: { children: ReactNode }) {
             const result = applyRealtimeNotification(current, userId, item);
             if (result.isNew && item.type === "message") setToast(item);
             if (result.isNew && !item.read_at) {
-              setUnreadScope((scope) => scope.userId === userId ? { ...scope, count: scope.count + 1 } : scope);
+              setUnreadScope((scope) => scope.userId === userId ? { ...scope, count: scope.count + 1, messages: scope.messages + (item.type === "message" ? 1 : 0) } : scope);
             } else if (previous && !previous.read_at && item.read_at) {
-              setUnreadScope((scope) => scope.userId === userId ? { ...scope, count: Math.max(0, scope.count - 1) } : scope);
+              setUnreadScope((scope) => scope.userId === userId ? { ...scope, count: Math.max(0, scope.count - 1), messages: Math.max(0, scope.messages - (item.type === "message" ? 1 : 0)) } : scope);
             }
             return result.state;
           });
@@ -121,12 +123,14 @@ export function NotificationCenter({ children }: { children: ReactNode }) {
     };
     const visibility = () => { if (document.visibilityState === "visible") refresh(); };
     window.addEventListener("online", refresh);
+    window.addEventListener("ggmarket:notifications-changed", refresh);
     document.addEventListener("visibilitychange", visibility);
     return () => {
       disposed = true;
       accountGeneration.current += 1;
       authListener.subscription.unsubscribe();
       window.removeEventListener("online", refresh);
+      window.removeEventListener("ggmarket:notifications-changed", refresh);
       document.removeEventListener("visibilitychange", visibility);
       if (channel) void supabase.removeChannel(channel);
     };
@@ -139,12 +143,16 @@ export function NotificationCenter({ children }: { children: ReactNode }) {
   }, [toast]);
 
   const markRead = useCallback(async (id: string) => {
+    const userId = stateRef.current.userId;
+    const generation = accountGeneration.current;
+    const target = stateRef.current.items.find((item) => item.id === id);
     try {
       const response = await fetch("/api/notifications", { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify({ id }) });
       if (!response.ok) throw new Error("update failed");
-      const wasUnread = stateRef.current.items.some((item) => item.id === id && !item.read_at);
+      if (!userId || accountGeneration.current !== generation || stateRef.current.userId !== userId) return false;
+      const wasUnread = Boolean(target && !target.read_at);
       setState((current) => ({ ...current, items: current.items.map((item) => item.id === id ? { ...item, read_at: item.read_at ?? new Date().toISOString() } : item) }));
-      if (wasUnread) setUnreadScope((scope) => ({ ...scope, count: Math.max(0, scope.count - 1) }));
+      if (wasUnread) setUnreadScope((scope) => scope.userId === userId ? { ...scope, count: Math.max(0, scope.count - 1), messages: Math.max(0, scope.messages - (target?.type === "message" ? 1 : 0)) } : scope);
       return true;
     } catch {
       setError("Notifications could not be updated.");
@@ -153,17 +161,46 @@ export function NotificationCenter({ children }: { children: ReactNode }) {
   }, []);
 
   const markAllRead = useCallback(async () => {
+    const userId = stateRef.current.userId;
+    const generation = accountGeneration.current;
     try {
       const response = await fetch("/api/notifications", { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify({ all: true }) });
       if (!response.ok) throw new Error("update failed");
-      setState((current) => ({ ...current, items: current.items.map((item) => ({ ...item, read_at: item.read_at ?? new Date().toISOString() })) }));
-      setUnreadScope((scope) => ({ ...scope, count: 0 }));
+      if (!userId || accountGeneration.current !== generation || stateRef.current.userId !== userId) return false;
+      setState((current) => ({ ...current, items: markNotificationItemsRead(current.items, current.items.filter((item) => !item.read_at).map((item) => item.id), new Date().toISOString()) }));
+      setUnreadScope((scope) => scope.userId === userId ? { ...scope, count: 0, messages: 0 } : scope);
       return true;
     } catch {
       setError("Notifications could not be updated.");
       return false;
     }
   }, []);
+
+  const markViewed = useCallback(async (ids: string[]) => {
+    const snapshot = [...new Set(ids)].slice(0, 80);
+    if (!snapshot.length) return true;
+    const userId = stateRef.current.userId;
+    const generation = accountGeneration.current;
+    if (!userId) return false;
+    const viewedItems = stateRef.current.items.filter((item) => snapshot.includes(item.id) && !item.read_at);
+    try {
+      const response = await fetch("/api/notifications", { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify({ ids: snapshot }) });
+      if (!response.ok) throw new Error("update failed");
+      if (accountGeneration.current !== generation || stateRef.current.userId !== userId) return false;
+      const readAt = new Date().toISOString();
+      setState((current) => ({ ...current, items: markNotificationItemsRead(current.items, snapshot, readAt) }));
+      setUnreadScope((scope) => scope.userId === userId ? {
+        ...scope,
+        count: Math.max(0, scope.count - viewedItems.length),
+        messages: Math.max(0, scope.messages - countUnreadMessages(viewedItems)),
+      } : scope);
+      return true;
+    } catch {
+      setError("Notifications could not be updated.");
+      void reconcile(userId, generation);
+      return false;
+    }
+  }, [reconcile]);
 
   const seed = useCallback((items: NotificationItem[]) => {
     setState((current) => current.userId ? reconcileNotificationState(current, current.userId, items) : current);
@@ -172,13 +209,15 @@ export function NotificationCenter({ children }: { children: ReactNode }) {
   const value = useMemo<NotificationContextValue>(() => ({
     items: state.items,
     unread: unreadScope.userId === state.userId ? unreadScope.count : 0,
+    unreadMessages: unreadScope.userId === state.userId ? unreadScope.messages : 0,
     loading,
     connected,
     error,
     markRead,
     markAllRead,
+    markViewed,
     seed,
-  }), [connected, error, loading, markAllRead, markRead, seed, state, unreadScope]);
+  }), [connected, error, loading, markAllRead, markRead, markViewed, seed, state, unreadScope]);
 
   return <NotificationContext.Provider value={value}>
     {children}

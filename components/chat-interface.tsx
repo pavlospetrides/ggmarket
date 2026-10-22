@@ -79,7 +79,24 @@ export function ChatInterface({
     ReturnType<typeof createClient>["channel"]
   > | null>(null);
   const typingTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const endRef = useRef<HTMLDivElement>(null);
+  const messagesRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const viewport = window.visualViewport;
+    const syncViewportHeight = () => {
+      document.documentElement.style.setProperty(
+        "--conversation-viewport-height",
+        `${viewport?.height ?? window.innerHeight}px`,
+      );
+    };
+    syncViewportHeight();
+    viewport?.addEventListener("resize", syncViewportHeight);
+    window.addEventListener("resize", syncViewportHeight);
+    return () => {
+      viewport?.removeEventListener("resize", syncViewportHeight);
+      window.removeEventListener("resize", syncViewportHeight);
+      document.documentElement.style.removeProperty("--conversation-viewport-height");
+    };
+  }, []);
   const timeline = useMemo(
     () =>
       [
@@ -223,6 +240,7 @@ export function ChatInterface({
           signal: abortController.signal,
         });
         if (!response.ok) throw new Error("Messages could not be marked as read.");
+        window.dispatchEvent(new Event("ggmarket:notifications-changed"));
       } catch {
         if (!abortController.signal.aborted && scopeRef.current === effectScope) {
           setError("Messages could not be marked as read.");
@@ -250,7 +268,8 @@ export function ChatInterface({
     };
   }, [conversation.currency, conversation.id, conversation.other.id, currentUserId, scope, updateConversationPreview]);
   useEffect(() => {
-    endRef.current?.scrollIntoView({ block: "end" });
+    const history = messagesRef.current;
+    if (history) history.scrollTo({ top: history.scrollHeight, behavior: "smooth" });
   }, [timeline.length]);
 
   function broadcastTyping(typingNow: boolean) {
@@ -414,11 +433,12 @@ export function ChatInterface({
   }
 
   return (
-    <div className="container-page min-w-0 py-0 md:py-8">
-      <div className="card flex h-[calc(100dvh-138px-env(safe-area-inset-bottom))] min-h-[32rem] min-w-0 overflow-hidden bg-[#0b0f17] md:grid md:h-[min(780px,calc(100dvh-7rem))] md:min-h-[36rem] md:grid-cols-[330px_1fr] md:shadow-[var(--shadow-md)]">
+    <div data-conversation-shell className="conversation-viewport container-page min-w-0">
+      <div className="card flex h-full min-h-0 min-w-0 overflow-hidden bg-[#0b0f17] md:grid md:grid-cols-[330px_1fr] md:shadow-[var(--shadow-md)]">
         <aside className="hidden border-r border-[var(--border)] md:block">
-          <div className="border-b border-[var(--border)] p-4 text-lg font-bold">
-            Messages
+          <div className="flex items-center justify-between border-b border-[var(--border)] p-4 text-lg font-bold">
+            <span>Messages</span>
+            {conversationList.reduce((total, item) => total + item.unread, 0) > 0 ? <span className="rounded-full bg-[#ef445d] px-2 py-0.5 text-xs text-white">{conversationList.reduce((total, item) => total + item.unread, 0) > 99 ? "99+" : conversationList.reduce((total, item) => total + item.unread, 0)}</span> : null}
           </div>
           {conversationList.map((item) => (
             <Link
@@ -437,7 +457,7 @@ export function ChatInterface({
           ))}
         </aside>
         <section className="flex min-h-0 min-w-0 flex-1 flex-col">
-          <header className="flex min-h-20 items-center gap-3 border-b border-[var(--border)] p-3 sm:p-4">
+          <header data-conversation-header className="flex min-h-20 items-center gap-3 border-b border-[var(--border)] p-3 sm:p-4">
             <Link
               href="/messages"
               className="grid size-10 place-items-center md:hidden"
@@ -478,7 +498,7 @@ export function ChatInterface({
               Messages can still be sent.
             </div>
           )}
-          <div className="min-h-0 flex-1 space-y-3 overflow-y-auto bg-[radial-gradient(circle_at_50%_0%,rgba(132,104,255,.04),transparent_36%)] p-4 sm:p-6" role="log" aria-live="polite" aria-label="Messages">
+          <div ref={messagesRef} className="min-h-0 flex-1 space-y-3 overflow-y-auto overscroll-contain bg-[radial-gradient(circle_at_50%_0%,rgba(132,104,255,.04),transparent_36%)] px-4 py-3 sm:px-6 sm:py-4" role="log" aria-live="polite" aria-label="Messages">
             {timeline.map((item) =>
               item.kind === "message" ? (
                 <div
@@ -617,9 +637,8 @@ export function ChatInterface({
                 {conversation.other.display_name} is typing…
               </p>
             )}
-            <div ref={endRef} />
           </div>
-          <div className="shrink-0 border-t border-[var(--border)] bg-[#0e121af2] px-3 pb-[max(.75rem,env(safe-area-inset-bottom))] pt-3 backdrop-blur-xl sm:p-4 md:pb-4">
+          <div data-message-composer className="shrink-0 border-t border-[var(--border)] bg-[#0e121af2] px-3 pb-[max(.75rem,env(safe-area-inset-bottom))] pt-3 backdrop-blur-xl sm:p-4 md:pb-4">
             {error && (
               <p role="alert" className="mb-2 text-xs text-[var(--danger)]">
                 {error}{" "}

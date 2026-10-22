@@ -59,3 +59,21 @@ export function applyRealtimeNotification(
     isNew,
   };
 }
+
+export function countUnreadMessages(items: NotificationItem[]) {
+  return items.filter((item) => item.type === "message" && !item.read_at).length;
+}
+
+export function formatUnreadBadge(count: number) {
+  if (count <= 0) return "";
+  return count > 99 ? "99+" : String(count);
+}
+
+export function markNotificationItemsRead(
+  items: NotificationItem[],
+  ids: string[],
+  readAt: string,
+) {
+  const viewed = new Set(ids);
+  return items.map((item) => viewed.has(item.id) && !item.read_at ? { ...item, read_at: readAt } : item);
+}

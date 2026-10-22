@@ -1,6 +1,6 @@
 "use client";
 import Link from "next/link";
-import { Bell, CheckCheck, X } from "lucide-react";
+import { Bell, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, type MouseEvent } from "react";
 import { useNotificationCenter } from "./notification-center";
@@ -10,8 +10,8 @@ export function NotificationBell({ panelId = "notification-panel" }: { panelId?:
   const containerRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const [open, setOpen] = useState(false);
-  const [busy, setBusy] = useState(false);
-  const { items, unread, connected, loading, error, markRead, markAllRead } = useNotificationCenter();
+  const { items, unread, connected, loading, error, markRead, markViewed } = useNotificationCenter();
+  const unreadItems = items.filter((item) => !item.read_at);
   useEffect(() => {
     if (!open) return;
     function dismiss(event: PointerEvent) {
@@ -30,11 +30,14 @@ export function NotificationBell({ panelId = "notification-panel" }: { panelId?:
       document.removeEventListener("keydown", escape);
     };
   }, [open]);
-  async function readAll() {
-    if (busy) return;
-    setBusy(true);
-    await markAllRead();
-    setBusy(false);
+  function togglePanel() {
+    if (open) {
+      setOpen(false);
+      return;
+    }
+    const viewedIds = unreadItems.map((item) => item.id);
+    setOpen(true);
+    if (viewedIds.length) void markViewed(viewedIds);
   }
   async function openItem(event: MouseEvent<HTMLAnchorElement>, item: (typeof items)[number]) {
     setOpen(false);
@@ -48,7 +51,7 @@ export function NotificationBell({ panelId = "notification-panel" }: { panelId?:
       <button
         ref={triggerRef}
         type="button"
-        onClick={() => setOpen((value) => !value)}
+        onClick={togglePanel}
         className="relative grid size-10 place-items-center rounded-xl text-[var(--text-secondary)] transition hover:bg-[var(--surface-alt)] hover:text-white active:scale-95"
         aria-label={`Notifications${unread ? `, ${unread} unread` : ""}`}
         aria-expanded={open}
@@ -86,13 +89,13 @@ export function NotificationBell({ panelId = "notification-panel" }: { panelId?:
           <div className="mt-2 max-h-96 space-y-1 overflow-auto">
             {loading ? (
               <p className="p-7 text-center text-sm text-[var(--muted)]" role="status" aria-live="polite">Loading notifications…</p>
-            ) : items.length ? (
-              items.map((item) => (
+            ) : unreadItems.length ? (
+              unreadItems.map((item) => (
                 <Link
                   key={item.id}
                   href={item.href || "/notifications"}
                   onClick={(event) => void openItem(event, item)}
-                  className={`block rounded-xl border border-transparent p-3 text-sm transition hover:border-[var(--border)] hover:bg-[var(--surface-alt)] ${item.read_at ? "text-[var(--muted)]" : "bg-[#1d1930]"}`}
+                  className="block rounded-xl border border-transparent bg-[#1d1930] p-3 text-sm transition hover:border-[var(--border)] hover:bg-[var(--surface-alt)]"
                 >
                   <strong className="block min-w-0 text-white [overflow-wrap:anywhere]">{item.title}</strong>
                   {item.body && (
@@ -111,19 +114,8 @@ export function NotificationBell({ panelId = "notification-panel" }: { panelId?:
               onClick={() => setOpen(false)}
               className="btn-secondary flex-1"
             >
-              View all
+              View history
             </Link>
-            {unread > 0 && (
-              <button
-                type="button"
-                disabled={busy}
-                onClick={() => void readAll()}
-                className="btn-secondary"
-                aria-label="Mark all as read"
-              >
-                <CheckCheck className="size-4" aria-hidden="true" />
-              </button>
-            )}
           </div>
         </div>
       )}

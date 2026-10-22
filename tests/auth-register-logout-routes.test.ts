@@ -43,7 +43,7 @@ describe("native registration fallback", () => {
       password: "not-a-real-password",
       options: {
         data: { username: "iphone_user", display_name: "iphone_user" },
-        emailRedirectTo: "https://192.168.2.21:3000/auth/callback?next=%2Fsettings%2Fverification",
+        emailRedirectTo: "https://192.168.2.21:3000/auth/callback?next=%2Fsettings%2Fverification&welcome=1",
       },
     });
     expect(response.status).toBe(303);
@@ -62,6 +62,17 @@ describe("native registration fallback", () => {
     expect(response.headers.get("location")).toBe("https://ggmarket.example/register?error=signup_failed");
   });
 
+  it("welcomes an immediately confirmed signup without affecting ordinary login", async () => {
+    auth.signUp.mockResolvedValue({ data: { session: { access_token: "test" }, user: { email_confirmed_at: "2026-10-22T10:00:00Z" } }, error: null });
+    const { POST } = await import("../app/auth/register/route");
+    const response = await POST(formRequest("auth/register", {
+      username: "iphone_user",
+      email: "iphone@example.invalid",
+      password: "not-a-real-password",
+    }));
+    expect(response.headers.get("location")).toBe("https://ggmarket.example/settings/verification?status=verified&welcome=1");
+  });
+
   it("pins production signup confirmation to the canonical HTTPS callback", async () => {
     vi.stubEnv("NODE_ENV", "production");
     vi.stubEnv("NEXT_PUBLIC_SITE_URL", "http://localhost:3000");
@@ -75,7 +86,7 @@ describe("native registration fallback", () => {
 
     expect(auth.signUp).toHaveBeenCalledWith(expect.objectContaining({
       options: expect.objectContaining({
-        emailRedirectTo: "https://ggmarket-sage.vercel.app/auth/callback?next=%2Fsettings%2Fverification",
+        emailRedirectTo: "https://ggmarket-sage.vercel.app/auth/callback?next=%2Fsettings%2Fverification&welcome=1",
       }),
     }));
   });
