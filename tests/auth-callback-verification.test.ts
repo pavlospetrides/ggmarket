@@ -39,6 +39,14 @@ describe("Supabase confirmation callback", () => {
     expect(response.headers.get("location")).toBe("https://ggmarket.test/verify-email?status=expired_or_used");
   });
 
+  it("adds the one-time welcome marker only to a genuinely successful signup callback", async () => {
+    auth.verifyOtp.mockResolvedValue({ error: null });
+    auth.getUser.mockResolvedValue({ data: { user: { email_confirmed_at: "2026-10-20T10:00:00Z" } }, error: null });
+    const { GET } = await import("../app/auth/callback/route");
+    const response = await GET(new Request("https://ggmarket.test/auth/callback?token_hash=token&type=email&next=%2Fsettings%2Fverification&welcome=1"));
+    expect(response.headers.get("location")).toBe("https://ggmarket.test/settings/verification?status=verified&welcome=1");
+  });
+
   it("reports malformed confirmation links without claiming success", async () => {
     auth.getUser.mockResolvedValue({ data: { user: null }, error: null });
     const { GET } = await import("../app/auth/callback/route");
@@ -52,6 +60,7 @@ describe("Supabase confirmation callback", () => {
     const { GET } = await import("../app/auth/callback/route");
     const response = await GET(new Request("https://ggmarket.test/auth/callback?token_hash=used&type=email&next=%2Fsettings%2Fverification"));
     expect(response.headers.get("location")).toBe("https://ggmarket.test/settings/verification?status=already_verified");
+    expect(response.headers.get("location")).not.toContain("welcome=1");
   });
 
   it("uses the canonical HTTPS origin for production callback redirects", async () => {

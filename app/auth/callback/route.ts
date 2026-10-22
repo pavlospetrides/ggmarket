@@ -16,10 +16,11 @@ const emailOtpTypes = new Set<EmailOtpType>([
 
 type VerificationStatus = "verified" | "already_verified" | "expired_or_used" | "invalid";
 
-function verificationRedirect(origin: string, status: VerificationStatus) {
+function verificationRedirect(origin: string, status: VerificationStatus, welcome = false) {
   const requiresAuthentication = status === "verified" || status === "already_verified";
   const target = new URL(requiresAuthentication ? "/settings/verification" : "/verify-email", origin);
   target.searchParams.set("status", status);
+  if (status === "verified" && welcome) target.searchParams.set("welcome", "1");
   return withPrivateNoStore(NextResponse.redirect(target));
 }
 
@@ -34,6 +35,7 @@ export async function GET(request: Request) {
   const requestedType = url.searchParams.get("type");
   const next = safeRedirectPath(url.searchParams.get("next"));
   const verificationFlow = next === "/settings/verification";
+  const welcome = url.searchParams.get("welcome") === "1";
   const publicOrigin = getPublicRequestOrigin(request.headers, url.protocol) ?? url.origin;
   const supabase = await createClient();
   if (!supabase) {
@@ -57,7 +59,7 @@ export async function GET(request: Request) {
   const { data: { user } } = await supabase.auth.getUser();
   if (verificationFlow) {
     if (!error && user?.email_confirmed_at) {
-      return verificationRedirect(publicOrigin, "verified");
+      return verificationRedirect(publicOrigin, "verified", welcome);
     }
     if (user?.email_confirmed_at) return verificationRedirect(publicOrigin, "already_verified");
     return verificationRedirect(publicOrigin, isExpiredOrUsed(error) ? "expired_or_used" : "invalid");

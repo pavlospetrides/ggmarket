@@ -79,10 +79,10 @@ describe("account activity UI contracts", () => {
     expect(list.match(/finally/g)?.length).toBeGreaterThanOrEqual(2);
     expect(list).toContain("This notification could not be marked as read.");
 
-    expect(bell).toContain("busy");
-    expect(bell).toContain("disabled={busy}");
-    expect(bell).toContain("await markAllRead()");
+    expect(bell).toContain("const viewedIds = unreadItems.map");
+    expect(bell).toContain("void markViewed(viewedIds)");
     expect(center.match(/Notifications could not be updated\./g)?.length).toBeGreaterThanOrEqual(2);
+    expect(center).toContain("void reconcile(userId, generation)");
     expect(center).toContain("return false");
   });
 

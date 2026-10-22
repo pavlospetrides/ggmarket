@@ -6,9 +6,12 @@ import { usePathname } from "next/navigation";
 import { useEffect, useRef } from "react";
 import { Logo } from "./logo";
 import { NotificationBell } from "./notification-bell";
+import { useNotificationCenter } from "./notification-center";
+import { formatUnreadBadge } from "@/lib/notification-state";
 
 export function Header() {
   const pathname = usePathname();
+  const { unreadMessages } = useNotificationCenter();
   const searchRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -29,7 +32,13 @@ export function Header() {
   return <header data-ui className="global-exchange-header sticky top-0 z-40 bg-[color:var(--nav)]">
     <div className="container-page flex h-14 items-center justify-between md:hidden">
       <Logo />
-      <NotificationBell panelId="mobile-notification-panel" />
+      <div className="flex items-center gap-1">
+        <Link href="/messages" className={`icon-btn relative min-h-10 size-10 border-transparent bg-transparent ${active("/messages") ? "bg-[var(--surface-alt)] text-white" : ""}`} aria-label={`Messages${unreadMessages ? `, ${unreadMessages} unread` : ""}`}>
+          <MessageCircle className="size-[19px]" />
+          {unreadMessages > 0 ? <MessageUnreadBadge count={unreadMessages} /> : null}
+        </Link>
+        <NotificationBell panelId="mobile-notification-panel" />
+      </div>
     </div>
     <div className="container-page hidden h-[4.5rem] items-center gap-6 md:flex">
       <div className="global-exchange-header__brand"><Logo /><span aria-hidden="true">PLAYER EXCHANGE</span></div>
@@ -43,11 +52,15 @@ export function Header() {
       </form>
       <div className="flex items-center gap-2">
         <NotificationBell panelId="desktop-notification-panel" />
-        <Link href="/messages" className={`icon-btn min-h-10 size-10 border-transparent bg-transparent ${active("/messages") ? "bg-[var(--surface-alt)] text-white" : ""}`} aria-label="Messages"><MessageCircle className="size-[19px]" /></Link>
+        <Link href="/messages" className={`icon-btn relative min-h-10 size-10 border-transparent bg-transparent ${active("/messages") ? "bg-[var(--surface-alt)] text-white" : ""}`} aria-label={`Messages${unreadMessages ? `, ${unreadMessages} unread` : ""}`}><MessageCircle className="size-[19px]" />{unreadMessages > 0 ? <MessageUnreadBadge count={unreadMessages} /> : null}</Link>
         <Link href="/favorites" className={`icon-btn min-h-10 size-10 border-transparent bg-transparent ${active("/favorites") ? "bg-[var(--surface-alt)] text-white" : ""}`} aria-label="Favorites"><Heart className="size-[19px]" /></Link>
         <Link href="/profile" className={`icon-btn min-h-10 size-10 border-transparent bg-transparent ${active("/profile") ? "bg-[var(--surface-alt)] text-white" : ""}`} aria-label="Profile"><UserRound className="size-[19px]" /></Link>
         <Link href="/sell" className="btn-primary min-h-10 px-5">Sell</Link>
       </div>
     </div>
   </header>;
+}
+
+function MessageUnreadBadge({ count }: { count: number }) {
+  return <span data-unread-messages={count} className="absolute -right-1 -top-1 min-w-[1.15rem] rounded-full border-2 border-[var(--nav)] bg-[#ef445d] px-1 text-center text-[10px] font-black leading-[1rem] text-white shadow-md">{formatUnreadBadge(count)}</span>;
 }

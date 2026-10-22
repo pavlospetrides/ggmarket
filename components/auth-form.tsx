@@ -60,12 +60,12 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
           password,
           options: {
             data: { username, display_name: username },
-            emailRedirectTo: buildAuthCallbackUrl(location.origin, "/settings/verification"),
+            emailRedirectTo: buildAuthCallbackUrl(location.origin, "/settings/verification", true),
           },
         });
         if (authError) throw authError;
         if (data.session) {
-          router.replace("/profile");
+          router.replace(data.user?.email_confirmed_at ? "/settings/verification?status=verified&welcome=1" : "/profile");
           router.refresh();
         } else {
           setSuccess(true);

@@ -56,6 +56,10 @@ body {
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
 }
+body:has([data-conversation-shell]) { display: flex; height: var(--conversation-viewport-height, 100dvh); min-height: 0; flex-direction: column; overflow: hidden; padding-bottom: 0; }
+body:has([data-conversation-shell]) [data-site-footer], body:has([data-conversation-shell]) [data-mobile-navigation] { display: none; }
+main:has([data-conversation-shell]) { display: flex; min-height: 0; flex: 1 1 0%; flex-direction: column; overflow: hidden; }
+.conversation-viewport { min-height: 0; flex: 1 1 0%; }
 a { color: inherit; text-decoration: none; }
 h1, h2, h3, h4, h5, h6 { scroll-margin-top: 6rem; }
 button, input, select, textarea { font: inherit; }

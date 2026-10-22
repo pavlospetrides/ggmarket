@@ -195,3 +195,119 @@ test("WebKit can native-POST a message before hydration", async ({ browser, brow
   await context.close();
 });
 
+test("conversation owns the viewport and only its message history scrolls", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  const messages: StoredMessage[] = Array.from({ length: 60 }, (_, index) => ({
+    id: `${String(index + 1).padStart(8, "0")}-1111-4111-8111-111111111111`,
+    conversation_id: conversationId,
+    sender_id: index % 2 ? "account-a" : "account-b",
+    body: `Long conversation message ${index + 1} ${"content ".repeat(12)}`,
+    client_id: `${String(index + 1).padStart(8, "0")}-2222-4222-8222-222222222222`,
+    created_at: new Date(Date.UTC(2026, 9, 20, 8, index)).toISOString(),
+  }));
+  await installMessageService(page, messages);
+  await page.goto("/test-harness/chat?viewer=account-a");
+  await page.locator('form[data-hydrated="true"]').waitFor();
+  await page.evaluate(() => window.dispatchEvent(new Event("online")));
+
+  const log = page.getByRole("log", { name: "Messages" });
+  const composer = page.getByLabel("Message", { exact: true });
+  await expect(log).toBeVisible();
+  await expect(log.getByText("Long conversation message 60", { exact: false })).toBeVisible();
+  await expect(composer).toBeVisible();
+  await expect(page.getByText("Propose a trade", { exact: true })).toBeVisible();
+  await expect(page.getByText("Make an offer", { exact: true })).toBeVisible();
+  await expect(page.locator("[data-site-footer]")).toBeHidden();
+  await expect(page.getByRole("link", { name: "Back to conversations" })).toHaveAttribute("href", "/messages");
+
+  const readLayout = () => page.evaluate(() => {
+    const rect = (selector: string) => {
+      const bounds = (document.querySelector(selector) as HTMLElement).getBoundingClientRect();
+      return { top: bounds.top, right: bounds.right, bottom: bounds.bottom, left: bounds.left, width: bounds.width, height: bounds.height };
+    };
+    const history = document.querySelector('[role="log"]') as HTMLElement;
+    const viewport = window.visualViewport;
+    return {
+      viewport: { width: viewport?.width ?? window.innerWidth, height: viewport?.height ?? window.innerHeight },
+      header: rect("[data-conversation-header]"),
+      history: rect('[role="log"]'),
+      composer: rect("[data-message-composer]"),
+      input: rect("#chat-message"),
+      send: rect('[aria-label="Send message"]'),
+      document: { scrollHeight: document.documentElement.scrollHeight, clientHeight: document.documentElement.clientHeight },
+      body: { scrollHeight: document.body.scrollHeight, clientHeight: document.body.clientHeight, bounds: document.body.getBoundingClientRect().height },
+      main: rect("main"),
+      pageScrollable: document.documentElement.scrollHeight > document.documentElement.clientHeight + 1,
+      horizontalOverflow: document.documentElement.scrollWidth > document.documentElement.clientWidth + 1,
+      historyScrollable: history.scrollHeight > history.clientHeight,
+      overflowY: getComputedStyle(history).overflowY,
+      scrollY: window.scrollY,
+    };
+  });
+
+  const assertContained = async (label: string) => {
+    const layout = await readLayout();
+    expect(layout.pageScrollable, `${label}: document must not scroll (${JSON.stringify({ viewport: layout.viewport, document: layout.document, body: layout.body, main: layout.main, composer: layout.composer })})`).toBe(false);
+    expect(layout.horizontalOverflow, `${label}: document must not overflow horizontally`).toBe(false);
+    expect(layout.historyScrollable, `${label}: message history must scroll`).toBe(true);
+    expect(layout.overflowY, `${label}: history overflow`).toBe("auto");
+    expect(layout.scrollY, `${label}: document scroll position`).toBe(0);
+    expect(layout.header.top, `${label}: conversation header top`).toBeGreaterThanOrEqual(-1);
+    expect(layout.header.bottom, `${label}: conversation header bottom`).toBeLessThanOrEqual(layout.viewport.height + 1);
+    expect(layout.history.top, `${label}: history follows header`).toBeGreaterThanOrEqual(layout.header.bottom - 1);
+    expect(layout.history.height, `${label}: history has space`).toBeGreaterThan(0);
+    expect(layout.history.bottom, `${label}: history ends before composer`).toBeLessThanOrEqual(layout.composer.top + 1);
+    for (const [name, bounds] of [["composer", layout.composer], ["message input", layout.input], ["send button", layout.send]] as const) {
+      expect(bounds.left, `${label}: ${name} left`).toBeGreaterThanOrEqual(-1);
+      expect(bounds.right, `${label}: ${name} right`).toBeLessThanOrEqual(layout.viewport.width + 1);
+      expect(bounds.top, `${label}: ${name} top`).toBeGreaterThanOrEqual(-1);
+      expect(bounds.bottom, `${label}: ${name} bottom (${JSON.stringify({ viewport: layout.viewport, document: layout.document, body: layout.body, main: layout.main, header: layout.header, history: layout.history, composer: layout.composer })})`).toBeLessThanOrEqual(layout.viewport.height + 1);
+    }
+  };
+
+  await assertContained("390x844 initial layout");
+  await page.evaluate(() => window.scrollTo(0, 10_000));
+  await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(0);
+
+  for (const { width, height } of [
+    { width: 320, height: 568 },
+    { width: 375, height: 667 },
+    { width: 390, height: 844 },
+    { width: 393, height: 852 },
+    { width: 430, height: 932 },
+    { width: 667, height: 375 },
+    { width: 1440, height: 900 },
+  ]) {
+    await page.setViewportSize({ width, height });
+    await expect.poll(() => page.evaluate(() => document.documentElement.style.getPropertyValue("--conversation-viewport-height"))).toBe(`${height}px`);
+    await assertContained(`${width}x${height}`);
+  }
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expect.poll(() => page.evaluate(() => document.documentElement.style.getPropertyValue("--conversation-viewport-height"))).toBe("844px");
+  await compose(page, "Composer remains visible after sending");
+  await page.getByRole("button", { name: "Send message" }).tap();
+  await expect(log.getByText("Composer remains visible after sending", { exact: true })).toBeVisible();
+  await assertContained("after optimistic and persisted send");
+
+  messages.push({
+    id: "99999999-9999-4999-8999-999999999999",
+    conversation_id: conversationId,
+    sender_id: "account-b",
+    body: "Incoming message keeps the composer contained",
+    client_id: "88888888-8888-4888-8888-888888888888",
+    created_at: "2026-10-20T10:00:00.000Z",
+  });
+  await page.evaluate(() => window.dispatchEvent(new Event("online")));
+  await expect(log.getByText("Incoming message keeps the composer contained", { exact: true })).toBeVisible();
+  await assertContained("after incoming message");
+
+  await page.setViewportSize({ width: 390, height: 560 });
+  await expect.poll(() => page.evaluate(() => document.documentElement.style.getPropertyValue("--conversation-viewport-height"))).toBe("560px");
+  await composer.tap();
+  await assertContained("keyboard-sized visual viewport");
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expect.poll(() => page.evaluate(() => document.documentElement.style.getPropertyValue("--conversation-viewport-height"))).toBe("844px");
+  await assertContained("after keyboard-sized viewport restores");
+});
+

@@ -3,7 +3,7 @@ import { BrandMark } from "@/components/brand-mark";
 import { Logo } from "@/components/logo";
 
 export function SiteFooter() {
-  return <footer className="home-footer" aria-label="Site footer">
+  return <footer data-site-footer className="home-footer" aria-label="Site footer">
     <div className="container-page">
       <div className="footer-mark" aria-hidden="true">
         <BrandMark className="footer-symbol" />

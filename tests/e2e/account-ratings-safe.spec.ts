@@ -64,3 +64,15 @@ test("rating stars and submission work with mobile touch and update the summary"
   await expect(page.getByText("Your rating was saved.")).toBeVisible();
   await expect(page.getByRole("status")).toHaveText("5.0 / 5 — 1 rating");
 });
+
+test("a newly verified account sees the welcome once while verification content remains", async ({ page }) => {
+  await page.goto("/test-harness/verification?confirmed=1&status=verified&welcome=1", { waitUntil: "domcontentloaded" });
+  await expect(page.getByRole("heading", { name: "Welcome to GGMarket!" })).toBeVisible();
+  await expect(page.getByText("Account verified successfully")).toBeVisible();
+  await expect(page.getByRole("link", { name: "Browse the Marketplace" })).toHaveAttribute("href", "/marketplace");
+  await expect(page.getByRole("link", { name: "Complete Your Profile" })).toHaveAttribute("href", "/settings");
+
+  await page.reload();
+  await expect(page.getByRole("heading", { name: "Welcome to GGMarket!" })).toHaveCount(0);
+  await expect(page.getByText("Account verified successfully")).toBeVisible();
+});

@@ -26,6 +26,7 @@ export async function POST(request: Request) {
   const { username, email, password } = registration.data;
   const confirmationCallback = new URL("/auth/callback", publicOrigin);
   confirmationCallback.searchParams.set("next", "/settings/verification");
+  confirmationCallback.searchParams.set("welcome", "1");
   const { data, error } = await supabase.auth.signUp({
     email,
     password,
@@ -35,5 +36,8 @@ export async function POST(request: Request) {
     },
   });
   if (error) return registrationRedirect(publicOrigin, "error", "signup_failed");
-  return withPrivateNoStore(NextResponse.redirect(new URL(data.session ? "/profile" : "/register?status=check_email", publicOrigin), 303));
+  const destination = data.session && data.user?.email_confirmed_at
+    ? "/settings/verification?status=verified&welcome=1"
+    : data.session ? "/profile" : "/register?status=check_email";
+  return withPrivateNoStore(NextResponse.redirect(new URL(destination, publicOrigin), 303));
 }

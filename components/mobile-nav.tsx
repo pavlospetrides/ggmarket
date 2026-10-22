@@ -6,7 +6,7 @@ import { usePathname } from "next/navigation";
 
 export function MobileNav() {
   const pathname = usePathname();
-  if (["/login", "/register", "/forgot-password", "/reset-password"].some((route) => pathname.startsWith(route))) return null;
+  if (["/login", "/register", "/forgot-password", "/reset-password"].some((route) => pathname.startsWith(route)) || /^\/messages\/[^/]+$/.test(pathname)) return null;
   const items = [
     ["Home", "/", Home],
     ["Browse", "/browse", Search],
@@ -16,6 +16,7 @@ export function MobileNav() {
   return (
     <nav
       data-ui
+      data-mobile-navigation
       className="fixed inset-x-0 bottom-0 z-50 bg-[#0c1018f5] px-2 pb-[max(.45rem,env(safe-area-inset-bottom))] pt-1.5 md:hidden"
       aria-label="Mobile navigation"
     >

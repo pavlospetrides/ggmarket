@@ -26,4 +26,4 @@ Set these Production environment variables:
 
 ## Flow contract
 
-Signup and resend pass `https://ggmarket-sage.vercel.app/auth/callback?next=%2Fsettings%2Fverification` as `emailRedirectTo`. The production template links to the same callback with `token_hash`, `type=email`, and the verification destination. The callback calls Supabase `verifyOtp`, checks the returned authenticated user has `email_confirmed_at`, and only then redirects with `status=verified`.
+Initial signup passes `https://ggmarket-sage.vercel.app/auth/callback?next=%2Fsettings%2Fverification&welcome=1` as `emailRedirectTo`; resend uses the same callback without the welcome marker. The production template links to the initial-signup callback with `token_hash`, `type=email`, the verification destination, and `welcome=1`. The callback calls Supabase `verifyOtp`, checks the returned authenticated user has `email_confirmed_at`, and only then redirects with `status=verified`. A consumed or failed link never receives the welcome state.

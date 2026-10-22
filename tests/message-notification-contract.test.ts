@@ -17,6 +17,13 @@ describe("incoming message notification contract", () => {
     expect(provider).toContain("user-notifications:${userId}");
     expect(provider).toContain("status === \"SUBSCRIBED\"");
     expect(provider).toContain("visibilitychange");
+    expect(provider).toContain("unreadMessages");
+  });
+
+  it("derives the global message badge from unread message notification rows", () => {
+    const api = readFileSync("app/api/notifications/route.ts", "utf8");
+    expect(api).toContain('.eq("type", "message")');
+    expect(api).toContain("unreadMessages");
   });
 
   it("marks only the current user's notifications for the opened conversation", () => {
