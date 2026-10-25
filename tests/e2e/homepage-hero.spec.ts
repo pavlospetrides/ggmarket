@@ -1,6 +1,13 @@
 import { expect, test } from "@playwright/test";
 
-const mobileWidths = [320, 375, 390, 393, 430];
+const mobileViewports = [
+  { width: 320, height: 568 },
+  { width: 360, height: 740 },
+  { width: 375, height: 667 },
+  { width: 390, height: 844 },
+  { width: 393, height: 852 },
+  { width: 430, height: 932 },
+];
 const desktopWidths = [768, 1024, 1280, 1440, 1920];
 
 test("mobile first screen uses the interface-led hero without requesting hero photography", async ({ page }) => {
@@ -9,12 +16,13 @@ test("mobile first screen uses the interface-led hero without requesting hero ph
     if (/ggmarket-hero-(?:desktop|mobile)/.test(request.url())) heroImageRequests.push(request.url());
   });
 
-  await page.setViewportSize({ width: mobileWidths[0], height: 844 });
+  await page.setViewportSize(mobileViewports[0]);
   await page.goto("/", { waitUntil: "domcontentloaded" });
   expect(heroImageRequests, "the retired wallpaper is not requested above the fold").toEqual([]);
 
-  for (const width of mobileWidths) {
-    await page.setViewportSize({ width, height: 844 });
+  for (const viewport of mobileViewports) {
+    const { width, height } = viewport;
+    await page.setViewportSize(viewport);
 
     const hero = page.locator(".campaign-hero");
     const composition = page.getByTestId("mobile-hero-composition");
@@ -47,8 +55,24 @@ test("mobile first screen uses the interface-led hero without requesting hero ph
     await expect(hero).toHaveJSProperty("scrollWidth", await hero.evaluate((element) => element.clientWidth));
 
     const searchBox = await search.boundingBox();
+    const headerBox = await globalHeader.boundingBox();
+    const headingBox = await heading.boundingBox();
+    const categoryBox = await composition.boundingBox();
+    const heroBox = await hero.boundingBox();
     expect(searchBox, `search has geometry at ${width}px`).not.toBeNull();
-    expect(searchBox!.y + searchBox!.height, `search clears the mobile navigation at ${width}px`).toBeLessThan(766);
+    expect(headerBox, `header has geometry at ${width}x${height}`).not.toBeNull();
+    expect(headingBox, `heading has geometry at ${width}x${height}`).not.toBeNull();
+    expect(categoryBox, `categories have geometry at ${width}x${height}`).not.toBeNull();
+    expect(heroBox, `hero has geometry at ${width}x${height}`).not.toBeNull();
+    expect(headingBox!.y - (headerBox!.y + headerBox!.height), `jellyfish stage precedes the heading at ${width}x${height}`).toBeGreaterThanOrEqual(120);
+    expect(categoryBox!.y - (searchBox!.y + searchBox!.height), `search flows directly into categories at ${width}x${height}`).toBeGreaterThanOrEqual(8);
+    expect(categoryBox!.y - (searchBox!.y + searchBox!.height), `search-to-category spacing stays compact at ${width}x${height}`).toBeLessThanOrEqual(32);
+    expect(heroBox!.y + heroBox!.height - (categoryBox!.y + categoryBox!.height), `categories finish without a dead spacer at ${width}x${height}`).toBeLessThanOrEqual(32);
+
+    await search.evaluate((element) => element.scrollIntoView({ block: "center" }));
+    const visibleSearchBox = await search.boundingBox();
+    const mobileNavBox = await page.getByRole("navigation", { name: "Mobile navigation" }).boundingBox();
+    expect(visibleSearchBox!.y + visibleSearchBox!.height, `search clears the mobile navigation after scrolling at ${width}x${height}`).toBeLessThanOrEqual(mobileNavBox!.y);
 
     await page.evaluate(() => window.scrollTo(0, Math.min(document.body.scrollHeight / 2, 900)));
     await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(0);
