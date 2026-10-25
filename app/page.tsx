@@ -3,10 +3,9 @@ import Link from "next/link";
 import { ArrowRight, BadgeCheck, MessageCircle, PackageCheck, SearchCheck, ShieldCheck } from "lucide-react";
 import { CategorySwitchboard } from "@/components/category-switchboard";
 import { ListingGrid } from "@/components/listing-grid";
-import { Logo } from "@/components/logo";
 import { SearchBar } from "@/components/search-bar";
-import { ArtDirectedHeroImage } from "@/components/art-directed-hero-image";
 import { MobileHomeHero } from "@/components/mobile-home-hero";
+import { JellyfishHeroBackground } from "@/components/ui/jellyfish-hero-background";
 import { getUser } from "@/lib/auth";
 import { getFavoriteIds, getListings } from "@/lib/data";
 import { getRecentlyViewed } from "@/lib/phase2-data";
@@ -18,10 +17,9 @@ export default async function HomePage() {
 
   return <>
     <section className="campaign-hero" aria-labelledby="home-heading">
-      <ArtDirectedHeroImage />
-      <span className="campaign-hero-shade" aria-hidden="true" />
+      <JellyfishHeroBackground />
+      <span className="campaign-hero-scrim" aria-hidden="true" />
       <div className="container-page campaign-hero-inner">
-        <div className="flex min-h-14 items-center md:hidden" data-ui><Logo /></div>
         <div className="campaign-hero-copy">
           <h1 id="home-heading">Find your next setup</h1>
           <p className="campaign-lede">The player-to-player market for consoles, PC hardware, games, and accessories.</p>

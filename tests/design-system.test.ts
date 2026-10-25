@@ -98,18 +98,20 @@ describe("premium marketplace visual foundation", () => {
     expect(search).toContain("action = \"/search\"");
   });
 
-  it("uses original campaign artwork while keeping real listings in discovery", () => {
+  it("uses the procedural 21.dev hero while keeping real listings in discovery", () => {
     const home = read("app/page.tsx");
-    const artDirection = read("components/art-directed-hero-image.tsx");
+    const heroBackground = read("components/ui/jellyfish-hero-background.tsx");
     const card = read("components/listing-card.tsx");
     const css = read("app/globals.css");
 
     expect(home).toContain("Find your next setup");
-    expect(home).toContain("<ArtDirectedHeroImage");
-    expect(artDirection).toContain("getImageProps");
-    expect(artDirection).toContain("ggmarket-hero-desktop.webp");
-    expect(artDirection).not.toContain("ggmarket-hero-mobile-v2.webp");
-    expect(artDirection).not.toContain("priority");
+    expect(home).toContain("<JellyfishHeroBackground");
+    expect(home).not.toContain("<ArtDirectedHeroImage");
+    expect(home).not.toContain("<Logo");
+    expect(heroBackground).toContain('from "@react-three/fiber"');
+    expect(heroBackground).toContain("prefers-reduced-motion: reduce");
+    expect(heroBackground).toContain("Pause hero animation");
+    expect(heroBackground).not.toContain("ggmarket-hero-desktop.webp");
     expect(home).toContain("Browse marketplace");
     expect(home).toContain("Sell your gear");
     expect(home).toContain("Just listed");
