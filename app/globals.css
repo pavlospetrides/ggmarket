@@ -210,17 +210,26 @@ select.input { cursor: pointer; }
 .browse-hero-image { animation: browse-hero-in 7s ease-out both; }
 }
 
-.campaign-hero { position: relative; min-height: calc(100svh - 4.5rem); overflow: hidden; background: #090d14; isolation: isolate; }
-.campaign-hero-art { position: absolute; z-index: -3; inset: 0; display: block; }
-.campaign-hero-art img { width: 100%; height: 100%; object-fit: cover; object-position: center; }
-.campaign-hero-shade { position: absolute; z-index: -2; inset: 0; background: linear-gradient(90deg, rgb(3 6 11 / .94) 0%, rgb(5 8 14 / .8) 28%, rgb(5 8 14 / .18) 61%, rgb(5 8 14 / .08) 100%); } /* taste-skill-ignore -- neutral copy scrim over photograph */
-.campaign-hero-inner { display: grid; min-height: calc(100svh - 4.5rem); align-content: center; padding-block: clamp(3rem, 8vh, 7rem); }
+.campaign-hero { position: relative; min-height: calc(100svh - 4.5rem); overflow: hidden; background: #050713; isolation: isolate; }
+.jellyfish-hero-background { position: absolute; inset: 0; overflow: hidden; background: radial-gradient(ellipse at 76% 42%, #151943 0%, #090b1e 38%, #050713 72%); pointer-events: none; }
+.jellyfish-canvas { position: absolute; z-index: 0; top: 47%; right: clamp(-8rem, -4vw, -2rem); width: min(58vw, 58rem); height: min(100%, 58rem); transform: translateY(-50%); pointer-events: none; }
+.jellyfish-glow { position: absolute; z-index: 0; top: 50%; right: 3%; width: min(48vw, 46rem); aspect-ratio: 1; transform: translateY(-50%); border-radius: 50%; background: radial-gradient(circle, rgb(93 80 239 / .2), rgb(22 134 226 / .07) 43%, transparent 70%); pointer-events: none; }
+.jellyfish-grain { position: absolute; z-index: 0; inset: 0; opacity: .045; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.55'/%3E%3C/svg%3E"); pointer-events: none; }
+.jellyfish-orbit { position: absolute; z-index: 0; inset: 0; overflow: hidden; perspective: 1800px; perspective-origin: 76% 48%; pointer-events: none; }
+.jellyfish-orbit-stage { position: absolute; inset: 0; transform-style: preserve-3d; animation: jellyfish-orbit 28s linear infinite; }
+.jellyfish-orbit-word { --orbit-radius: min(42vw, 42rem); position: absolute; inset: 0; display: grid; place-items: center; transform: rotateY(calc(var(--word-index) * 90deg)) translateZ(var(--orbit-radius)) rotateY(180deg); backface-visibility: hidden; color: rgb(137 151 255 / .075); font-size: clamp(7rem, 18vw, 21rem); font-weight: 820; letter-spacing: -.08em; line-height: 1; white-space: nowrap; }
+.jellyfish-hero-background.is-paused .jellyfish-orbit-stage { animation-play-state: paused; }
+.jellyfish-motion-toggle { position: absolute; z-index: 2; right: max(1rem, calc((100vw - 1760px) / 2)); bottom: 1rem; display: inline-flex; min-height: 2.25rem; align-items: center; gap: .45rem; border: 0; border-radius: 999px; background: rgb(9 12 28 / .72); padding: .45rem .7rem; color: rgb(226 230 248 / .72); font-size: .72rem; font-weight: 670; cursor: pointer; pointer-events: auto; }
+.jellyfish-motion-toggle:hover { background: rgb(18 23 50 / .9); color: white; }
+.jellyfish-motion-toggle svg { width: .8rem; height: .8rem; }
+.campaign-hero-scrim { position: absolute; z-index: 0; inset: 0; background: linear-gradient(90deg, rgb(3 5 13 / .97) 0%, rgb(5 7 18 / .88) 33%, rgb(5 7 18 / .28) 59%, transparent 83%), linear-gradient(0deg, rgb(4 6 14 / .42), transparent 42%); pointer-events: none; }
+.campaign-hero-inner { position: relative; z-index: 1; display: grid; min-height: calc(100svh - 4.5rem); align-content: center; padding-block: clamp(3rem, 8vh, 7rem); }
 .campaign-hero-copy { width: min(42rem, 49vw); }
 .campaign-hero h1 { max-width: 10ch; margin-top: 1.1rem; text-wrap: balance; font-size: clamp(3.5rem, 6vw, 6.9rem); font-weight: 760; letter-spacing: -.07em; line-height: .88; }
 .campaign-lede { max-width: 37rem; margin-top: 1.6rem; color: #d3d7df; font-size: clamp(1rem, 1.3vw, 1.2rem); line-height: 1.6; text-wrap: pretty; }
 .campaign-actions { display: flex; flex-wrap: wrap; gap: .65rem; margin-top: 1.7rem; }
 .campaign-search { width: min(35rem, 100%); margin-top: 1rem; }
-.campaign-index { position: absolute; right: max(1rem, calc((100vw - 1760px) / 2)); bottom: 1.35rem; color: rgb(255 255 255 / .68); font-size: .8125rem; font-weight: 650; }
+.campaign-index { position: absolute; left: 0; bottom: 1.35rem; color: rgb(255 255 255 / .58); font-size: .8125rem; font-weight: 650; }
 .mobile-hero-composition { display: none; }
 .category-switchboard {
   --spot-x: 50%;
@@ -416,25 +425,19 @@ select.input { cursor: pointer; }
   .auth-exchange-form__heading h1 { font-size: clamp(2.4rem, 11vw, 3.25rem); }
   .listing-product-stage > aside > div { border-radius: 0 0 var(--radius-lg) var(--radius-lg); }
   .home-category-section { display: none; }
-  .campaign-hero {
-    min-height: max(41rem, calc(100svh - 12rem));
-    background-color: #070914;
-    background-image:
-      radial-gradient(circle at 88% 12%, rgb(106 77 255 / .3), transparent 34%), /* taste-skill-ignore -- requested ambient mobile lighting */
-      radial-gradient(circle at 8% 78%, rgb(0 198 255 / .15), transparent 31%), /* taste-skill-ignore -- requested ambient mobile lighting */
-      linear-gradient(155deg, #090b17 0%, #070914 54%, #0c1020 100%); /* taste-skill-ignore -- requested mobile mesh field */
-  } /* taste-skill-ignore -- user-requested mobile-only ambient gradient field */
-  .campaign-hero::before {
-    position: absolute;
-    z-index: -1;
-    inset: 0;
-    background-image: linear-gradient(118deg, transparent 0 45%, rgb(143 123 255 / .055) 45% 46%, transparent 46% 100%); /* taste-skill-ignore -- Portal Pair channel geometry */
-    content: "";
-  } /* taste-skill-ignore -- Portal Pair channel geometry, not a stock gradient blob */
-  .campaign-hero-art, .campaign-hero-shade { display: none; }
+  .campaign-hero { min-height: max(41rem, calc(100svh - 12rem)); }
+  .jellyfish-hero-background { background: radial-gradient(ellipse at 78% 38%, #171a49 0%, #090b20 42%, #050713 76%); }
+  .jellyfish-canvas { top: 29%; right: -6rem; width: min(82vw, 25rem); height: 29rem; opacity: .82; }
+  .jellyfish-glow { top: 28%; right: -18%; width: 25rem; opacity: .78; }
+  .jellyfish-orbit { perspective-origin: 74% 28%; }
+  .jellyfish-orbit-word { --orbit-radius: 15rem; place-items: start end; padding-top: 7rem; color: rgb(139 157 255 / .055); font-size: clamp(5.5rem, 28vw, 8rem); }
+  .jellyfish-grain { opacity: .03; }
+  .jellyfish-motion-toggle { top: .75rem; right: 1rem; bottom: auto; min-width: 2.75rem; min-height: 2.75rem; justify-content: center; padding: .65rem; }
+  .jellyfish-motion-toggle span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  .campaign-hero-scrim { background: linear-gradient(180deg, rgb(4 6 15 / .58) 0%, rgb(4 6 15 / .92) 50%, rgb(5 7 17 / .98) 76%); }
   .campaign-hero-inner {
     min-height: max(41rem, calc(100svh - 12rem));
-    grid-template-rows: auto auto 1fr;
+    grid-template-rows: auto 1fr;
     align-content: stretch;
     padding-block: 0 calc(1.25rem + env(safe-area-inset-bottom));
   }
@@ -585,4 +588,7 @@ select.input { cursor: pointer; }
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
   *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; scroll-behavior: auto !important; transition-duration: .01ms !important; }
+  .jellyfish-orbit-stage { animation: none !important; transform: rotateY(-18deg); }
 }
+
+@keyframes jellyfish-orbit { from { transform: rotateY(0); } to { transform: rotateY(-360deg); } }
