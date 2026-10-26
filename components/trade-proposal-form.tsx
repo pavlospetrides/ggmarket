@@ -5,9 +5,11 @@ import { useState, type FormEvent } from "react";
 export function TradeProposalForm({
   conversationId,
   listings,
+  embedded = false,
 }: {
   conversationId: string;
   listings: { id: string; title: string }[];
+  embedded?: boolean;
 }) {
   const [status, setStatus] = useState("");
   const [busy, setBusy] = useState(false);
@@ -43,7 +45,7 @@ export function TradeProposalForm({
     }
   }
   return (
-    <details className="container-page mt-3 rounded-xl border border-[#315c68] bg-[#111f27] p-3 md:mt-0">
+    <details className={`${embedded ? "mb-3" : "container-page mt-3 md:mt-0"} rounded-xl border border-[#315c68] bg-[#111f27] p-3`}>
       <summary className="cursor-pointer text-sm font-bold text-[#75d7e8]">
         <ArrowLeftRight className="mr-2 inline size-4" aria-hidden="true" /> Propose a trade
       </summary>

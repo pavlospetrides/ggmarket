@@ -1,10 +1,11 @@
 "use client";
 import Link from "next/link";
 import { ArrowLeft, Circle, HandCoins, RefreshCw, Send, X } from "lucide-react";
-import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { formatPrice } from "@/lib/constants";
 import { createClientUuid } from "@/lib/client-id";
+import { readConversationViewport } from "@/lib/conversation-viewport";
 import {
   createChatScope,
   createPendingMessage,
@@ -20,6 +21,7 @@ import type {
   ConversationSummary,
 } from "@/lib/phase2-data";
 import { useHydrated } from "./use-hydrated";
+import { TradeProposalForm } from "./trade-proposal-form";
 
 type Conversation = {
   id: string;
@@ -80,23 +82,51 @@ export function ChatInterface({
   > | null>(null);
   const typingTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const messagesRef = useRef<HTMLDivElement>(null);
+  const composerRef = useRef<HTMLTextAreaElement>(null);
+  const pinnedToLatestRef = useRef(true);
+  const rememberHistoryPosition = useCallback(() => {
+    const history = messagesRef.current;
+    if (!history) return;
+    pinnedToLatestRef.current = history.scrollHeight - history.clientHeight - history.scrollTop <= 72;
+  }, []);
+  const restorePinnedHistory = useCallback(() => {
+    const history = messagesRef.current;
+    if (history && pinnedToLatestRef.current) history.scrollTop = history.scrollHeight;
+  }, []);
   useEffect(() => {
     const viewport = window.visualViewport;
-    const syncViewportHeight = () => {
-      document.documentElement.style.setProperty(
-        "--conversation-viewport-height",
-        `${viewport?.height ?? window.innerHeight}px`,
-      );
+    const rootStyle = document.documentElement.style;
+    let animationFrame: number | null = null;
+    const syncViewport = () => {
+      animationFrame = null;
+      const metrics = readConversationViewport(window);
+      rootStyle.setProperty("--conversation-viewport-height", `${metrics.height}px`);
+      rootStyle.setProperty("--conversation-viewport-width", `${metrics.width}px`);
+      rootStyle.setProperty("--conversation-viewport-offset-top", `${metrics.offsetTop}px`);
+      rootStyle.setProperty("--conversation-viewport-offset-left", `${metrics.offsetLeft}px`);
+      restorePinnedHistory();
     };
-    syncViewportHeight();
-    viewport?.addEventListener("resize", syncViewportHeight);
-    window.addEventListener("resize", syncViewportHeight);
+    const scheduleViewportSync = () => {
+      if (animationFrame !== null) return;
+      animationFrame = window.requestAnimationFrame(syncViewport);
+    };
+    syncViewport();
+    viewport?.addEventListener("resize", scheduleViewportSync);
+    viewport?.addEventListener("scroll", scheduleViewportSync);
+    window.addEventListener("resize", scheduleViewportSync);
+    window.addEventListener("orientationchange", scheduleViewportSync);
     return () => {
-      viewport?.removeEventListener("resize", syncViewportHeight);
-      window.removeEventListener("resize", syncViewportHeight);
-      document.documentElement.style.removeProperty("--conversation-viewport-height");
+      viewport?.removeEventListener("resize", scheduleViewportSync);
+      viewport?.removeEventListener("scroll", scheduleViewportSync);
+      window.removeEventListener("resize", scheduleViewportSync);
+      window.removeEventListener("orientationchange", scheduleViewportSync);
+      if (animationFrame !== null) window.cancelAnimationFrame(animationFrame);
+      rootStyle.removeProperty("--conversation-viewport-height");
+      rootStyle.removeProperty("--conversation-viewport-width");
+      rootStyle.removeProperty("--conversation-viewport-offset-top");
+      rootStyle.removeProperty("--conversation-viewport-offset-left");
     };
-  }, []);
+  }, [restorePinnedHistory]);
   const timeline = useMemo(
     () =>
       [
@@ -137,6 +167,7 @@ export function ChatInterface({
         (payload) => {
           const row = payload.new as PersistedMessageRow;
           if (scopeRef.current !== effectScope || row.conversation_id !== conversation.id) return;
+          rememberHistoryPosition();
           setMessages((current) => mergeChatMessages(current, [row]));
           updateConversationPreview(row.body, row.created_at);
           if (row.sender_id !== currentUserId) void markRead();
@@ -176,6 +207,7 @@ export function ChatInterface({
             status: row.status,
             createdAt: row.created_at,
           };
+          rememberHistoryPosition();
           setOffers((current) =>
             current.some((item) => item.id === offer.id)
               ? current.map((item) => (item.id === offer.id ? offer : item))
@@ -223,6 +255,7 @@ export function ChatInterface({
         const result = await response.json() as { messages?: PersistedMessageRow[]; error?: string };
         if (!response.ok) throw new Error(result.error || "Messages could not be synchronized.");
         if (scopeRef.current !== effectScope) return;
+        rememberHistoryPosition();
         setMessages((current) => mergeChatMessages(current, result.messages ?? []));
         const latest = result.messages?.at(-1);
         if (latest) updateConversationPreview(latest.body, latest.created_at);
@@ -266,11 +299,17 @@ export function ChatInterface({
       void channel.untrack();
       void supabase.removeChannel(channel);
     };
-  }, [conversation.currency, conversation.id, conversation.other.id, currentUserId, scope, updateConversationPreview]);
-  useEffect(() => {
-    const history = messagesRef.current;
-    if (history) history.scrollTo({ top: history.scrollHeight, behavior: "smooth" });
-  }, [timeline.length]);
+  }, [conversation.currency, conversation.id, conversation.other.id, currentUserId, rememberHistoryPosition, scope, updateConversationPreview]);
+  useLayoutEffect(() => {
+    restorePinnedHistory();
+  }, [restorePinnedHistory, timeline.length]);
+  useLayoutEffect(() => {
+    const input = composerRef.current;
+    if (!input) return;
+    input.style.height = "auto";
+    input.style.height = `${Math.min(input.scrollHeight, 128)}px`;
+    restorePinnedHistory();
+  }, [composer, restorePinnedHistory]);
 
   function broadcastTyping(typingNow: boolean) {
     void channelRef.current?.send({
@@ -321,6 +360,7 @@ export function ChatInterface({
     if (sendInFlight.current || !composer.trim()) return;
     const body = composer.trim();
     const clientId = nextClientId;
+    pinnedToLatestRef.current = true;
     const optimistic = createPendingMessage({
       clientId,
       senderId: currentUserId,
@@ -334,6 +374,7 @@ export function ChatInterface({
 
   function retryMessage(message: ChatMessage) {
     if (!message.clientId || sendInFlight.current) return;
+    pinnedToLatestRef.current = true;
     setMessages((current) => retryFailedMessage(current, message.clientId!));
     setComposer(message.body);
     void persistMessage(message.clientId, message.body, true);
@@ -498,7 +539,14 @@ export function ChatInterface({
               Messages can still be sent.
             </div>
           )}
-          <div ref={messagesRef} className="min-h-0 flex-1 space-y-3 overflow-y-auto overscroll-contain bg-[radial-gradient(circle_at_50%_0%,rgba(132,104,255,.04),transparent_36%)] px-4 py-3 sm:px-6 sm:py-4" role="log" aria-live="polite" aria-label="Messages">
+          <div
+            ref={messagesRef}
+            className="min-h-0 flex-1 space-y-3 overflow-y-auto overscroll-contain bg-[radial-gradient(circle_at_50%_0%,rgba(132,104,255,.04),transparent_36%)] px-4 py-3 sm:px-6 sm:py-4"
+            role="log"
+            aria-live="polite"
+            aria-label="Messages"
+            onScroll={rememberHistoryPosition}
+          >
             {timeline.map((item) =>
               item.kind === "message" ? (
                 <div
@@ -639,6 +687,11 @@ export function ChatInterface({
             )}
           </div>
           <div data-message-composer className="shrink-0 border-t border-[var(--border)] bg-[#0e121a] px-3 pb-[max(.75rem,env(safe-area-inset-bottom))] pt-3 sm:p-4 md:pb-4">
+            <TradeProposalForm
+              conversationId={conversation.id}
+              listings={conversation.ownListings}
+              embedded
+            />
             {error && (
               <p role="alert" className="mb-2 text-xs text-[var(--danger)]">
                 {error}{" "}
@@ -677,10 +730,12 @@ export function ChatInterface({
               <label className="sr-only" htmlFor="chat-message">
                 Message
               </label>
-              <input
+              <textarea
+                ref={composerRef}
                 id="chat-message"
                 name="message"
-                className="input"
+                className="input max-h-32 resize-none overflow-y-auto text-base leading-6"
+                rows={1}
                 maxLength={2000}
                 autoComplete="off"
                 placeholder="Type a message…"

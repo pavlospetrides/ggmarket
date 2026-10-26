@@ -195,6 +195,208 @@ test("WebKit can native-POST a message before hydration", async ({ browser, brow
   await context.close();
 });
 
+test("conversation follows a panned visual viewport during repeated keyboard cycles", async ({ page }) => {
+  await page.addInitScript(() => {
+    const metrics = { height: 844, width: 390, offsetTop: 0, offsetLeft: 0 };
+    const viewport = new EventTarget();
+    for (const property of ["height", "width", "offsetTop", "offsetLeft"] as const) {
+      Object.defineProperty(viewport, property, {
+        configurable: true,
+        get: () => metrics[property],
+      });
+    }
+    Object.defineProperty(window, "visualViewport", {
+      configurable: true,
+      value: viewport,
+    });
+    Object.assign(window, {
+      __setConversationVisualViewport(next: Partial<typeof metrics>) {
+        Object.assign(metrics, next);
+        viewport.dispatchEvent(new Event("resize"));
+        viewport.dispatchEvent(new Event("scroll"));
+      },
+    });
+  });
+  await page.setViewportSize({ width: 390, height: 844 });
+  await installMessageService(page, []);
+  await page.goto("/test-harness/chat?viewer=account-a");
+  await page.locator('form[data-hydrated="true"]').waitFor();
+
+  const setViewport = (height: number, offsetTop: number) => page.evaluate(
+    ([nextHeight, nextOffsetTop]) => {
+      (window as unknown as Window & {
+        __setConversationVisualViewport: (next: { height: number; offsetTop: number }) => void;
+      }).__setConversationVisualViewport({ height: nextHeight, offsetTop: nextOffsetTop });
+    },
+    [height, offsetTop] as const,
+  );
+  const readViewportLayout = () => page.evaluate(() => {
+    const rootStyle = document.documentElement.style;
+    const bodyStyle = getComputedStyle(document.body);
+    const shell = (document.querySelector("[data-conversation-shell]") as HTMLElement).getBoundingClientRect();
+    const header = (document.querySelector("[data-conversation-header]") as HTMLElement).getBoundingClientRect();
+    const composer = (document.querySelector("[data-message-composer]") as HTMLElement).getBoundingClientRect();
+    return {
+      variables: {
+        height: rootStyle.getPropertyValue("--conversation-viewport-height"),
+        width: rootStyle.getPropertyValue("--conversation-viewport-width"),
+        top: rootStyle.getPropertyValue("--conversation-viewport-offset-top"),
+        left: rootStyle.getPropertyValue("--conversation-viewport-offset-left"),
+      },
+      body: { position: bodyStyle.position, top: bodyStyle.top, height: bodyStyle.height },
+      shell: { top: shell.top, bottom: shell.bottom, height: shell.height },
+      header: { top: header.top },
+      composer: { bottom: composer.bottom },
+    };
+  });
+
+  await page.getByLabel("Message", { exact: true }).tap();
+  for (const [height, offsetTop] of [[512, 276], [844, 0], [486, 301], [844, 0]] as const) {
+    await setViewport(height, offsetTop);
+    await expect.poll(readViewportLayout).toMatchObject({
+      variables: {
+        height: `${height}px`,
+        width: "390px",
+        top: `${offsetTop}px`,
+        left: "0px",
+      },
+      body: { position: "fixed", top: `${offsetTop}px`, height: `${height}px` },
+      shell: { top: offsetTop, bottom: offsetTop + height, height },
+      header: { top: offsetTop },
+      composer: { bottom: offsetTop + height },
+    });
+  }
+
+  await page.getByRole("link", { name: "Back to conversations" }).click();
+  await expect(page.locator("[data-conversation-shell]")).toHaveCount(0);
+  await expect.poll(() => page.evaluate(() => {
+    const style = document.documentElement.style;
+    return [
+      "--conversation-viewport-height",
+      "--conversation-viewport-width",
+      "--conversation-viewport-offset-top",
+      "--conversation-viewport-offset-left",
+    ].map((property) => style.getPropertyValue(property));
+  })).toEqual(["", "", "", ""]);
+  await expect.poll(() => page.evaluate(() => getComputedStyle(document.body).position)).not.toBe("fixed");
+
+  await page.goBack();
+  await expect(page.locator("[data-conversation-shell]")).toBeVisible();
+  await expect.poll(() => page.evaluate(() => document.documentElement.style.getPropertyValue("--conversation-viewport-height"))).toBe("844px");
+});
+
+test("multiline composer grows without leaving the visible viewport", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 560 });
+  const messages: StoredMessage[] = Array.from({ length: 20 }, (_, index) => ({
+    id: `${String(index + 1).padStart(8, "0")}-5555-4555-8555-555555555555`,
+    conversation_id: conversationId,
+    sender_id: index % 2 ? "account-a" : "account-b",
+    body: `Composer resize message ${index + 1} ${"content ".repeat(6)}`,
+    client_id: `${String(index + 1).padStart(8, "0")}-6666-4666-8666-666666666666`,
+    created_at: new Date(Date.UTC(2026, 9, 20, 8, index)).toISOString(),
+  }));
+  await installMessageService(page, messages);
+  await page.goto("/test-harness/chat?viewer=account-a");
+  await page.locator('form[data-hydrated="true"]').waitFor();
+  await page.evaluate(() => window.dispatchEvent(new Event("online")));
+
+  const composer = page.getByLabel("Message", { exact: true });
+  const history = page.getByRole("log", { name: "Messages" });
+  await expect(history.getByText("Composer resize message 20", { exact: false })).toBeVisible();
+  await composer.fill([
+    "First line stays visible",
+    "Second line grows the composer",
+    "Third line still leaves room for messages",
+    "Fourth line is capped rather than pushing below the viewport",
+  ].join("\n"));
+
+  const layout = await page.evaluate(() => {
+    const bounds = (selector: string) => (document.querySelector(selector) as HTMLElement).getBoundingClientRect();
+    const input = bounds("#chat-message");
+    const composerBounds = bounds("[data-message-composer]");
+    const history = bounds('[role="log"]');
+    return {
+      tagName: document.querySelector("#chat-message")?.tagName,
+      fontSize: getComputedStyle(document.querySelector("#chat-message") as HTMLElement).fontSize,
+      input: { height: input.height, bottom: input.bottom },
+      composer: { bottom: composerBounds.bottom },
+      history: { height: history.height },
+      viewportHeight: window.visualViewport?.height ?? window.innerHeight,
+    };
+  });
+  expect(layout.tagName).toBe("TEXTAREA");
+  expect(parseFloat(layout.fontSize)).toBeGreaterThanOrEqual(16);
+  expect(layout.input.height).toBeGreaterThan(46);
+  expect(layout.input.height).toBeLessThanOrEqual(128);
+  expect(layout.input.bottom).toBeLessThanOrEqual(layout.viewportHeight + 1);
+  expect(layout.composer.bottom).toBeLessThanOrEqual(layout.viewportHeight + 1);
+  expect(layout.history.height).toBeGreaterThan(0);
+  await expect(page.getByRole("button", { name: "Send message" })).toBeVisible();
+  await expect.poll(() => history.evaluate((element) => element.scrollHeight - element.clientHeight - element.scrollTop)).toBeLessThanOrEqual(2);
+});
+
+test("incoming messages preserve older reading positions and pin bottom readers", async ({ page }) => {
+  const messages: StoredMessage[] = Array.from({ length: 60 }, (_, index) => ({
+    id: `${String(index + 1).padStart(8, "0")}-3333-4333-8333-333333333333`,
+    conversation_id: conversationId,
+    sender_id: index % 2 ? "account-a" : "account-b",
+    body: `Scroll anchor message ${index + 1} ${"history ".repeat(10)}`,
+    client_id: `${String(index + 1).padStart(8, "0")}-4444-4444-8444-444444444444`,
+    created_at: new Date(Date.UTC(2026, 9, 20, 8, index)).toISOString(),
+  }));
+  await installMessageService(page, messages);
+  await page.goto("/test-harness/chat?viewer=account-a");
+  await page.locator('form[data-hydrated="true"]').waitFor();
+  await page.evaluate(() => window.dispatchEvent(new Event("online")));
+  const history = page.getByRole("log", { name: "Messages" });
+  await expect(history.getByText("Scroll anchor message 60", { exact: false })).toBeVisible();
+
+  await history.evaluate((element) => {
+    element.scrollTop = Math.floor(element.scrollHeight / 3);
+    element.dispatchEvent(new Event("scroll", { bubbles: true }));
+  });
+  const readingPosition = await history.evaluate((element) => element.scrollTop);
+  messages.push({
+    id: "77777777-7777-4777-8777-777777777777",
+    conversation_id: conversationId,
+    sender_id: "account-b",
+    body: "Incoming while reading older messages",
+    client_id: "77777777-8888-4888-8888-888888888888",
+    created_at: "2026-10-20T10:00:00.000Z",
+  });
+  await page.evaluate(() => window.dispatchEvent(new Event("online")));
+  await expect(history.getByText("Incoming while reading older messages", { exact: true })).toBeAttached();
+  await history.evaluate((element) => new Promise<void>((resolve) => {
+    let previous = element.scrollTop;
+    let stableFrames = 0;
+    const check = () => {
+      const current = element.scrollTop;
+      stableFrames = Math.abs(current - previous) < 0.5 ? stableFrames + 1 : 0;
+      previous = current;
+      if (stableFrames >= 12) resolve();
+      else requestAnimationFrame(check);
+    };
+    requestAnimationFrame(check);
+  }));
+  expect(Math.abs(await history.evaluate((element) => element.scrollTop) - readingPosition)).toBeLessThanOrEqual(2);
+
+  await history.evaluate((element) => {
+    element.scrollTop = element.scrollHeight;
+    element.dispatchEvent(new Event("scroll", { bubbles: true }));
+  });
+  messages.push({
+    id: "99999999-7777-4777-8777-777777777777",
+    conversation_id: conversationId,
+    sender_id: "account-b",
+    body: "Incoming while pinned to latest",
+    client_id: "99999999-8888-4888-8888-888888888888",
+    created_at: "2026-10-20T10:01:00.000Z",
+  });
+  await page.evaluate(() => window.dispatchEvent(new Event("online")));
+  await expect(history.getByText("Incoming while pinned to latest", { exact: true })).toBeVisible();
+  await expect.poll(() => history.evaluate((element) => element.scrollHeight - element.clientHeight - element.scrollTop)).toBeLessThanOrEqual(2);
+});
+
 test("conversation owns the viewport and only its message history scrolls", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   const messages: StoredMessage[] = Array.from({ length: 60 }, (_, index) => ({
@@ -276,6 +478,8 @@ test("conversation owns the viewport and only its message history scrolls", asyn
     { width: 393, height: 852 },
     { width: 430, height: 932 },
     { width: 667, height: 375 },
+    { width: 768, height: 1024 },
+    { width: 1024, height: 768 },
     { width: 1440, height: 900 },
   ]) {
     await page.setViewportSize({ width, height });
@@ -306,6 +510,7 @@ test("conversation owns the viewport and only its message history scrolls", asyn
   await expect.poll(() => page.evaluate(() => document.documentElement.style.getPropertyValue("--conversation-viewport-height"))).toBe("560px");
   await composer.tap();
   await assertContained("keyboard-sized visual viewport");
+  await expect(log.getByText("Long conversation message 60", { exact: false })).toBeVisible();
   await page.setViewportSize({ width: 390, height: 844 });
   await expect.poll(() => page.evaluate(() => document.documentElement.style.getPropertyValue("--conversation-viewport-height"))).toBe("844px");
   await assertContained("after keyboard-sized viewport restores");
