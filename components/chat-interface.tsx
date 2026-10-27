@@ -1,6 +1,6 @@
 "use client";
 import Link from "next/link";
-import { ArrowLeft, Circle, HandCoins, RefreshCw, Send, X } from "lucide-react";
+import { ArrowLeft, ArrowLeftRight, Circle, HandCoins, Plus, RefreshCw, Send, X } from "lucide-react";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { formatPrice } from "@/lib/constants";
@@ -39,6 +39,7 @@ type TimelineItem =
   | ({ kind: "message" } & ChatMessage)
   | ({ kind: "offer" } & ChatOffer)
   | ({ kind: "trade" } & ChatTrade);
+type ComposerActionView = "menu" | "offer" | "trade" | null;
 
 const chatTimeFormatter = new Intl.DateTimeFormat("en-GB", {
   hour: "2-digit",
@@ -75,6 +76,7 @@ export function ChatInterface({
   const [pendingActionId, setPendingActionId] = useState<string | null>(null);
   const [error, setError] = useState("");
   const [composer, setComposer] = useState("");
+  const [composerAction, setComposerAction] = useState<ComposerActionView>(null);
   const [nextClientId, setNextClientId] = useState(initialClientId);
   const sendInFlight = useRef(false);
   const channelRef = useRef<ReturnType<
@@ -83,6 +85,7 @@ export function ChatInterface({
   const typingTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const messagesRef = useRef<HTMLDivElement>(null);
   const composerRef = useRef<HTMLTextAreaElement>(null);
+  const composerActionsRef = useRef<HTMLDivElement>(null);
   const pinnedToLatestRef = useRef(true);
   const rememberHistoryPosition = useCallback(() => {
     const history = messagesRef.current;
@@ -127,6 +130,21 @@ export function ChatInterface({
       rootStyle.removeProperty("--conversation-viewport-offset-left");
     };
   }, [restorePinnedHistory]);
+  useEffect(() => {
+    if (!composerAction) return;
+    const dismissOnOutsidePress = (event: PointerEvent) => {
+      if (!composerActionsRef.current?.contains(event.target as Node)) setComposerAction(null);
+    };
+    const dismissOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setComposerAction(null);
+    };
+    document.addEventListener("pointerdown", dismissOnOutsidePress);
+    document.addEventListener("keydown", dismissOnEscape);
+    return () => {
+      document.removeEventListener("pointerdown", dismissOnOutsidePress);
+      document.removeEventListener("keydown", dismissOnEscape);
+    };
+  }, [composerAction]);
   const timeline = useMemo(
     () =>
       [
@@ -416,6 +434,7 @@ export function ChatInterface({
         },
       ]);
       form.reset();
+      setComposerAction(null);
     } catch {
       setError("The offer could not be sent. Try again.");
     } finally {
@@ -498,39 +517,35 @@ export function ChatInterface({
           ))}
         </aside>
         <section className="flex min-h-0 min-w-0 flex-1 flex-col">
-          <header data-conversation-header className="flex min-h-20 items-center gap-3 border-b border-[var(--border)] p-3 sm:p-4">
+          <header data-conversation-header className="flex h-16 min-h-16 items-center gap-2 border-b border-[var(--border)] px-2.5 py-2 sm:px-4">
             <Link
               href="/messages"
-              className="grid size-10 place-items-center md:hidden"
+              className="grid size-10 shrink-0 place-items-center rounded-full hover:bg-[var(--surface-alt)] md:hidden"
               aria-label="Back to conversations"
             >
               <ArrowLeft aria-hidden="true" />
             </Link>
-            <span className="grid size-10 place-items-center rounded-full bg-[#30265b] font-bold">
+            <span className="grid size-9 shrink-0 place-items-center rounded-full bg-[#30265b] text-sm font-bold">
               {conversation.other.display_name[0]}
             </span>
             <div className="min-w-0 flex-1">
-              <strong className="block truncate">
-                {conversation.other.display_name}
-              </strong>
-              <span
-                className={`flex items-center gap-1 text-xs ${online ? "text-[var(--success)]" : "text-[var(--muted)]"}`}
-              >
-                <Circle className={`size-2 ${online ? "fill-current" : ""}`} aria-hidden="true" />
-                {online ? "Online now" : typing ? "Typing…" : "Offline"}
+              <span className="flex min-w-0 items-center gap-1.5">
+                <strong className="truncate text-sm leading-5">{conversation.other.display_name}</strong>
+                <span className={`flex shrink-0 items-center gap-1 text-[10px] ${online ? "text-[var(--success)]" : "text-[var(--muted)]"}`}>
+                  <Circle className={`size-2 ${online ? "fill-current" : ""}`} aria-hidden="true" />
+                  {online ? "Online now" : typing ? "Typing…" : "Offline"}
+                </span>
               </span>
+              <Link href={`/listing/${conversation.listingId}`} className="block truncate text-xs leading-4 text-[#b6a8ff] hover:underline">
+                {conversation.listingTitle} · {formatPrice(conversation.listingPrice, conversation.currency)}
+              </Link>
             </div>
             <Link
               href={`/listing/${conversation.listingId}`}
-              className="max-w-[45%] rounded-xl border border-[var(--border)] p-2 text-right hover:bg-[var(--surface-2)]"
+              className="grid min-h-10 shrink-0 place-items-center rounded-xl border border-[var(--border)] px-3 text-xs font-bold hover:bg-[var(--surface-2)]"
+              aria-label={`View ${conversation.listingTitle}`}
             >
-              <strong className="block truncate text-xs">
-                {conversation.listingTitle}
-              </strong>
-              <span className="text-xs text-[#b6a8ff]">
-                {formatPrice(conversation.listingPrice, conversation.currency)}{" "}
-                · View listing
-              </span>
+              View
             </Link>
           </header>
           {connection === "error" && (
@@ -686,12 +701,7 @@ export function ChatInterface({
               </p>
             )}
           </div>
-          <div data-message-composer className="shrink-0 border-t border-[var(--border)] bg-[#0e121a] px-3 pb-[max(.75rem,env(safe-area-inset-bottom))] pt-3 sm:p-4 md:pb-4">
-            <TradeProposalForm
-              conversationId={conversation.id}
-              listings={conversation.ownListings}
-              embedded
-            />
+          <div data-message-composer className="relative shrink-0 border-t border-[var(--border)] bg-[#0e121a] px-2.5 pb-[max(.5rem,env(safe-area-inset-bottom))] pt-2 sm:px-3 md:pb-2">
             {error && (
               <p role="alert" className="mb-2 text-xs text-[var(--danger)]">
                 {error}{" "}
@@ -700,62 +710,96 @@ export function ChatInterface({
                 </button>
               </p>
             )}
-            <details className="mb-3">
-              <summary className="cursor-pointer text-sm font-bold text-[#b9aaff]">
-                <HandCoins className="mr-1 inline size-4" aria-hidden="true" /> Make an offer
-              </summary>
-              <form onSubmit={makeOffer} className="mt-3 grid gap-2 sm:grid-cols-[1fr_1fr_auto]">
-                <select className="input" name="parentOfferId" aria-label="Offer type">
-                  <option value="">New offer</option>
-                  {offers.filter((item) => item.status === "pending" && item.createdBy !== currentUserId).map((item) => <option key={item.id} value={item.id}>Counter {formatPrice(item.amount, item.currency)}</option>)}
-                </select>
-                <label className="sr-only" htmlFor="offer-amount">Offer amount</label>
-                <input
-                  id="offer-amount"
-                  className="input"
-                  type="number"
-                  name="amount"
-                  min="1"
-                  max="1000000"
-                  placeholder="Offer amount (€)"
+            <div className="flex gap-2">
+              <div ref={composerActionsRef} className="relative shrink-0">
+                <button
+                  type="button"
+                  className="icon-btn size-11 rounded-full bg-[var(--surface-elevated)]"
+                  aria-label="Conversation actions"
+                  aria-haspopup="dialog"
+                  aria-expanded={composerAction !== null}
+                  aria-controls={composerAction ? "conversation-actions" : undefined}
+                  onClick={() => setComposerAction((current) => current ? null : "menu")}
+                >
+                  <Plus className={`size-5 transition-transform ${composerAction ? "rotate-45" : ""}`} aria-hidden="true" />
+                </button>
+                {composerAction ? (
+                  <div
+                    id="conversation-actions"
+                    role="dialog"
+                    aria-label="Conversation actions"
+                    className="absolute bottom-[calc(100%+.625rem)] left-0 z-30 max-h-[min(26rem,calc(var(--conversation-viewport-height)-5rem))] w-[min(22rem,calc(var(--conversation-viewport-width)-3.5rem))] overflow-y-auto rounded-2xl border border-[var(--border)] bg-[#151b25] p-3 shadow-2xl"
+                  >
+                    <div className="mb-3 flex items-center gap-2">
+                      {composerAction !== "menu" ? (
+                        <button type="button" className="icon-btn size-9" aria-label="Back to conversation actions" onClick={() => setComposerAction("menu")}>
+                          <ArrowLeft className="size-4" aria-hidden="true" />
+                        </button>
+                      ) : null}
+                      <h2 className="min-w-0 flex-1 truncate text-sm font-bold">
+                        {composerAction === "offer" ? "Make an offer" : composerAction === "trade" ? "Propose a trade" : "Conversation actions"}
+                      </h2>
+                      <button type="button" className="icon-btn size-9" aria-label="Close conversation actions" onClick={() => setComposerAction(null)}>
+                        <X className="size-4" aria-hidden="true" />
+                      </button>
+                    </div>
+                    {composerAction === "menu" ? (
+                      <div className="grid gap-2">
+                        <button type="button" className="btn-secondary justify-start" onClick={() => setComposerAction("offer")}>
+                          <HandCoins className="size-4 text-[#b9aaff]" aria-hidden="true" /> Make an offer
+                        </button>
+                        <button type="button" className="btn-secondary justify-start" onClick={() => setComposerAction("trade")}>
+                          <ArrowLeftRight className="size-4 text-[#75d7e8]" aria-hidden="true" /> Propose a trade
+                        </button>
+                      </div>
+                    ) : composerAction === "offer" ? (
+                      <form onSubmit={makeOffer} className="grid gap-2">
+                        <select className="input" name="parentOfferId" aria-label="Offer type">
+                          <option value="">New offer</option>
+                          {offers.filter((item) => item.status === "pending" && item.createdBy !== currentUserId).map((item) => <option key={item.id} value={item.id}>Counter {formatPrice(item.amount, item.currency)}</option>)}
+                        </select>
+                        <label className="sr-only" htmlFor="offer-amount">Offer amount</label>
+                        <input id="offer-amount" className="input" type="number" name="amount" min="1" max="1000000" placeholder="Offer amount (€)" required />
+                        <button type="submit" disabled={busy} className="btn-primary">Send offer</button>
+                      </form>
+                    ) : (
+                      <TradeProposalForm conversationId={conversation.id} listings={conversation.ownListings} variant="panel" />
+                    )}
+                  </div>
+                ) : null}
+              </div>
+              <form action={`/api/conversations/${conversation.id}/messages`} method="post" onSubmit={sendMessage} className="flex min-w-0 flex-1 gap-2" data-hydrated={hydrated}>
+                <input type="hidden" name="clientId" value={nextClientId} />
+                <label className="sr-only" htmlFor="chat-message">
+                  Message
+                </label>
+                <textarea
+                  ref={composerRef}
+                  id="chat-message"
+                  name="message"
+                  className="input max-h-32 min-w-0 resize-none overflow-y-auto text-base leading-6"
+                  rows={1}
+                  maxLength={2000}
+                  autoComplete="off"
+                  placeholder="Type a message…"
+                  value={composer}
+                  onChange={(event) => {
+                    setComposer(event.target.value);
+                    broadcastTyping(Boolean(event.target.value));
+                  }}
                   required
                 />
-                <button type="submit" disabled={busy} className="btn-secondary">
-                  Send offer
+                <button
+                  type="submit"
+                  disabled={busy}
+                  className="btn-primary size-11 shrink-0 px-0 sm:w-auto sm:px-4"
+                  aria-label="Send message"
+                >
+                  <Send className="size-5" aria-hidden="true" />
+                  <span className="sr-only sm:not-sr-only">Send</span>
                 </button>
               </form>
-            </details>
-            <form action={`/api/conversations/${conversation.id}/messages`} method="post" onSubmit={sendMessage} className="flex gap-2" data-hydrated={hydrated}>
-              <input type="hidden" name="clientId" value={nextClientId} />
-              <label className="sr-only" htmlFor="chat-message">
-                Message
-              </label>
-              <textarea
-                ref={composerRef}
-                id="chat-message"
-                name="message"
-                className="input max-h-32 resize-none overflow-y-auto text-base leading-6"
-                rows={1}
-                maxLength={2000}
-                autoComplete="off"
-                placeholder="Type a message…"
-                value={composer}
-                onChange={(event) => {
-                  setComposer(event.target.value);
-                  broadcastTyping(Boolean(event.target.value));
-                }}
-                required
-              />
-              <button
-                type="submit"
-                disabled={busy}
-                className="btn-primary px-4"
-                aria-label="Send message"
-              >
-                <Send className="size-5" aria-hidden="true" />
-                <span className="sr-only sm:not-sr-only">Send</span>
-              </button>
-            </form>
+            </div>
           </div>
         </section>
       </div>

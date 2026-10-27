@@ -25,7 +25,7 @@ async function login(page: Page, email: string) {
 }
 
 async function typeMessage(page: Page, value: string) {
-  const composer = page.locator('input[name="message"]');
+  const composer = page.locator('textarea[name="message"]');
   await expect(composer).toBeVisible({ timeout: 15_000 });
   await composer.click({ timeout: 15_000 });
   await composer.fill(value, { timeout: 15_000 });
@@ -33,8 +33,10 @@ async function typeMessage(page: Page, value: string) {
 
 async function openOfferForm(page: Page) {
   const amount = page.locator('input[name="amount"]');
-  if (!(await amount.isVisible()))
-    await page.getByText("Make an offer", { exact: true }).click();
+  if (!(await amount.isVisible())) {
+    await page.getByRole("button", { name: "Conversation actions" }).click();
+    await page.getByRole("dialog", { name: "Conversation actions" }).getByRole("button", { name: "Make an offer" }).click();
+  }
   await expect(amount).toBeVisible();
 }
 
@@ -318,7 +320,8 @@ test("two users exchange realtime messages and offers", async ({ browser }) => {
       created_by: userA.id,
     });
 
-    await pageB.getByText("Propose a trade", { exact: true }).click();
+    await pageB.getByRole("button", { name: "Conversation actions" }).click();
+    await pageB.getByRole("dialog", { name: "Conversation actions" }).getByRole("button", { name: "Propose a trade" }).click();
     await pageB.getByLabel("Your listing").selectOption(buyerListingId);
     await pageB.getByLabel("Cash adjustment").fill("250");
     await pageB.getByLabel("Trade details").fill("Browser trade acceptance");

@@ -6,10 +6,12 @@ export function TradeProposalForm({
   conversationId,
   listings,
   embedded = false,
+  variant = "details",
 }: {
   conversationId: string;
   listings: { id: string; title: string }[];
   embedded?: boolean;
+  variant?: "details" | "panel";
 }) {
   const [status, setStatus] = useState("");
   const [busy, setBusy] = useState(false);
@@ -44,14 +46,11 @@ export function TradeProposalForm({
       setBusy(false);
     }
   }
-  return (
-    <details className={`${embedded ? "mb-3" : "container-page mt-3 md:mt-0"} rounded-xl border border-[#315c68] bg-[#111f27] p-3`}>
-      <summary className="cursor-pointer text-sm font-bold text-[#75d7e8]">
-        <ArrowLeftRight className="mr-2 inline size-4" aria-hidden="true" /> Propose a trade
-      </summary>
-      {listings.length ? <form
+  const content = listings.length ? (
+    <>
+      <form
         onSubmit={submit}
-        className="mt-3 grid gap-3 sm:grid-cols-[1fr_150px_1fr_auto]"
+        className={variant === "panel" ? "grid gap-3" : "mt-3 grid gap-3 sm:grid-cols-[1fr_150px_1fr_auto]"}
       >
         <label className="sr-only" htmlFor="trade-listing">Your listing</label>
         <select required className="input min-w-0" id="trade-listing" name="listing">
@@ -81,12 +80,27 @@ export function TradeProposalForm({
           placeholder="Trade details"
         />
         <button className="btn-secondary" disabled={busy}>{busy ? "Sending…" : "Propose"}</button>
-      </form> : <p className="mt-2 text-xs text-[var(--muted)]">Publish an active listing before proposing an item trade.</p>}
+      </form>
       {status && (
         <p role="status" aria-live="polite" className="mt-2 text-xs text-[var(--muted)] [overflow-wrap:anywhere]">
           {status}
         </p>
       )}
+    </>
+  ) : (
+    <p className={variant === "panel" ? "text-xs text-[var(--muted)]" : "mt-2 text-xs text-[var(--muted)]"}>
+      Publish an active listing before proposing an item trade.
+    </p>
+  );
+
+  if (variant === "panel") return <div>{content}</div>;
+
+  return (
+    <details className={`${embedded ? "mb-3" : "container-page mt-3 md:mt-0"} rounded-xl border border-[#315c68] bg-[#111f27] p-3`}>
+      <summary className="cursor-pointer text-sm font-bold text-[#75d7e8]">
+        <ArrowLeftRight className="mr-2 inline size-4" aria-hidden="true" /> Propose a trade
+      </summary>
+      {content}
     </details>
   );
 }
