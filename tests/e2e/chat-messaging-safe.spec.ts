@@ -417,8 +417,9 @@ test("conversation owns the viewport and only its message history scrolls", asyn
   await expect(log).toBeVisible();
   await expect(log.getByText("Long conversation message 60", { exact: false })).toBeVisible();
   await expect(composer).toBeVisible();
-  await expect(page.getByText("Propose a trade", { exact: true })).toBeVisible();
-  await expect(page.getByText("Make an offer", { exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Conversation actions" })).toBeVisible();
+  await expect(page.getByText("Propose a trade", { exact: true })).toHaveCount(0);
+  await expect(page.getByText("Make an offer", { exact: true })).toHaveCount(0);
   await expect(page.locator("[data-site-footer]")).toBeHidden();
   await expect(page.getByRole("link", { name: "Back to conversations" })).toHaveAttribute("href", "/messages");
 
@@ -509,8 +510,37 @@ test("conversation owns the viewport and only its message history scrolls", asyn
   await page.setViewportSize({ width: 390, height: 560 });
   await expect.poll(() => page.evaluate(() => document.documentElement.style.getPropertyValue("--conversation-viewport-height"))).toBe("560px");
   await composer.tap();
+  const keyboardLayout = await readLayout();
+  console.log(`CHAT_UX_390X560 ${JSON.stringify(keyboardLayout)}`);
+  if (process.env.CHAT_UX_SCREENSHOT) {
+    await page.screenshot({ path: process.env.CHAT_UX_SCREENSHOT, fullPage: false });
+  }
   await assertContained("keyboard-sized visual viewport");
+  expect(keyboardLayout.header.height).toBeLessThanOrEqual(68);
+  expect(keyboardLayout.composer.height).toBeLessThanOrEqual(76);
+  expect(keyboardLayout.history.height).toBeGreaterThanOrEqual(380);
   await expect(log.getByText("Long conversation message 60", { exact: false })).toBeVisible();
+
+  await page.getByRole("button", { name: "Conversation actions" }).tap();
+  const actions = page.getByRole("dialog", { name: "Conversation actions" });
+  await expect(actions).toBeVisible();
+  await expect(actions.getByRole("button", { name: "Make an offer" })).toBeVisible();
+  await expect(actions.getByRole("button", { name: "Propose a trade" })).toBeVisible();
+  if (process.env.CHAT_UX_ACTIONS_SCREENSHOT) {
+    await page.screenshot({ path: process.env.CHAT_UX_ACTIONS_SCREENSHOT, fullPage: false });
+  }
+  await expect.poll(() => readLayout().then((layout) => layout.composer.height)).toBe(keyboardLayout.composer.height);
+  await actions.getByRole("button", { name: "Make an offer" }).tap();
+  await expect(actions.getByRole("heading", { name: "Make an offer" })).toBeVisible();
+  await expect(actions.getByLabel("Offer amount")).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(actions).toHaveCount(0);
+  await page.getByRole("button", { name: "Conversation actions" }).tap();
+  await actions.getByRole("button", { name: "Propose a trade" }).tap();
+  await expect(actions.getByRole("heading", { name: "Propose a trade" })).toBeVisible();
+  await expect(actions.getByText("Publish an active listing before proposing an item trade.")).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(actions).toHaveCount(0);
   await page.setViewportSize({ width: 390, height: 844 });
   await expect.poll(() => page.evaluate(() => document.documentElement.style.getPropertyValue("--conversation-viewport-height"))).toBe("844px");
   await assertContained("after keyboard-sized viewport restores");

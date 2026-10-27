@@ -1,5 +1,4 @@
 import { ChatInterface } from "@/components/chat-interface";
-import { TradeProposalForm } from "@/components/trade-proposal-form";
 
 const conversationId = "11111111-1111-4111-8111-111111111111";
 
@@ -38,16 +37,13 @@ export default async function ChatHarnessPage({
   }];
 
   return (
-    <>
-      <TradeProposalForm conversationId={conversationId} listings={[]} />
-      <ChatInterface
-        key={`${viewer}:${conversationId}`}
-        currentUserId={viewer}
-        conversation={conversation}
-        conversations={conversations}
-        initialClientId={initialClientId}
-      />
-    </>
+    <ChatInterface
+      key={`${viewer}:${conversationId}`}
+      currentUserId={viewer}
+      conversation={conversation}
+      conversations={conversations}
+      initialClientId={initialClientId}
+    />
   );
 }
 
