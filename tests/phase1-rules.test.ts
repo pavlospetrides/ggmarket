@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { favoriteSchema, listingSchema, listingUpdateSchema, profileSchema, reportSchema } from "../lib/validation";
-import { isAllowedImageFile, readJson, safeRedirectPath } from "../lib/security";
+import { isAllowedImageFile, readJson, readUrlEncodedForm, safeRedirectPath } from "../lib/security";
 
 const validListing = { title: "Test graphics card", description: "A detailed and honest description of the test item.", price: 400, categoryId: "00000000-0000-4000-8000-000000000001", productName: "Test GPU", condition: "good", location: "Test City", shipping: true, meetup: false, attributes: { warranty: false }, requestId: "00000000-0000-4000-8000-000000000002" };
 describe("Phase 1 server validation", () => {
@@ -35,5 +35,46 @@ describe("Security helpers", () => {
     expect(await readJson(new Request("https://ggmarket.test", { method: "POST", headers: { "content-type": "application/json" }, body: "{" }))).toBeNull();
     expect(await readJson(new Request("https://ggmarket.test", { method: "POST", headers: { "content-type": "text/plain" }, body: "{}" }))).toBeNull();
     expect(await readJson(new Request("https://ggmarket.test", { method: "POST", headers: { "content-type": "application/json" }, body: '{"ok":true}' }))).toEqual({ ok: true });
+  });
+  it("rejects JSON bodies larger than the application limit before schema validation", async () => {
+    const oversized = JSON.stringify({ value: "x".repeat(65_536) });
+    expect(await readJson(new Request("https://ggmarket.test", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: oversized,
+    }))).toBeNull();
+    expect(await readJson(new Request("https://ggmarket.test", {
+      method: "POST",
+      headers: { "content-type": "application/json", "content-length": "70000" },
+      body: '{"ok":true}',
+    }))).toBeNull();
+  });
+  it("bounds URL-encoded form bodies before parsing", async () => {
+    expect(await readUrlEncodedForm(new Request("https://ggmarket.test", {
+      method: "POST",
+      headers: { "content-type": "application/x-www-form-urlencoded" },
+      body: "email=user%40example.invalid&next=%2Fprofile",
+    }))).toEqual(new URLSearchParams("email=user%40example.invalid&next=%2Fprofile"));
+    expect(await readUrlEncodedForm(new Request("https://ggmarket.test", {
+      method: "POST",
+      headers: { "content-type": "application/x-www-form-urlencoded" },
+      body: `message=${"x".repeat(65_536)}`,
+    }))).toBeNull();
+    expect(await readUrlEncodedForm(new Request("https://ggmarket.test", {
+      method: "POST",
+      headers: { "content-type": "multipart/form-data; boundary=test" },
+      body: "--test--",
+    }))).toBeNull();
+  });
+  it("treats a failed request stream as invalid JSON", async () => {
+    const body = new ReadableStream<Uint8Array>({
+      start(controller) { controller.error(new Error("stream failed")); },
+    });
+    await expect(readJson(new Request("https://ggmarket.test", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body,
+      duplex: "half",
+    } as RequestInit))).resolves.toBeNull();
   });
 });

@@ -7,6 +7,7 @@ vi.mock("@/lib/supabase/server", () => ({
 }));
 vi.mock("@/lib/request-security", async () => import("../lib/request-security"));
 vi.mock("@/lib/validation", async () => import("../lib/validation"));
+vi.mock("@/lib/security", async () => import("../lib/security"));
 
 function request(host = "192.168.2.21:3000") {
   return new Request("http://0.0.0.0:3000/api/verification/email", {
@@ -59,6 +60,18 @@ describe("email verification resend API", () => {
     auth.getUser.mockResolvedValue({ data: { user: null }, error: null });
     const { POST } = await import("../app/api/verification/email/route");
     const response = await POST(request());
+    expect(response.status).toBe(400);
+    expect(auth.resend).not.toHaveBeenCalled();
+  });
+
+  it("rejects a declared oversized resend body before calling the provider", async () => {
+    auth.getUser.mockResolvedValue({ data: { user: null }, error: null });
+    const { POST } = await import("../app/api/verification/email/route");
+    const response = await POST(new Request("https://ggmarket.test/api/verification/email", {
+      method: "POST",
+      headers: { "content-type": "application/json", "content-length": "70000" },
+      body: JSON.stringify({ email: "member@example.test" }),
+    }));
     expect(response.status).toBe(400);
     expect(auth.resend).not.toHaveBeenCalled();
   });

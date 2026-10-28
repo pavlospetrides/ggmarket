@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { NextRequest } from "next/server";
-import { getPublicRequestOrigin, isTrustedMutationRequest } from "../lib/request-security";
+import { buildContentSecurityPolicy, getPublicRequestOrigin, isTrustedMutationRequest } from "../lib/request-security";
 import { proxy } from "../proxy";
 
 vi.mock("@/lib/request-security", async () => import("../lib/request-security"));
@@ -99,5 +99,34 @@ describe("mutation origin validation", () => {
     }));
 
     expect(response.status).toBe(403);
+  });
+});
+
+describe("content security policy", () => {
+  it("covers executable, network, image, framing, and navigation sources", () => {
+    const policy = buildContentSecurityPolicy(false);
+
+    for (const directive of [
+      "default-src 'self'",
+      "script-src 'self' 'unsafe-inline'",
+      "style-src 'self' 'unsafe-inline'",
+      "connect-src 'self' https://*.supabase.co wss://*.supabase.co",
+      "img-src 'self' blob: data: https://images.unsplash.com https://*.supabase.co",
+      "font-src 'self' data:",
+      "object-src 'none'",
+      "base-uri 'self'",
+      "form-action 'self'",
+      "frame-ancestors 'none'",
+      "upgrade-insecure-requests",
+    ]) expect(policy).toContain(`${directive};`);
+    expect(policy).not.toContain("'unsafe-eval'");
+  });
+
+  it("allows only the local development transports required by Next and Supabase", () => {
+    const policy = buildContentSecurityPolicy(true);
+    expect(policy).toContain("script-src 'self' 'unsafe-inline' 'unsafe-eval';");
+    expect(policy).toContain("http://127.0.0.1:* ws://127.0.0.1:*");
+    expect(policy).toContain("http://localhost:* ws://localhost:*");
+    expect(policy).not.toContain("upgrade-insecure-requests");
   });
 });

@@ -48,11 +48,11 @@ Open [http://localhost:3000](http://localhost:3000).
 | --- | --- | --- |
 | `NEXT_PUBLIC_SUPABASE_URL` | Browser/server | Supabase project URL |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Browser/server | Public anon key; RLS remains authoritative |
-| `SUPABASE_SERVICE_ROLE_KEY` | Test tooling only | Required by the destructive E2E/security audit cleanup; never expose in client or runtime code |
+| `SUPABASE_SERVICE_ROLE_KEY` | Server only | Required by the trusted image-normalization endpoint and destructive E2E/security audit cleanup; never expose in client code |
 | `NEXT_PUBLIC_SITE_URL` | Public | Canonical origin and auth callback base |
 | `ADMIN_EMAILS` | Server only | Comma-separated allowlist used as an additional admin route guard |
 
-The service-role key is not used by application runtime code. It can be omitted unless running the real-database E2E or adversarial audit scripts.
+The service-role key is used only in a server-only module after user authorization and image decoding. It is also used by real-database E2E and adversarial audit cleanup. Never prefix it with `NEXT_PUBLIC_` or expose it to browser code.
 
 ## Supabase configuration
 

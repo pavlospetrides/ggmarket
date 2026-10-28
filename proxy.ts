@@ -1,6 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
-import { isTrustedMutationRequest } from "@/lib/request-security";
+import { buildContentSecurityPolicy, isTrustedMutationRequest } from "@/lib/request-security";
 import {
   getSupabaseCookieOptions,
   hasSupabaseAuthStorageCookie,
@@ -17,7 +17,7 @@ function secure(response: NextResponse, request: NextRequest) {
   );
   response.headers.set(
     "Content-Security-Policy",
-    "base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'",
+    buildContentSecurityPolicy(process.env.NODE_ENV === "development"),
   );
   if (process.env.NODE_ENV === "production" && request.nextUrl.protocol === "https:") {
     response.headers.set(

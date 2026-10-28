@@ -1,9 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
+import { validateMutationEnvironment } from "./mutation-environment.mjs";
 
-const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-if (!url || !anonKey || !serviceKey) throw new Error("Supabase test environment is not configured");
+const { url, anonKey, serviceKey } = validateMutationEnvironment(process.env, { requireLocal: true });
 const admin = createClient(url, serviceKey, { auth: { persistSession: false } });
 const { error: schemaError } = await admin.from("conversations").select("id").limit(1);
 if (schemaError) throw new Error(`Phase 2 migration is not applied: ${schemaError.message}`);

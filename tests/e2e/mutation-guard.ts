@@ -19,12 +19,20 @@ export function validateMutationEnvironment(env: MutationEnvironmentInput): Muta
     throw new Error("State-changing E2E requires a complete disposable-project configuration.");
   }
 
-  let configuredRef = "";
+  let target: URL;
   try {
-    configuredRef = new URL(url).hostname.split(".")[0] ?? "";
+    target = new URL(url);
   } catch {
     throw new Error("State-changing E2E requires a valid disposable-project URL.");
   }
+  const loopbackHosts = new Set(["127.0.0.1", "localhost", "::1", "[::1]"]);
+  if (expectedRef === "local") {
+    if (!loopbackHosts.has(target.hostname)) {
+      throw new Error("State-changing local E2E requires a loopback Supabase URL.");
+    }
+    return { url, anonKey, serviceKey };
+  }
+  const configuredRef = target.hostname.split(".")[0] ?? "";
   if (!configuredRef || configuredRef !== expectedRef) {
     throw new Error("State-changing E2E project-ref verification failed.");
   }
