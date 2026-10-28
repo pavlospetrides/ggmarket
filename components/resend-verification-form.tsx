@@ -1,8 +1,10 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
+import { useHydrated } from "./use-hydrated";
 
 export function ResendVerificationForm() {
+  const hydrated = useHydrated();
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState(false);
@@ -39,7 +41,7 @@ export function ResendVerificationForm() {
         <input className="input" id="verification-email" name="email" type="email" autoComplete="email" required />
       </div>
       {message && <p className={`text-sm ${error ? "text-[#ff9ca6]" : "text-[var(--success)]"}`} role={error ? "alert" : "status"}>{message}</p>}
-      <button className="btn-primary w-full" type="submit" disabled={busy}>
+      <button className="btn-primary w-full" type="submit" disabled={!hydrated || busy} data-hydrated={hydrated}>
         {busy ? "Sending…" : "Send a new confirmation email"}
       </button>
     </form>

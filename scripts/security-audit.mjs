@@ -1,9 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
+import { validateMutationEnvironment } from "./mutation-environment.mjs";
 
-const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-if (!url || !anonKey || !serviceKey) throw new Error("Supabase test environment is not configured");
+const { url, anonKey, serviceKey } = validateMutationEnvironment(process.env, { requireLocal: true });
 const admin = createClient(url, serviceKey, { auth: { persistSession: false } });
 const stamp = Date.now(); const password = `Gg!${crypto.randomUUID()}aA1`;
 const emailA = `ggmarket.qa.a.${stamp}@example.invalid`; const emailB = `ggmarket.qa.b.${stamp}@example.invalid`;
@@ -15,7 +13,7 @@ try {
   const clientA = createClient(url, anonKey, { auth: { persistSession: false } }); const clientB = createClient(url, anonKey, { auth: { persistSession: false } });
   if ((await clientA.auth.signInWithPassword({ email: emailA, password })).error || (await clientB.auth.signInWithPassword({ email: emailB, password })).error) throw new Error("Test sign-in failed");
   const { data: category } = await admin.from("categories").select("id").eq("active", true).limit(1).single();
-  const { data: publicListing, error: publicListingError } = await admin.from("listings").select("id").eq("status", "active").limit(1).single(); if (publicListingError) throw publicListingError;
+  const { data: publicListing, error: publicListingError } = await clientA.from("listings").insert({ seller_id: userA.id, category_id: category.id, title: `QA Listing ${stamp}`, description: "Temporary listing for cross-account authorization tests.", price: 234, currency: "EUR", condition: "good", status: "draft", location: "QA City", shipping_available: true, meetup_available: false, attributes: {} }).select("id").single(); if (publicListingError) throw publicListingError;
   const { data: ownProfile, error: ownProfileError } = await clientA.from("profiles").update({ display_name: "QA User A Updated", username: `qa_a_updated_${stamp}`.slice(0, 24) }).eq("id", userA.id).select("display_name").single(); record("owner can update profile", !ownProfileError && ownProfile?.display_name === "QA User A Updated");
   const { data: crossProfile, error: crossProfileError } = await clientB.from("profiles").update({ display_name: "Tampered" }).eq("id", userA.id).select("id"); record("other user cannot update profile", !crossProfileError && crossProfile?.length === 0);
   const { error: escalateError } = await clientB.from("profiles").update({ is_admin: true }).eq("id", userB.id); record("user cannot self-promote to admin", Boolean(escalateError));
@@ -36,10 +34,16 @@ try {
   const { error: reportError } = await clientB.from("reports").insert({ reporter_id: userB.id, listing_id: publicListing.id, reason: "spam", status: "actioned", moderated_by: userA.id }); record("user cannot set moderation fields on report insert", Boolean(reportError), reportError ? "blocked" : "CURRENT_SCHEMA_VULNERABLE");
   const { error: verificationError } = await clientB.from("seller_verifications").insert({ seller_id: userB.id, status: "verified" }); record("user cannot self-verify", Boolean(verificationError));
   const { error: crossStorageError } = await clientB.storage.from("listing-images").upload(`${userA.id}/${listing.id}/tamper.png`, new Blob(["not-an-image"], { type: "image/png" })); record("user cannot upload into another user's folder", Boolean(crossStorageError));
+  const spoofedStoragePath = `${userA.id}/${listing.id}/spoofed.png`;
+  const spoofedUpload = await clientA.storage.from("listing-images").upload(spoofedStoragePath, new Blob(["not-an-image"], { type: "image/png" }), { contentType: "image/png" });
+  record("owner cannot bypass trusted MIME validation with spoofed image bytes", Boolean(spoofedUpload.error), spoofedUpload.error ? "blocked" : "CURRENT_SCHEMA_VULNERABLE");
+  if (!spoofedUpload.error) await clientA.storage.from("listing-images").remove([spoofedStoragePath]);
   ownedStoragePath = `${userA.id}/${listing.id}/owner.png`;
   const png = Uint8Array.from(Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=", "base64"));
   const ownUpload = await clientA.storage.from("listing-images").upload(ownedStoragePath, png, { contentType: "image/png" });
-  record("owner can upload to owned listing namespace", !ownUpload.error);
+  record("direct owner uploads are disabled in favor of trusted image normalization", Boolean(ownUpload.error));
+  const trustedUpload = await admin.storage.from("listing-images").upload(ownedStoragePath, png, { contentType: "image/png" });
+  record("trusted server can store a validated listing image", !trustedUpload.error);
   const imageMetadata = await clientA.from("listing_images").insert({ listing_id: listing.id, storage_path: ownedStoragePath, sort_order: 0 });
   record("owner can attach uploaded image metadata", !imageMetadata.error);
   const crossOverwrite = await clientB.storage.from("listing-images").upload(ownedStoragePath, png, { contentType: "image/png", upsert: true });
@@ -57,8 +61,9 @@ try {
   await new Promise((resolve) => setTimeout(resolve, 2500));
   const expiredResponse = expiringUrl.data?.signedUrl ? await fetch(expiringUrl.data.signedUrl) : null;
   record("expired signed image URL is rejected", !expiringUrl.error && Boolean(expiredResponse && !expiredResponse.ok));
-  const { data: activeImage } = await admin.from("listing_images").select("storage_path,listing:listings!inner(status)").eq("listing.status", "active").limit(1).maybeSingle();
-  const activeSigned = activeImage ? await clientB.storage.from("listing-images").createSignedUrl(activeImage.storage_path, 60) : null;
+  const activated = await clientA.from("listings").update({ status: "active" }).eq("id", listing.id).select("id").single();
+  record("owner can publish a draft after attaching an image", !activated.error);
+  const activeSigned = activated.error ? null : await clientB.storage.from("listing-images").createSignedUrl(ownedStoragePath, 60);
   record("authenticated user can sign an active listing image", Boolean(activeSigned && !activeSigned.error));
 } finally {
   if (ownedStoragePath) await admin.from("listing_images").delete().eq("storage_path", ownedStoragePath);

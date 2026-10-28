@@ -33,7 +33,7 @@ async function login(page: Page, email: string) {
   });
   await page.goto("/login");
   await page.getByLabel("Email").fill(email);
-  await page.getByLabel("Password").fill(password);
+  await page.getByLabel("Password", { exact: true }).fill(password);
   await page.getByRole("button", { name: "Log in" }).click();
   try {
     await expect(page).toHaveURL(/\/profile/, { timeout: 20_000 });
@@ -148,10 +148,13 @@ test("real Supabase-backed Phase 1 flow", async ({ page }, testInfo) => {
       .getByRole("link", { name: "Sell" })
       .click();
   else await page.goto("/sell");
-  await page.locator('label:has(input[name="categoryId"])').first().click();
+  const categoryButton = page.getByRole("group", { name: "Listing category" }).getByRole("button").first();
+  await categoryButton.click();
+  await page.getByLabel("Platform family").selectOption({ index: 1 });
+  await page.getByLabel("Exact console model").selectOption({ index: 1 });
   await page.getByRole("button", { name: "Next", exact: true }).click();
   await page.getByRole("button", { name: "Back" }).click();
-  await expect(page.locator('input[name="categoryId"]:checked')).toHaveCount(1);
+  await expect(categoryButton).toHaveAttribute("aria-pressed", "true");
   await page.getByRole("button", { name: "Next", exact: true }).click();
   await page.getByLabel("Product or model").fill("E2E Test Console");
   await page.getByRole("button", { name: "Next", exact: true }).click();
@@ -224,35 +227,27 @@ test("real Supabase-backed Phase 1 flow", async ({ page }, testInfo) => {
   await login(page, emailB);
   await page.goto(`/listing/${listingId}`);
   const detailPanel = page.getByRole("complementary");
-  const favoriteRefresh = page.waitForResponse(
-    (response) =>
-      response.url().includes(`/listing/${listingId}`) &&
-      response.request().headers().rsc === "1",
-  );
   await detailPanel.getByRole("button", { name: "Add to favorites" }).click();
-  await favoriteRefresh;
   await expect(
     detailPanel.getByRole("button", { name: "Remove from favorites" }),
   ).toBeEnabled();
-  const { data: favoriteRow } = await admin
+  await expect.poll(async () => (await admin
     .from("favorites")
     .select("listing_id")
     .eq("user_id", userB.id)
     .eq("listing_id", listingId)
-    .single();
-  expect(favoriteRow?.listing_id).toBe(listingId);
+    .maybeSingle()).data?.listing_id).toBe(listingId);
   await page.goto("/favorites");
   await expect(page.getByText(originalTitle)).toBeVisible();
   await page.reload();
   await expect(page.getByText(originalTitle)).toBeVisible();
   await page.getByRole("button", { name: "Remove from favorites" }).click();
   await expect(page.getByText(originalTitle)).not.toBeVisible();
-  const { count: favoriteCount } = await admin
+  await expect.poll(async () => (await admin
     .from("favorites")
     .select("listing_id", { count: "exact", head: true })
     .eq("user_id", userB.id)
-    .eq("listing_id", listingId);
-  expect(favoriteCount).toBe(0);
+    .eq("listing_id", listingId)).count).toBe(0);
 
   await page.goto(`/listing/${listingId}`);
   await page.getByRole("button", { name: "Report listing" }).click();

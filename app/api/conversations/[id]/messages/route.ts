@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getUser } from "@/lib/auth";
 import { getPublicRequestOrigin } from "@/lib/request-security";
-import { readJson } from "@/lib/security";
+import { readJson, readUrlEncodedForm } from "@/lib/security";
 import { createClient } from "@/lib/supabase/server";
 import { conversationIdSchema, messageSchema } from "@/lib/validation";
 
@@ -11,7 +11,7 @@ type RouteContext = { params: Promise<{ id: string }> };
 
 function isFormRequest(request: Request) {
   const contentType = request.headers.get("content-type")?.toLowerCase() ?? "";
-  return contentType.includes("application/x-www-form-urlencoded") || contentType.includes("multipart/form-data");
+  return contentType.includes("application/x-www-form-urlencoded");
 }
 function publicOrigin(request: Request) {
   const url = new URL(request.url);
@@ -31,8 +31,8 @@ function formError(message: string, status: number) {
 
 async function requestBody(request: Request) {
   if (!isFormRequest(request)) return readJson(request);
-  const form = await request.formData();
-  return { body: form.get("message"), clientId: form.get("clientId") };
+  const form = await readUrlEncodedForm(request);
+  return { body: form?.get("message"), clientId: form?.get("clientId") };
 }
 
 function jsonOrFormError(request: Request, message: string, status: number) {
