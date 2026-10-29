@@ -6,6 +6,7 @@ const viewports = [
   { width: 375, height: 812 },
   { width: 390, height: 844 },
   { width: 393, height: 852 },
+  { width: 414, height: 896 },
   { width: 430, height: 932 },
   { width: 768, height: 1024 },
   { width: 820, height: 1180 },
@@ -14,6 +15,16 @@ const viewports = [
   { width: 1440, height: 900 },
   { width: 1920, height: 1080 },
 ];
+
+test.beforeEach(async ({ page }) => {
+  // Responsive geometry does not depend on decoded image bytes. Prevent slow
+  // remote image optimization from coupling this matrix to storage latency.
+  const transparentPixel = Buffer.from(
+    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=",
+    "base64",
+  );
+  await page.route("**/_next/image?**", (route) => route.fulfill({ status: 200, contentType: "image/png", body: transparentPixel }));
+});
 
 test("public frontend routes fit every required responsive width", async ({ page }) => {
   test.setTimeout(300_000);
@@ -47,8 +58,20 @@ test("public frontend routes fit every required responsive width", async ({ page
     for (const route of routes) {
       const response = await page.goto(route, { waitUntil: "domcontentloaded" });
       expect.soft(response?.ok(), `${route} should load at ${viewport.width}x${viewport.height}`).toBe(true);
-      const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
-      expect.soft(overflow, `${route} horizontal overflow at ${viewport.width}x${viewport.height}`).toBeLessThanOrEqual(1);
+      const geometry = await page.evaluate(() => ({
+        overflow: document.documentElement.scrollWidth - window.innerWidth,
+        offenders: [...document.querySelectorAll<HTMLElement>("body *")]
+          .map((element) => {
+            const box = element.getBoundingClientRect();
+            return { tag: element.tagName.toLowerCase(), id: element.id, className: element.className, left: box.left, right: box.right };
+          })
+          .filter((box) => box.left < -1 || box.right > window.innerWidth + 1)
+          .slice(0, 8),
+      }));
+      expect.soft(
+        geometry.overflow,
+        `${route} horizontal overflow at ${viewport.width}x${viewport.height}; offenders=${JSON.stringify(geometry.offenders)}`,
+      ).toBeLessThanOrEqual(1);
     }
 
     await page.goto("/");
@@ -79,6 +102,18 @@ test("mobile navigation and filter controls work at required phone sizes", async
         await nav.getByRole("link", { name: "Browse" }).click();
         await expect(page).toHaveURL(/\/browse/);
         await expect(page.getByRole("heading", { name: "Find what plays next" })).toBeVisible();
+
+        await page.goto("/");
+        await page.evaluate(() => scrollTo(0, document.documentElement.scrollHeight));
+        const [footerBox, navBox, navLinks] = await Promise.all([
+          page.locator("[data-site-footer]").boundingBox(),
+          nav.boundingBox(),
+          nav.getByRole("link").evaluateAll((links) => links.map((link) => link.getBoundingClientRect().toJSON())),
+        ]);
+        expect(footerBox).toBeTruthy();
+        expect(navBox).toBeTruthy();
+        const navTop = Math.min(navBox!.y, ...navLinks.map((box) => box.y));
+        expect(footerBox!.y + footerBox!.height).toBeLessThanOrEqual(navTop + 1);
       }
       await page.goto("/marketplace");
 

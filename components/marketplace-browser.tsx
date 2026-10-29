@@ -289,14 +289,14 @@ export function MarketplaceBrowser({
         </aside>
         <section className="min-w-0" aria-labelledby="marketplace-results-heading">
           <h2 id="marketplace-results-heading" className="sr-only">Marketplace results</h2>
-           <div className="mb-5 grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-2 rounded-[var(--radius-md)] bg-[var(--surface)] p-2 min-[375px]:grid-cols-[minmax(0,1fr)_auto_minmax(7.5rem,10rem)] min-[375px]:pl-3 md:flex md:justify-between md:gap-3">
-            <p className="text-sm text-[var(--muted)]">
+           <div data-marketplace-toolbar className="marketplace-result-toolbar">
+            <p data-marketplace-result-count className="marketplace-result-toolbar__count">
               <strong className="text-white">{total}</strong> {total === 1 ? "listing" : "listings"}
             </p>
-            <div className="contents md:flex md:gap-2">
+            <div className="marketplace-result-toolbar__controls">
               {hydrated ? <Sheet open={filters} onOpenChange={setFilters}>
                 <SheetTrigger asChild>
-                  <button type="button" className="btn-secondary touch-manipulation md:hidden">
+                  <button type="button" className="btn-secondary w-full touch-manipulation md:hidden">
                     <SlidersHorizontal className="size-4" aria-hidden="true" /> Filters {activeFilterCount > 0 && <span className="grid size-5 place-items-center rounded-full bg-[var(--primary)] text-[10px]">{activeFilterCount}</span>}
                   </button>
                 </SheetTrigger>
@@ -307,14 +307,14 @@ export function MarketplaceBrowser({
                   </SheetHeader>
                   <div className="overscroll-contain overflow-y-auto px-5 pb-[calc(2rem+env(safe-area-inset-bottom))]">{sidebar("mobile")}</div>
                 </SheetContent>
-              </Sheet> : <details className="relative md:hidden">
-                <summary className="btn-secondary min-h-11 cursor-pointer list-none touch-manipulation"><SlidersHorizontal className="size-4" aria-hidden="true" /> <span>Filters</span></summary>
-                <div className="fixed inset-x-0 bottom-0 z-[61] max-h-[92dvh] overflow-y-auto rounded-t-[1.5rem] bg-[var(--surface)] px-5 pb-[calc(2rem+env(safe-area-inset-bottom))] pt-5 shadow-2xl">
+              </Sheet> : <details className="relative min-w-0 md:hidden">
+                <summary className="btn-secondary min-h-11 w-full cursor-pointer list-none touch-manipulation"><SlidersHorizontal className="size-4" aria-hidden="true" /> <span>Filters</span></summary>
+                 <div className="fixed inset-x-0 bottom-0 z-[61] max-h-[92dvh] overflow-y-auto rounded-t-[1.5rem] bg-[var(--surface)] px-5 pb-[calc(2rem+env(safe-area-inset-bottom))] pt-5 shadow-2xl"> {/* taste-skill-ignore: no-JS bottom sheet is a real overlay */}
                   <h2 className="mb-4 text-xl font-bold">Filters</h2>
                   {sidebar("mobile")}
                 </div>
               </details>}
-              <form action={actionPath} className={hydrated ? "col-span-2 grid min-w-0 grid-cols-1 gap-2 min-[375px]:col-span-1 md:flex md:w-auto" : "col-span-2 grid min-w-0 grid-cols-[minmax(0,1fr)_auto] gap-2 md:flex md:w-auto"}>
+              <form action={actionPath} className={hydrated ? "min-w-0" : "col-span-2 grid min-w-0 grid-cols-[minmax(0,1fr)_auto] gap-2 md:flex md:w-auto"}>
                 {Object.entries(params)
                   .filter(
                     ([key, item]) =>

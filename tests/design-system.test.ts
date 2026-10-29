@@ -44,7 +44,7 @@ describe("premium marketplace visual foundation", () => {
     expect(dialog).toContain("DialogPrimitive.Root");
     expect(marketplace).toContain("<Sheet");
     expect(marketplace).toContain("{hydrated ? <Sheet");
-    expect(marketplace).toContain('<details className="relative md:hidden">');
+    expect(marketplace).toContain('<details className="relative min-w-0 md:hidden">');
     expect(marketplace).toContain("useTransition");
     expect(marketplace).toContain("startFilterNavigation(() => router.push(href, { scroll: false }))");
     expect(marketplace).toContain('htmlFor={`${prefix}-min-price`}');
@@ -80,6 +80,16 @@ describe("premium marketplace visual foundation", () => {
     expect(read("components/profile-view.tsx")).toContain('href="/messages"');
     expect(mobile).not.toContain("bg-gradient-to-br");
     expect(mobile).not.toContain("backdrop-blur-2xl");
+  });
+
+  it("owns mobile fixed-stack geometry in shared layout tokens", () => {
+    const css = read("app/globals.css");
+    const mobile = read("components/mobile-nav.tsx");
+
+    expect(css).toContain("--mobile-nav-height:");
+    expect(css).toContain("--mobile-action-height:");
+    expect(css).toContain(".mobile-navigation");
+    expect(mobile).toContain('className="mobile-navigation md:hidden"');
   });
 
   it("keeps Browse search-first on mobile with valid landmarks", () => {
