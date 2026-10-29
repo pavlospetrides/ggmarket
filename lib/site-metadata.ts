@@ -77,3 +77,24 @@ export const PUBLIC_PAGE_SOCIAL_METADATA = {
     path: "/cookies",
   }),
 } satisfies Record<string, Metadata>;
+
+export function buildMarketplaceMetadata(category: { name: string; slug: string } | null): Metadata {
+  if (!category) {
+    return {
+      title: "Gaming marketplace",
+      description: "Browse gaming hardware, consoles, games, accessories, trades, and wanted listings on GGMarket.",
+      ...PUBLIC_PAGE_SOCIAL_METADATA.marketplace,
+    };
+  }
+  const title = `${category.name} marketplace`;
+  const description = `Browse ${category.name} listings, trades, and wanted posts on GGMarket.`;
+  return {
+    title,
+    description,
+    ...buildSocialMetadata({
+      title,
+      description,
+      path: `/marketplace?category=${encodeURIComponent(category.slug)}`,
+    }),
+  };
+}

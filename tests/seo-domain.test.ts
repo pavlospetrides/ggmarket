@@ -2,13 +2,13 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import manifest from "../app/manifest";
 import robots from "../app/robots";
-import sitemap from "../app/sitemap";
 import {
   DEFAULT_SOCIAL_IMAGE,
   PUBLIC_PAGE_SOCIAL_METADATA,
   buildSocialMetadata,
 } from "../lib/site-metadata";
 import { CANONICAL_SITE_ORIGIN } from "../lib/site-url";
+import { buildStaticPublicEntries } from "../lib/sitemap-public";
 
 const read = (path: string) => readFileSync(new URL(`../${path}`, import.meta.url), "utf8");
 
@@ -40,7 +40,9 @@ describe("canonical SEO URLs", () => {
         images: [DEFAULT_SOCIAL_IMAGE.url],
       },
     });
-    expect(read(file)).toContain(`PUBLIC_PAGE_SOCIAL_METADATA.${key}`);
+    const source = read(file);
+    if (key === "marketplace") expect(source).toContain("buildMarketplaceMetadata");
+    else expect(source).toContain(`PUBLIC_PAGE_SOCIAL_METADATA.${key}`);
   });
 
   it("keeps the root metadata base on the canonical production origin", () => {
@@ -48,10 +50,16 @@ describe("canonical SEO URLs", () => {
     expect(CANONICAL_SITE_ORIGIN).toBe("https://ggmarket.eu");
   });
 
+  it("gives active marketplace categories self-canonical social metadata", () => {
+    const source = read("app/marketplace/page.tsx");
+    expect(source).toContain("generateMetadata");
+    expect(source).toContain("buildMarketplaceMetadata");
+  });
+
   it("publishes only public canonical routes in the sitemap", () => {
-    const entries = sitemap();
+    const entries = buildStaticPublicEntries();
     expect(entries.map((entry) => entry.url)).toEqual([
-      "https://ggmarket.eu",
+      "https://ggmarket.eu/",
       "https://ggmarket.eu/browse",
       "https://ggmarket.eu/marketplace",
       "https://ggmarket.eu/privacy",
@@ -68,6 +76,9 @@ describe("canonical SEO URLs", () => {
       userAgent: "*",
       allow: "/",
       disallow: expect.arrayContaining(["/api/", "/admin", "/messages", "/test-harness/"]),
+    }));
+    expect(rules.rules).toEqual(expect.objectContaining({
+      disallow: expect.arrayContaining(["/profile$", "/search", "/offline"]),
     }));
   });
 
