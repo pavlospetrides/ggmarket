@@ -86,11 +86,12 @@ export function SellWizard({ categories }: { categories: Category[] }) {
   const values = useWatch({ control: form.control });
   const hasUnsavedChanges = form.formState.isDirty || photos.length > 0;
   const category = categories.find((item) => item.id === values.categoryId);
+  const previewListingAttributes = buildListingTaxonomyAttributes(taxonomySelection, taxonomyAttributes);
   const previewTaxonomyAttributes = category
-    ? Object.entries(buildListingTaxonomyAttributes(taxonomySelection, taxonomyAttributes))
+    ? Object.entries(previewListingAttributes)
       .filter(([key]) => key !== "taxonomy_version" && !key.startsWith("_"))
       .slice(0, 8)
-      .map(([key, attributeValue]) => formatTaxonomyAttribute(key, attributeValue))
+      .map(([key, attributeValue]) => formatTaxonomyAttribute(key, attributeValue, category.slug, previewListingAttributes))
     : [];
   const error = (name: keyof Values) => form.formState.errors[name]?.message;
 

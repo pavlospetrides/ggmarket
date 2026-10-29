@@ -53,6 +53,13 @@ describe("taxonomy UI integrity contracts", () => {
     expect(source).toContain("previewTaxonomyAttributes");
     expect(source).toContain("formatTaxonomyAttribute");
     expect(source).toContain("Preview specifications");
+    expect(source).toContain("formatTaxonomyAttribute(key, attributeValue, category.slug, previewListingAttributes)");
+  });
+
+  it("formats published listing specifications with their category schema", () => {
+    expect(read("app/listing/[id]/page.tsx")).toContain(
+      "formatTaxonomyAttribute(key, value, item.category.slug, item.attributes)",
+    );
   });
 
   it("does not require untouched taxonomy fields during ordinary legacy edits", () => {

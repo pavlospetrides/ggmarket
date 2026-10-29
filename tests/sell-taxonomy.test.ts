@@ -82,4 +82,32 @@ describe("seller taxonomy payloads", () => {
       intent: "sale",
     });
   });
+
+  it("keeps Gaming PC specifications and removes stale game-only values", () => {
+    expect(buildListingTaxonomyAttributes(
+      { categorySlug: "gaming-pcs", subcategory: "complete-gaming-pc" },
+      { cpu: "Ryzen 7", gpu: "RTX 4070", ram: "16 GB", storage: "1 TB", pegi: "16", genre: "action" },
+    )).toEqual({
+      taxonomy_version: "1",
+      subcategory: "complete-gaming-pc",
+      cpu: "Ryzen 7",
+      gpu: "RTX 4070",
+      ram: "16 GB",
+      storage: "1 TB",
+    });
+  });
+
+  it("keeps game specifications and removes stale PC-only values", () => {
+    expect(buildListingTaxonomyAttributes(
+      { categorySlug: "games", family: "playstation", platform: "ps5" },
+      { pegi: "16", genre: "action", ram: "16 GB", cpu: "Ryzen 7" },
+    )).toEqual({
+      taxonomy_version: "1",
+      subcategory: "game",
+      family: "playstation",
+      platform: "ps5",
+      pegi: "16",
+      genre: "action",
+    });
+  });
 });

@@ -99,7 +99,7 @@ export default async function ListingPage({
             {orderedAttributes.length ? (
               <dl className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-px overflow-hidden rounded-[var(--radius-md)] bg-[var(--border)]">
                 {orderedAttributes.map(([key, value]) => {
-                    const formatted = formatTaxonomyAttribute(key, value);
+                    const formatted = formatTaxonomyAttribute(key, value, item.category.slug, item.attributes);
                     return (
                     <div
                       key={key}

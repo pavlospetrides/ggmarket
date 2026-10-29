@@ -44,14 +44,21 @@ export function MarketplaceBrowser({
   const resolvedTaxonomy = useMemo(() => resolveTaxonomyQuery(params), [params]);
   const selectedCategorySlug = value(params, "category") || resolvedTaxonomy.category || "";
   const selectedRoot = getTaxonomyRoot(selectedCategorySlug);
-  const taxonomyDisplayParams = { ...params, ...(selectedCategorySlug ? { category: selectedCategorySlug } : {}), ...Object.fromEntries(resolvedTaxonomy.filters.map((filter) => [filter.key, String(filter.value)])) };
+  const taxonomyDisplayParams = useMemo(() => ({
+    ...params,
+    ...(selectedCategorySlug ? { category: selectedCategorySlug } : {}),
+    ...Object.fromEntries(resolvedTaxonomy.filters.map((filter) => [filter.key, String(filter.value)])),
+  }), [params, resolvedTaxonomy, selectedCategorySlug]);
   const resolvedTaxonomyValue = (key: string) => value(params, key) || String(resolvedTaxonomy.filters.find((filter) => filter.key === key)?.value ?? "");
   const activeFilters = useMemo(() => [...filterKeys.flatMap((key) => {
     const current = value(params, key);
     if (!current) return [];
     const label = key === "category" ? categories.find((item) => item.slug === current)?.name ?? current : current.replaceAll("_", " ");
     return [{ key, label }];
-  }), ...taxonomyFilterEntries(params).map((filter) => ({ key: filter.key, label: formatTaxonomyAttribute(filter.key, filter.value).value }))], [categories, params]);
+  }), ...taxonomyFilterEntries(params).map((filter) => ({
+    key: filter.key,
+    label: formatTaxonomyAttribute(filter.key, filter.value, selectedCategorySlug, taxonomyDisplayParams as ListingAttributes).value,
+  }))], [categories, params, selectedCategorySlug, taxonomyDisplayParams]);
   const activeFilterCount = activeFilters.length;
   const hasStructuredFilters = taxonomyFilterEntries(taxonomyDisplayParams).length > 0;
   const categoryHref = (category: string) => {
