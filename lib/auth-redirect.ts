@@ -1,7 +1,7 @@
-import { PRODUCTION_SITE_ORIGIN } from "./request-security";
+import { getApplicationOrigin } from "./site-url";
 
 export function buildAuthCallbackUrl(currentOrigin: string, next: string, welcome = false) {
-  const origin = process.env.NODE_ENV === "production" ? PRODUCTION_SITE_ORIGIN : new URL(currentOrigin).origin;
+  const origin = getApplicationOrigin(currentOrigin, process.env, true);
   const callback = new URL("/auth/callback", origin);
   callback.searchParams.set("next", next);
   if (welcome) callback.searchParams.set("welcome", "1");

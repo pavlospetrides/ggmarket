@@ -9,10 +9,12 @@ import { SearchBar } from "@/components/search-bar";
 import { TaxonomyNavigation } from "@/components/taxonomy-navigation";
 import { getUser } from "@/lib/auth";
 import { getBrowseData, getCategories } from "@/lib/data";
+import { PUBLIC_PAGE_SOCIAL_METADATA } from "@/lib/site-metadata";
 
 export const metadata: Metadata = {
   title: "Browse gaming gear",
   description: "Discover fresh gaming gear, popular listings, retro finds, trades, and wanted posts on GGMarket.",
+  ...PUBLIC_PAGE_SOCIAL_METADATA.browse,
 };
 
 function Heading({ title, href }: { title: string; href?: string }) {

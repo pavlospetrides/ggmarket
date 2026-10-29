@@ -1,0 +1,41 @@
+id,method,route,parameters,status,detail,sources
+page-marketplace-search,GET,/marketplace,q;category;min;max;condition;location;seller;intent;sort;page;taxonomy filters,false_positive,SQLMap rejected its preliminary signal,app/marketplace/page.tsx;lib/data.ts;lib/validation.ts
+page-search,GET,/search,q;category;sort;page,false_positive,SQLMap rejected its preliminary signal,app/search/page.tsx;lib/data.ts
+page-listing-detail,GET,/listing/{id},id,not_injectable,SQLMap found no injectable parameter,app/listing/[id]/page.tsx;lib/data.ts
+page-public-profile,GET,/profile/{username},username;listingsPage;reviewsPage,not_injectable,SQLMap found no injectable parameter,app/profile/[username]/page.tsx;lib/data.ts
+api-reviews-get,GET,/api/reviews,sellerId,not_injectable,SQLMap found no injectable parameter,app/api/reviews/route.ts
+api-reviews-post,POST,/api/reviews,sellerId;rating;comment,not_injectable,SQLMap found no injectable parameter,app/api/reviews/route.ts
+api-listings-create,POST,/api/listings,title;description;price;category;condition;location;intent;taxonomy,not_run,static/manual target,app/api/listings/route.ts;lib/validation.ts
+api-listings-update,PATCH,/api/listings/{id},id;listing fields;publish,not_run,static/manual target,app/api/listings/[id]/route.ts
+api-listings-delete,DELETE,/api/listings/{id},id,not_run,static/manual target,app/api/listings/[id]/route.ts
+api-listing-images-upload,POST,/api/listings/{id}/images,id;multipart file,not_run,static/manual target,app/api/listings/[id]/images/route.ts
+api-listing-image-delete,DELETE,/api/listing-images/{id},id,not_run,static/manual target,app/api/listing-images/[id]/route.ts
+api-favorites-post,POST,/api/favorites,listingId;intent,not_injectable,SQLMap found no injectable parameter,app/api/favorites/route.ts
+api-recently-viewed,POST,/api/recently-viewed,listingId,not_injectable,SQLMap found no injectable parameter,app/api/recently-viewed/route.ts
+api-conversations-create,POST,/api/conversations,listingId,not_injectable,SQLMap found no injectable parameter,app/api/conversations/route.ts
+api-messages-get,GET,/api/conversations/{id}/messages,id,not_injectable,SQLMap found no injectable parameter,app/api/conversations/[id]/messages/route.ts
+api-messages-post,POST,/api/conversations/{id}/messages,id;body;clientId,not_injectable,SQLMap found no injectable parameter,app/api/conversations/[id]/messages/route.ts
+api-offers-create,POST,/api/offers,conversationId;amount;parentOfferId,not_injectable,SQLMap found no injectable parameter,app/api/offers/route.ts
+api-offers-respond,PATCH,/api/offers/{id},id;action,not_run,static/manual target,app/api/offers/[id]/route.ts
+api-trades-create,POST,/api/trades,conversationId;offeredListingId;cashAdjustment;note,not_injectable,SQLMap found no injectable parameter,app/api/trades/route.ts
+api-trades-respond,PATCH,/api/trades/{id},id;action,not_run,static/manual target,app/api/trades/[id]/route.ts
+api-saved-searches-create,POST,/api/saved-searches,name;query;category;filters,not_injectable,SQLMap found no injectable parameter,app/api/saved-searches/route.ts
+api-saved-searches-update,PATCH,/api/saved-searches/{id},id;name;enabled;filters,not_run,static/manual target,app/api/saved-searches/[id]/route.ts
+api-notifications-get,GET,/api/notifications,,not_run,static/manual target,app/api/notifications/route.ts
+api-notifications-patch,PATCH,/api/notifications,id;ids;all,not_run,static/manual target,app/api/notifications/route.ts
+api-reports-create,POST,/api/reports,listingId;reason;details,not_injectable,SQLMap found no injectable parameter,app/api/reports/route.ts
+api-profile-update,PATCH,/api/profile,username;displayName;location;bio,not_run,static/manual target,app/api/profile/route.ts
+api-item-verification,POST,/api/verification/item,listingId,not_injectable,SQLMap found no injectable parameter,app/api/verification/item/route.ts
+api-admin-reports,PATCH,/api/admin/reports,reportId;listingId;action,not_run,static/manual target,app/api/admin/reports/route.ts
+api-email-verification,POST,/api/verification/email,authenticated email,not_run,static/manual target,app/api/verification/email/route.ts
+page-private-account-reads,GET,"/profile, /favorites, /messages, /notifications, /saved-searches, /admin",authenticated identity;page where applicable,not_run,static/manual target,app/profile/page.tsx;app/favorites/page.tsx;app/messages/page.tsx;app/notifications/page.tsx;app/saved-searches/page.tsx;app/admin/page.tsx
+page-conversation,GET,/messages/{id},id,not_run,static/manual target,app/messages/[id]/page.tsx;lib/phase2-data.ts
+auth-login,POST,/auth/login,email;password,not_run,static/manual target,app/auth/login/route.ts
+auth-register,POST,/auth/register,username;email;password,not_run,static/manual target,app/auth/register/route.ts;supabase/migrations
+auth-forgot-password,POST,/auth/forgot-password,email,not_run,static/manual target,app/auth/forgot-password/route.ts
+auth-logout,POST,/auth/logout,,not_run,static/manual target,app/auth/logout/route.ts
+auth-callback,GET,/auth/callback,code;token_hash;type;next;welcome,not_run,static/manual target,app/auth/callback/route.ts
+rpc-search-listings,RPC,Supabase RPC search_listings,query;filters;sort;pagination,not_run,static/manual target,lib/data.ts;supabase/migrations/202610030001_add_search_listings_rpc.sql
+rpc-marketplace-mutations,RPC,Supabase offer/trade/conversation RPCs,typed UUIDs;amount;action;note,not_run,static/manual target,supabase/migrations/202610120001_add_marketplace_workflows.sql
+db-dynamic-sql-migrations,SQL,migration bootstrap/maintenance functions,catalog-derived schema/column names;hard-coded table names,not_run,static/manual target,supabase/migrations/202610030003_fix_saved_search_similarity.sql;supabase/migrations/202610030005_add_updated_at_triggers.sql;supabase/migrations/202610200001_harden_profile_constraints.sql;supabase/migrations/202610280002_harden_security_definer_search_paths.sql
+db-security-definer-functions,SQL,SECURITY DEFINER functions and triggers,RPC arguments;NEW/OLD row values;auth.uid(),not_run,static/manual target,supabase/migrations/202610280002_harden_security_definer_search_paths.sql

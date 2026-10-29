@@ -7,7 +7,8 @@ import { MobileNav } from "@/components/mobile-nav";
 import { ServiceWorkerRegistration } from "@/components/service-worker-registration";
 import { NotificationCenter } from "@/components/notification-center";
 import { SiteFooter } from "@/components/site-footer";
-import { PRODUCTION_SITE_ORIGIN } from "@/lib/request-security";
+import { CANONICAL_SITE_ORIGIN } from "@/lib/site-url";
+import { PUBLIC_PAGE_SOCIAL_METADATA } from "@/lib/site-metadata";
 
 const geist = Geist({
   subsets: ["latin"],
@@ -16,10 +17,11 @@ const geist = Geist({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? PRODUCTION_SITE_ORIGIN),
+  metadataBase: new URL(CANONICAL_SITE_ORIGIN),
   title: { default: "GGMarket — The marketplace for gamers", template: "%s | GGMarket" },
   description: "Buy and sell gaming hardware, games, and gear with gamers near you.",
-  openGraph: { title: "GGMarket", description: "Buy. Sell. Trade. Upgrade.", type: "website", images: [{ url: "/brand/ggmarket-open-graph.png", width: 1200, height: 630, alt: "GGMarket — Buy. Sell. Trade. Upgrade." }] },
+  openGraph: PUBLIC_PAGE_SOCIAL_METADATA.home.openGraph,
+  twitter: PUBLIC_PAGE_SOCIAL_METADATA.home.twitter,
 };
 export const viewport: Viewport = { themeColor: "#07090e", colorScheme: "dark" };
 

@@ -1,6 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { buildContentSecurityPolicy, isTrustedMutationRequest } from "@/lib/request-security";
+import { getCanonicalRedirectUrl } from "./lib/site-url";
 import {
   getSupabaseCookieOptions,
   hasSupabaseAuthStorageCookie,
@@ -35,6 +36,11 @@ function secure(response: NextResponse, request: NextRequest) {
 }
 
 export async function proxy(request: NextRequest) {
+  const canonicalRedirect = getCanonicalRedirectUrl(request.nextUrl);
+  if (canonicalRedirect) {
+    return secure(NextResponse.redirect(canonicalRedirect, 308), request);
+  }
+
   if (
     (request.nextUrl.pathname.startsWith("/api/") ||
       request.nextUrl.pathname.startsWith("/auth/")) &&
