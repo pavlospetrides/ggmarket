@@ -27,6 +27,7 @@ export function MobileNav() {
           <Link
             key={href}
             href={href}
+            prefetch={label === "Browse" ? undefined : false}
             aria-current={selected ? "page" : undefined}
             className={`flex min-h-12 flex-col items-center justify-center gap-1 rounded-xl text-[13px] font-bold transition-colors ${selected ? "text-[var(--primary-hover)]" : "text-[var(--muted)]"}`}
           >
@@ -36,6 +37,7 @@ export function MobileNav() {
         )})}
         <Link
           href="/sell"
+          prefetch={false}
           aria-current={pathname.startsWith("/sell") ? "page" : undefined}
           className="-mt-6 flex min-h-12 flex-col items-center justify-center gap-1 text-[13px] font-extrabold"
         >
@@ -50,6 +52,7 @@ export function MobileNav() {
           <Link
             key={href}
             href={href}
+            prefetch={false}
             aria-current={selected ? "page" : undefined}
             className={`flex min-h-12 flex-col items-center justify-center gap-1 rounded-xl text-[13px] font-bold transition-colors ${selected ? "text-[var(--primary-hover)]" : "text-[var(--muted)]"}`}
           >

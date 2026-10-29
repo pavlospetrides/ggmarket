@@ -248,9 +248,9 @@ export function MarketplaceBrowser({
         </select>
       </div>
       <div className="grid grid-cols-2 gap-2">
-        <a href={resetHref} className="btn-secondary">
+        <Link prefetch={false} href={resetHref} className="btn-secondary">
           Reset
-        </a>
+        </Link>
         <button className="btn-primary w-full" disabled={filterNavigationPending}>Apply filters</button>
       </div>
     </form>
@@ -350,16 +350,16 @@ export function MarketplaceBrowser({
             </div>
           </div>
           {activeFilters.length > 0 && <div className="mb-5 flex flex-wrap items-center gap-2" role="group" aria-label="Active filters">
-            {activeFilters.map((filter) => <Link key={filter.key} href={withoutFilter(filter.key)} className="inline-flex min-h-11 items-center rounded-full bg-[var(--surface-alt)] px-4 text-sm font-semibold capitalize text-[var(--text-secondary)] hover:text-white" aria-label={`Remove ${filter.key} filter: ${filter.label}`}>{filter.label}<X className="ml-2 size-3.5" aria-hidden="true" /></Link>)}
-            <Link href={resetHref} className="inline-flex min-h-11 items-center px-2 text-sm font-semibold text-[var(--primary-hover)]">Clear all</Link>
+            {activeFilters.map((filter) => <Link prefetch={false} key={filter.key} href={withoutFilter(filter.key)} className="inline-flex min-h-11 items-center rounded-full bg-[var(--surface-alt)] px-4 text-sm font-semibold capitalize text-[var(--text-secondary)] hover:text-white" aria-label={`Remove ${filter.key} filter: ${filter.label}`}>{filter.label}<X className="ml-2 size-3.5" aria-hidden="true" /></Link>)}
+            <Link prefetch={false} href={resetHref} className="inline-flex min-h-11 items-center px-2 text-sm font-semibold text-[var(--primary-hover)]">Clear all</Link>
           </div>}
           {items.length ? (
             <>
               <ListingGrid listings={items} viewerId={viewerId} favoriteIds={new Set(favoriteIds)} eagerFirst sparseEditorial />
               {total > pageSize && <nav className="mt-9 flex items-center justify-between gap-3 pt-5" aria-label="Marketplace pages">
-                {page > 1 ? <Link className="btn-secondary" href={pageHref(actionPath, params, page - 1)}>Previous</Link> : <span />}
+                {page > 1 ? <Link prefetch={false} className="btn-secondary" href={pageHref(actionPath, params, page - 1)}>Previous</Link> : <span />}
                 <p className="text-sm text-[var(--muted)]">Page <strong className="text-white">{page}</strong> of {Math.ceil(total / pageSize)}</p>
-                {page < Math.ceil(total / pageSize) ? <Link className="btn-secondary" href={pageHref(actionPath, params, page + 1)}>Next</Link> : <span />}
+                {page < Math.ceil(total / pageSize) ? <Link prefetch={false} className="btn-secondary" href={pageHref(actionPath, params, page + 1)}>Next</Link> : <span />}
               </nav>}
             </>
           ) : (
@@ -370,9 +370,9 @@ export function MarketplaceBrowser({
                 <p className="mt-2 text-[var(--muted)]">
                   {hasStructuredFilters ? "Structured filters only match listings categorized with those details. Older or unclassified listings may not appear; remove a specification filter to widen the results." : "Try widening your filters or be the first to list one."}
                 </p>
-                <a href="/sell" className="btn-primary mt-5">
+                <Link prefetch={false} href="/sell" className="btn-primary mt-5">
                   Create a listing
-                </a>
+                </Link>
               </div>
             </div>
           )}

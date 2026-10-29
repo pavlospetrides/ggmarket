@@ -2,6 +2,7 @@ import {
   createClient as createSupabaseClient,
   type SupabaseClient,
 } from "@supabase/supabase-js";
+import { cache } from "react";
 import { createClient as createServerClient } from "./supabase/server";
 import { normalizeListingPage } from "./pagination";
 import { resolveTaxonomyQuery } from "./gaming-taxonomy";
@@ -391,7 +392,7 @@ export async function getBrowseData(userId?: string): Promise<BrowseData> {
   };
 }
 
-export async function getListing(
+export const getListing = cache(async function getListing(
   id: string,
   includeOwnedPrivate = false,
 ): Promise<Listing | null> {
@@ -407,9 +408,9 @@ export async function getListing(
   return (
     (await enrichRows(supabase, [data as unknown as ListingRow]))[0] ?? null
   );
-}
+});
 
-export async function getProfileByUsername(
+export const getProfileByUsername = cache(async function getProfileByUsername(
   username: string,
   listingPageInput: string | undefined = undefined,
   reviewPageInput: string | undefined = undefined,
@@ -436,22 +437,26 @@ export async function getProfileByUsername(
   const reviewPageSize = 10;
   const requestedListingPage = Math.max(1, Number.parseInt(listingPageInput ?? "1", 10) || 1);
   const requestedReviewPage = Math.max(1, Number.parseInt(reviewPageInput ?? "1", 10) || 1);
-  let { data: rows, error: listingError, count: listingCount } = await supabase
-    .from("listings")
-    .select(listingSelect, { count: "exact" })
-    .eq("seller_id", profile.id)
-    .eq("status", "active")
-    .order("published_at", { ascending: false })
-    .range((requestedListingPage - 1) * listingPageSize, requestedListingPage * listingPageSize - 1);
-  let { data: reviewRows, error: reviewError, count: reviewCount } = await supabase
-    .from("reviews")
-    .select(
-      "id,reviewer_id,rating,comment,created_at,reviewer:profiles!reviews_reviewer_id_fkey(display_name)",
-      { count: "exact" },
-    )
-    .eq("seller_id", profile.id)
-    .order("created_at", { ascending: false })
-    .range((requestedReviewPage - 1) * reviewPageSize, requestedReviewPage * reviewPageSize - 1);
+  const [listingResult, reviewResult] = await Promise.all([
+    supabase
+      .from("listings")
+      .select(listingSelect, { count: "exact" })
+      .eq("seller_id", profile.id)
+      .eq("status", "active")
+      .order("published_at", { ascending: false })
+      .range((requestedListingPage - 1) * listingPageSize, requestedListingPage * listingPageSize - 1),
+    supabase
+      .from("reviews")
+      .select(
+        "id,reviewer_id,rating,comment,created_at,reviewer:profiles!reviews_reviewer_id_fkey(display_name)",
+        { count: "exact" },
+      )
+      .eq("seller_id", profile.id)
+      .order("created_at", { ascending: false })
+      .range((requestedReviewPage - 1) * reviewPageSize, requestedReviewPage * reviewPageSize - 1),
+  ]);
+  let { data: rows, error: listingError, count: listingCount } = listingResult;
+  let { data: reviewRows, error: reviewError, count: reviewCount } = reviewResult;
   const listingPage = normalizeListingPage(listingPageInput, listingCount ?? 0, listingPageSize);
   const reviewPage = normalizeListingPage(reviewPageInput, reviewCount ?? 0, reviewPageSize);
   if (listingPage !== requestedListingPage) {
@@ -507,10 +512,10 @@ export async function getProfileByUsername(
     verified: Boolean(verification),
     memberSince: profile.created_at,
   };
-  const sellerListings = await enrichRows(
-    supabase,
-    (rows ?? []) as unknown as ListingRow[],
-  );
+  const [sellerListings, { data: statsData }] = await Promise.all([
+    enrichRows(supabase, (rows ?? []) as unknown as ListingRow[]),
+    supabase.rpc("seller_marketplace_stats", { target_seller: profile.id }),
+  ]);
   const mappedReviews: Review[] = (reviewRows ?? []).map((review) => ({
     id: review.id,
     rating: review.rating,
@@ -521,9 +526,6 @@ export async function getProfileByUsername(
       "GGMarket member",
     reviewerId: review.reviewer_id,
   }));
-  const { data: statsData } = await supabase.rpc("seller_marketplace_stats", {
-    target_seller: profile.id,
-  });
   const rawStats =
     statsData && typeof statsData === "object" && !Array.isArray(statsData)
       ? (statsData as Record<string, unknown>)
@@ -546,7 +548,7 @@ export async function getProfileByUsername(
       reviews: { page: reviewPage, total: reviewCount ?? mappedReviews.length, pageSize: reviewPageSize },
     },
   };
-}
+});
 
 export async function getCurrentProfile(userId: string): Promise<ProfileRow> {
   const supabase = await createServerClient();
@@ -663,16 +665,14 @@ export async function getListingExtras(listing: Listing) {
       };
     }
   }
+  const [similar, other] = await Promise.all([
+    enrichRows(supabase, (similarRows ?? []) as unknown as ListingRow[]),
+    enrichRows(supabase, (otherRows ?? []) as unknown as ListingRow[]),
+  ]);
   return {
     favoriteCount: Number(favoriteCount ?? 0),
     priceInsight,
-    similar: await enrichRows(
-      supabase,
-      (similarRows ?? []) as unknown as ListingRow[],
-    ),
-    other: await enrichRows(
-      supabase,
-      (otherRows ?? []) as unknown as ListingRow[],
-    ),
+    similar,
+    other,
   };
 }
