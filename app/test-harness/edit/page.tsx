@@ -7,6 +7,7 @@ export const dynamic = "force-dynamic";
 const categories: Category[] = [
   { id: "11111111-1111-4111-8111-111111111111", name: "Games", slug: "games", icon: "gamepad" },
   { id: "22222222-2222-4222-8222-222222222222", name: "PC Components", slug: "pc-components", icon: "cpu" },
+  { id: "77777777-7777-4777-8777-777777777777", name: "Gaming PCs", slug: "gaming-pcs", icon: "monitor" },
 ];
 
 const listing: Listing = {
@@ -47,10 +48,29 @@ const listing: Listing = {
   },
 };
 
-export default function EditListingInteractionHarnessPage() {
+const gamingPcListing: Listing = {
+  ...listing,
+  title: "Restored Gaming PC draft",
+  description: "A deterministic draft fixture for category-specific specification restoration.",
+  status: "draft",
+  category: categories[2],
+  attributes: {
+    taxonomy_version: "1",
+    subcategory: "complete-gaming-pc",
+    product_name: "Custom Ryzen Gaming PC",
+    cpu: "Ryzen 7 7800X3D",
+    gpu: "RTX 4070",
+    ram: "16 GB",
+    storage: "1 TB NVMe",
+  },
+};
+
+export default async function EditListingInteractionHarnessPage({ searchParams }: { searchParams: Promise<{ fixture?: string }> }) {
   if (process.env.NODE_ENV === "production" && process.env.E2E_UI_HARNESS !== "1") notFound();
+  const params = await searchParams;
+  const selectedListing = params.fixture === "gaming-pc" ? gamingPcListing : listing;
   return <main className="container-page min-w-0 pb-28 pt-8">
     <h1 className="mb-6 text-3xl font-black">Edit listing interaction test harness</h1>
-    <ManageListingForm listing={listing} categories={categories} />
+    <ManageListingForm listing={selectedListing} categories={categories} />
   </main>;
 }
