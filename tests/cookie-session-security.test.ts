@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   getSupabaseCookieOptions,
+  hasBrowserSupabaseAuthCookie,
   hasSupabaseAuthStorageCookie,
   withPrivateNoStore,
 } from "../lib/supabase/cookie-security";
@@ -26,6 +27,12 @@ describe("Supabase cookie security", () => {
     expect(hasSupabaseAuthStorageCookie([{ name: "sb-project-ref-auth-token.1" }])).toBe(true);
     expect(hasSupabaseAuthStorageCookie([{ name: "sb-project-ref-auth-token-code-verifier" }])).toBe(true);
     expect(hasSupabaseAuthStorageCookie([{ name: "theme" }])).toBe(false);
+  });
+
+  it("recognizes browser-visible Supabase auth cookies without reading their values", () => {
+    expect(hasBrowserSupabaseAuthCookie("theme=dark; sb-project-ref-auth-token=encoded-value")).toBe(true);
+    expect(hasBrowserSupabaseAuthCookie("sb-project-ref-auth-token.0=chunk; theme=dark")).toBe(true);
+    expect(hasBrowserSupabaseAuthCookie("theme=dark; consent=essential")).toBe(false);
   });
 
   it("marks authentication responses private and non-cacheable", () => {
