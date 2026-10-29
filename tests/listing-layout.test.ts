@@ -25,11 +25,12 @@ describe("listing presentation contracts", () => {
 
   it("reserves content space for a reflowing mobile action row above navigation", () => {
     const source = page();
-    expect(source).toContain("pb-40");
+    expect(source).toContain("mobile-listing-page");
     expect(source).toContain("md:pb-12");
-    expect(source).toContain("bottom-[calc(78px+env(safe-area-inset-bottom))]");
-    expect(source).toMatch(/data-listing-actions="mobile"\s+className="[^"]*flex-wrap/);
-    expect(source).toMatch(/data-listing-actions="mobile"[\s\S]*?<strong className="[^"]*min-w-0[^"]*\[overflow-wrap:anywhere\]/);
+    expect(source).toContain('className="mobile-listing-actions md:hidden"');
+    const mobileActions = source.match(/data-listing-actions="mobile"[\s\S]*?<\/div>/)?.[0] ?? "";
+    expect(mobileActions).not.toContain('className="price');
+    expect(source).toContain('className="hidden md:block"');
   });
 
   it("releases the page animation containing block so fixed contact actions stay attached to the viewport", () => {

@@ -8,6 +8,7 @@ const phoneViewports = [
   { width: 375, height: 812 },
   { width: 390, height: 844 },
   { width: 393, height: 852 },
+  { width: 414, height: 896 },
   { width: 430, height: 932 },
 ];
 
@@ -38,6 +39,33 @@ test("marketplace toolbar fits every supported phone width after hydration", asy
       await expectNoHorizontalOverflow(page, viewport.width);
       await expect(page.getByRole("combobox", { name: "Sort listings" })).toBeEnabled();
       await expect(page.getByRole("button", { name: /^Filters/ })).toBeEnabled();
+    });
+  }
+});
+
+test("marketplace result context sits above equally reachable phone controls", async ({ page }) => {
+  for (const viewport of phoneViewports) {
+    await test.step(`${viewport.width}px`, async () => {
+      await page.setViewportSize(viewport);
+      await page.goto("/test-harness/marketplace", { waitUntil: "domcontentloaded" });
+      await expect(page.locator("html")).toHaveAttribute("data-gg-hydrated", "true", { timeout: 5_000 });
+      const toolbar = page.locator('[data-marketplace-toolbar]');
+      const count = toolbar.locator('[data-marketplace-result-count]');
+      const filters = toolbar.getByRole("button", { name: /^Filters/ });
+      const sort = toolbar.getByRole("combobox", { name: "Sort listings" });
+      const [countBox, filtersBox, sortBox] = await Promise.all([
+        count.boundingBox(),
+        filters.boundingBox(),
+        sort.boundingBox(),
+      ]);
+
+      expect(countBox).toBeTruthy();
+      expect(filtersBox).toBeTruthy();
+      expect(sortBox).toBeTruthy();
+      expect(countBox!.y + countBox!.height).toBeLessThanOrEqual(Math.min(filtersBox!.y, sortBox!.y));
+      expect(Math.abs(filtersBox!.y - sortBox!.y)).toBeLessThanOrEqual(1);
+      expect(filtersBox!.height).toBeGreaterThanOrEqual(44);
+      expect(sortBox!.height).toBeGreaterThanOrEqual(44);
     });
   }
 });

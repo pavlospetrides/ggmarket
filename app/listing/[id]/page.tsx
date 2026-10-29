@@ -79,7 +79,7 @@ export default async function ListingPage({
     .filter(([key]) => !key.startsWith("_") && key !== "taxonomy_version" && !isDeprecatedTaxonomyAttribute(key))
     .sort(([left], [right]) => (listingAttributeRank.get(left) ?? Number.MAX_SAFE_INTEGER) - (listingAttributeRank.get(right) ?? Number.MAX_SAFE_INTEGER) || left.localeCompare(right));
   return (
-    <div className="container-page min-w-0 pt-5 pb-40 md:pt-10 md:pb-12">
+    <div className="mobile-listing-page container-page min-w-0 pt-5 md:pt-10 md:pb-12">
       <ListingViewTracker listingId={id} />
       <nav className="mb-5 flex min-w-0 flex-wrap items-center gap-2 text-sm font-medium text-[var(--text-secondary)]" aria-label="Breadcrumb">
         <Link href="/marketplace" className="transition hover:text-white">Marketplace</Link> <span aria-hidden="true">/</span>
@@ -206,15 +206,17 @@ export default async function ListingPage({
                 Manage listing
               </Link>
             ) : (
-              <MessageSellerButton
-                listingId={item.id}
-                loggedIn={Boolean(user)}
-                label={
-                  item.attributes.intent === "wanted"
-                    ? "I have one"
-                    : "Message seller"
-                }
-              />
+              <div className="hidden md:block">
+                <MessageSellerButton
+                  listingId={item.id}
+                  loggedIn={Boolean(user)}
+                  label={
+                    item.attributes.intent === "wanted"
+                      ? "I have one"
+                      : "Message seller"
+                  }
+                />
+              </div>
             )}
             <div className="mt-4 flex flex-wrap items-center justify-center gap-x-3 gap-y-1">
               <span className="inline-flex min-h-11 items-center gap-1 text-sm tabular-nums text-[var(--text-secondary)]" aria-label={`${extras.favoriteCount} favorites`}>
@@ -284,11 +286,8 @@ export default async function ListingPage({
           </div>
         </section>
       )}
-      <div data-listing-actions="mobile" className="fixed inset-x-0 bottom-[calc(78px+env(safe-area-inset-bottom))] z-40 flex flex-wrap items-center gap-3 border-t border-[var(--border)] bg-[var(--surface)] px-[max(1rem,env(safe-area-inset-left))] py-3 pr-[max(1rem,env(safe-area-inset-right))] shadow-[0_-8px_24px_rgba(0,0,0,.2)] md:hidden"> {/* taste-skill-ignore: fixed mobile action bar is a real overlay */}
-        <strong className="price min-w-0 flex-1 basis-28 text-xl tabular-nums [overflow-wrap:anywhere]">
-          {priceLabel}
-        </strong>
-        {user?.id !== item.seller.id && (
+      {user?.id !== item.seller.id && (
+        <div data-listing-actions="mobile" className="mobile-listing-actions md:hidden"> {/* taste-skill-ignore: fixed mobile action bar is a real overlay */}
           <MessageSellerButton
             listingId={item.id}
             loggedIn={Boolean(user)}
@@ -297,8 +296,8 @@ export default async function ListingPage({
               item.attributes.intent === "wanted" ? "I have one" : "Message"
             }
           />
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 }
