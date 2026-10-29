@@ -1,25 +1,48 @@
 import type { Metadata } from "next";
+import { cache } from "react";
 import { MarketplaceBrowser } from "@/components/marketplace-browser";
 import { getPaginatedListings } from "@/lib/data";
 import { getCategories, getFavoriteIds } from "@/lib/data";
 import { getUser } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { isDeprecatedTaxonomyAttribute, sanitizeTaxonomyQueryParams } from "@/lib/gaming-taxonomy";
-import { PUBLIC_PAGE_SOCIAL_METADATA } from "@/lib/site-metadata";
+import { buildMarketplaceMetadata } from "@/lib/site-metadata";
 
-export const metadata: Metadata = {
-  title: "Gaming marketplace",
-  description: "Browse gaming hardware, consoles, games, accessories, trades, and wanted listings on GGMarket.",
-  ...PUBLIC_PAGE_SOCIAL_METADATA.marketplace,
-};
+const getCachedCategories = cache(getCategories);
 
-export default async function MarketplacePage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
+export async function generateMetadata({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}): Promise<Metadata> {
+  const params = await searchParams;
+  const categorySlug = typeof params.category === "string" ? params.category : null;
+  if (!categorySlug) return buildMarketplaceMetadata(null);
+  const category = (await getCachedCategories()).find((item) => item.slug === categorySlug) ?? null;
+  if (!category) return { ...buildMarketplaceMetadata(null), robots: { index: false, follow: true } };
+  return buildMarketplaceMetadata(category);
+}
+
+export default async function MarketplacePage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
   const params = await searchParams;
   if (Object.keys(params).some(isDeprecatedTaxonomyAttribute)) {
     const query = new URLSearchParams(sanitizeTaxonomyQueryParams(params)).toString();
     redirect(query ? `/marketplace?${query}` : "/marketplace");
   }
-  const [result, categories, user] = await Promise.all([getPaginatedListings(params), getCategories(), getUser()]);
+  const [result, categories, user] = await Promise.all([getPaginatedListings(params), getCachedCategories(), getUser()]);
   const favoriteIds = user ? [...await getFavoriteIds(user.id)] : [];
-  return <MarketplaceBrowser result={result} params={params} categories={categories} favoriteIds={favoriteIds} viewerId={user?.id ?? null} actionPath="/marketplace" />;
+  return (
+    <MarketplaceBrowser
+      result={result}
+      params={params}
+      categories={categories}
+      favoriteIds={favoriteIds}
+      viewerId={user?.id ?? null}
+      actionPath="/marketplace"
+    />
+  );
 }
