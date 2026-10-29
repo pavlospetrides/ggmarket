@@ -1,8 +1,10 @@
+import { CANONICAL_SITE_ORIGIN, getApplicationOrigin } from "./site-url";
+
 function firstHeaderValue(value: string | null) {
   return value?.split(",", 1)[0]?.trim() || "";
 }
 
-export const PRODUCTION_SITE_ORIGIN = "https://ggmarket-sage.vercel.app";
+export const PRODUCTION_SITE_ORIGIN = CANONICAL_SITE_ORIGIN;
 
 export function buildContentSecurityPolicy(isDevelopment: boolean) {
   const localSources = isDevelopment
@@ -42,26 +44,25 @@ export function isTrustedMutationRequest(headers: Headers, fallbackProtocol: str
 }
 
 export function getPublicRequestOrigin(headers: Headers, fallbackProtocol: string) {
-  if (process.env.NODE_ENV === "production") {
-    const configuredSiteUrl = process.env.NEXT_PUBLIC_SITE_URL;
-    try {
-      if (configuredSiteUrl && new URL(configuredSiteUrl).origin === PRODUCTION_SITE_ORIGIN) {
-        return PRODUCTION_SITE_ORIGIN;
-      }
-    } catch {
-      // Production auth redirects remain pinned to the canonical origin below.
-    }
-    return PRODUCTION_SITE_ORIGIN;
-  }
-
   const host = firstHeaderValue(headers.get("x-forwarded-host")) || firstHeaderValue(headers.get("host"));
   const forwardedProtocol = firstHeaderValue(headers.get("x-forwarded-proto"));
   const protocol = (forwardedProtocol || fallbackProtocol.replace(":", "")).toLowerCase();
-  if (!host || !["http", "https"].includes(protocol)) return null;
+  let requestOrigin: string | null = null;
 
-  try {
-    return new URL(`${protocol}://${host}`).origin;
-  } catch {
-    return null;
+  if (host && ["http", "https"].includes(protocol)) {
+    try {
+      requestOrigin = new URL(`${protocol}://${host}`).origin;
+    } catch {
+      requestOrigin = null;
+    }
   }
+
+  if (
+    process.env.NODE_ENV === "production"
+    || process.env.VERCEL_ENV === "production"
+    || process.env.VERCEL_ENV === "preview"
+  ) {
+    return getApplicationOrigin(requestOrigin, process.env);
+  }
+  return requestOrigin;
 }

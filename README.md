@@ -49,7 +49,7 @@ Open [http://localhost:3000](http://localhost:3000).
 | `NEXT_PUBLIC_SUPABASE_URL` | Browser/server | Supabase project URL |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Browser/server | Public anon key; RLS remains authoritative |
 | `SUPABASE_SERVICE_ROLE_KEY` | Server only | Required by the trusted image-normalization endpoint and destructive E2E/security audit cleanup; never expose in client code |
-| `NEXT_PUBLIC_SITE_URL` | Public | Canonical origin and auth callback base |
+| `NEXT_PUBLIC_SITE_URL` | Public | Canonical production origin (`https://ggmarket.eu`); localhost remains the local-development value |
 | `ADMIN_EMAILS` | Server only | Comma-separated allowlist used as an additional admin route guard |
 
 The service-role key is used only in a server-only module after user authorization and image decoding. It is also used by real-database E2E and adversarial audit cleanup. Never prefix it with `NEXT_PUBLIC_` or expose it to browser code.
@@ -57,7 +57,7 @@ The service-role key is used only in a server-only module after user authorizati
 ## Supabase configuration
 
 - Production email verification has an exact configuration checklist and copy-ready Confirm Signup template in [docs/auth/production-email-verification.md](docs/auth/production-email-verification.md).
-- In Authentication → URL Configuration, use `https://ggmarket-sage.vercel.app` as the production Site URL and add `https://ggmarket-sage.vercel.app/auth/callback` as an allowed Redirect URL. Keep `http://localhost:3000/auth/callback` only for local development.
+- In Authentication → URL Configuration, use `https://ggmarket.eu` as the production Site URL and add `https://ggmarket.eu/auth/callback` as an allowed Redirect URL. Keep `http://localhost:3000/auth/callback` only for local development. See the linked checklist for `www`, legacy-host, and preview handling.
 - Enable Email provider. Choose whether email confirmation is required for your environment.
 - The migration creates the public `listing-images` bucket with a 10 MB per-file limit and JPEG/PNG/WebP restrictions.
 - Create an account normally, then assign the first administrator only through a trusted SQL session:

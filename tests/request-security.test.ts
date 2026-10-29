@@ -62,17 +62,17 @@ describe("mutation origin validation", () => {
 
   it("uses the configured production origin instead of client-supplied forwarding headers", () => {
     vi.stubEnv("NODE_ENV", "production");
-    vi.stubEnv("NEXT_PUBLIC_SITE_URL", "https://ggmarket-sage.vercel.app");
+    vi.stubEnv("NEXT_PUBLIC_SITE_URL", "https://ggmarket.eu");
     const requestHeaders = headers({
       host: "internal:3000",
-      "x-forwarded-host": "attacker.example",
+      "x-forwarded-host": "attacker.vercel.app",
       "x-forwarded-proto": "https",
     });
 
-    expect(getPublicRequestOrigin(requestHeaders, "http:")).toBe("https://ggmarket-sage.vercel.app");
+    expect(getPublicRequestOrigin(requestHeaders, "http:")).toBe("https://ggmarket.eu");
     expect(isTrustedMutationRequest(new Headers({
       ...Object.fromEntries(requestHeaders.entries()),
-      origin: "https://attacker.example",
+      origin: "https://attacker.vercel.app",
       "sec-fetch-site": "cross-site",
     }), "http:")).toBe(false);
   });
@@ -85,7 +85,20 @@ describe("mutation origin validation", () => {
       host: "localhost:3000",
       "x-forwarded-host": "attacker.example",
       "x-forwarded-proto": "http",
-    }), "http:")).toBe("https://ggmarket-sage.vercel.app");
+    }), "http:")).toBe("https://ggmarket.eu");
+  });
+
+  it("uses the trusted Vercel deployment origin for preview authentication", () => {
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("VERCEL_ENV", "preview");
+    vi.stubEnv("VERCEL_URL", "ggmarket-git-auth-a1b2c3.vercel.app");
+    vi.stubEnv("NEXT_PUBLIC_SITE_URL", "https://ggmarket.eu");
+
+    expect(getPublicRequestOrigin(headers({
+      host: "internal:3000",
+      "x-forwarded-host": "attacker.example",
+      "x-forwarded-proto": "https",
+    }), "http:")).toBe("https://ggmarket-git-auth-a1b2c3.vercel.app");
   });
 
   it("rejects cross-site auth mutations in the application proxy", async () => {
@@ -99,6 +112,15 @@ describe("mutation origin validation", () => {
     }));
 
     expect(response.status).toBe(403);
+  });
+
+  it.each([
+    ["https://www.ggmarket.eu/marketplace?q=gpu", "https://ggmarket.eu/marketplace?q=gpu"],
+    ["https://ggmarket-sage.vercel.app/listing/abc?ref=old", "https://ggmarket.eu/listing/abc?ref=old"],
+  ])("redirects legacy public host %s to the canonical host", async (source, expected) => {
+    const response = await proxy(new NextRequest(source));
+    expect(response.status).toBe(308);
+    expect(response.headers.get("location")).toBe(expected);
   });
 });
 

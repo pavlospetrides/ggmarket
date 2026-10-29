@@ -1,5 +1,6 @@
 import { existsSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
+import { DEFAULT_SOCIAL_IMAGE } from "../lib/site-metadata";
 
 const read = (path: string) => readFileSync(new URL(`../${path}`, import.meta.url), "utf8");
 
@@ -34,6 +35,6 @@ describe("GGMarket brand identity", () => {
     expect(read("app/globals.css")).toContain(".footer-symbol { width: 4rem;");
     expect(read("app/globals.css")).toContain("font-size: clamp(2.2rem, 10.5vw, 3rem)");
     expect(read("app/manifest.ts")).toContain('/brand/ggmarket-mark-dark.svg');
-    expect(read("app/layout.tsx")).toContain('/brand/ggmarket-open-graph.png');
+    expect(DEFAULT_SOCIAL_IMAGE.url).toBe("https://ggmarket.eu/brand/ggmarket-open-graph.png");
   });
 });

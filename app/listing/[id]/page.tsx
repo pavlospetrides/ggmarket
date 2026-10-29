@@ -24,6 +24,8 @@ import { getUser } from "@/lib/auth";
 import { formatPrice, labelCondition } from "@/lib/constants";
 import { getFavoriteIds, getListing, getListingExtras } from "@/lib/data";
 import { formatTaxonomyAttribute, isDeprecatedTaxonomyAttribute } from "@/lib/gaming-taxonomy";
+import { buildCanonicalUrl } from "@/lib/site-url";
+import { buildSocialMetadata } from "@/lib/site-metadata";
 
 const LISTING_ATTRIBUTE_ORDER = [
   "product_name", "subcategory", "family", "platform", "model", "compatibility",
@@ -46,10 +48,16 @@ export async function generateMetadata({
   const { id } = await params;
   const item = await getListing(id);
   if (!item) return { title: "Listing unavailable" };
+  const description = item.description.slice(0, 155);
   return {
     title: item.title,
-    description: item.description.slice(0, 155),
-    openGraph: item.images[0] ? { images: [item.images[0]] } : undefined,
+    description,
+    ...buildSocialMetadata({
+      title: item.title,
+      description,
+      path: `/listing/${id}`,
+      image: item.images[0],
+    }),
   };
 }
 
@@ -212,7 +220,7 @@ export default async function ListingPage({
               <span className="inline-flex min-h-11 items-center gap-1 text-sm tabular-nums text-[var(--text-secondary)]" aria-label={`${extras.favoriteCount} favorites`}>
                 <Heart className="size-4 shrink-0" aria-hidden="true" /> {extras.favoriteCount}
               </span>
-              <ListingClientTools title={item.title} />
+              <ListingClientTools title={item.title} canonicalUrl={buildCanonicalUrl(`/listing/${id}`)} />
               <ReportButton listingId={item.id} />
             </div>
           </div>

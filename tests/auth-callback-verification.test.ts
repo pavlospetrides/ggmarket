@@ -70,7 +70,7 @@ describe("Supabase confirmation callback", () => {
     auth.getUser.mockResolvedValue({ data: { user: { email_confirmed_at: "2026-10-20T10:00:00Z" } }, error: null });
     const { GET } = await import("../app/auth/callback/route");
     const response = await GET(new Request("http://localhost:3000/auth/callback?token_hash=valid&type=email&next=%2Fsettings%2Fverification"));
-    expect(response.headers.get("location")).toBe("https://ggmarket-sage.vercel.app/settings/verification?status=verified");
+    expect(response.headers.get("location")).toBe("https://ggmarket.eu/settings/verification?status=verified");
   });
 
   it("preserves password recovery redirects without claiming account verification", async () => {

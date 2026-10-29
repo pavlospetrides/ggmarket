@@ -86,7 +86,7 @@ describe("native registration fallback", () => {
 
     expect(auth.signUp).toHaveBeenCalledWith(expect.objectContaining({
       options: expect.objectContaining({
-        emailRedirectTo: "https://ggmarket-sage.vercel.app/auth/callback?next=%2Fsettings%2Fverification&welcome=1",
+        emailRedirectTo: "https://ggmarket.eu/auth/callback?next=%2Fsettings%2Fverification&welcome=1",
       }),
     }));
   });
@@ -115,7 +115,7 @@ describe("native password-reset fallback", () => {
     await POST(formRequest("auth/forgot-password", { email: "iphone@example.invalid" }, "localhost:3000"));
 
     expect(auth.resetPasswordForEmail).toHaveBeenCalledWith("iphone@example.invalid", {
-      redirectTo: "https://ggmarket-sage.vercel.app/auth/callback?next=/reset-password",
+      redirectTo: "https://ggmarket.eu/auth/callback?next=/reset-password",
     });
   });
 });

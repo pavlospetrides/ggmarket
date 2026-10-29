@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import { ArrowRight, BadgeCheck, MessageCircle, PackageCheck, SearchCheck, ShieldCheck } from "lucide-react";
@@ -9,6 +10,9 @@ import { JellyfishHeroBackground } from "@/components/ui/jellyfish-hero-backgrou
 import { getUser } from "@/lib/auth";
 import { getFavoriteIds, getListings } from "@/lib/data";
 import { getRecentlyViewed } from "@/lib/phase2-data";
+import { PUBLIC_PAGE_SOCIAL_METADATA } from "@/lib/site-metadata";
+
+export const metadata: Metadata = PUBLIC_PAGE_SOCIAL_METADATA.home;
 
 export default async function HomePage() {
   const [recent, user] = await Promise.all([getListings({}, 8), getUser()]);

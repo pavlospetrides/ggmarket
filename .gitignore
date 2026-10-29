@@ -7,3 +7,12 @@ node_modules
 tsconfig.tsbuildinfo
 
 env.local
+
+# Generated SQLMap/Python artifacts may contain local authentication context.
+security/sqlmap/reports/sessions/
+security/sqlmap/reports/**/*.sqlite
+__pycache__/
+*.py[cod]
+
+# Browser automation snapshots can capture authenticated page state.
+.playwright-cli/

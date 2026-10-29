@@ -52,7 +52,7 @@ describe("email verification resend API", () => {
       body: JSON.stringify({ email: "member@example.test" }),
     }));
     expect(auth.resend).toHaveBeenCalledWith(expect.objectContaining({
-      options: { emailRedirectTo: "https://ggmarket-sage.vercel.app/auth/callback?next=%2Fsettings%2Fverification" },
+      options: { emailRedirectTo: "https://ggmarket.eu/auth/callback?next=%2Fsettings%2Fverification" },
     }));
   });
 
