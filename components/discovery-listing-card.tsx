@@ -1,18 +1,18 @@
 import Image from "next/image";
-import Link from "next/link";
 import { ArrowUpRight, BadgeCheck, ImageIcon, MapPin } from "lucide-react";
 import { formatPrice, labelCondition } from "@/lib/constants";
 import type { Listing } from "@/lib/types";
+import { ListingNavigationLink, listingAnchorKey } from "./listing-navigation";
 
-export function DiscoveryListingCard({ listing }: { listing: Listing }) {
+export function DiscoveryListingCard({ listing, navigationContext = "discovery" }: { listing: Listing; navigationContext?: string }) {
   const intent = typeof listing.attributes.intent === "string" ? listing.attributes.intent : "sale";
   const budgetMin = Number(listing.attributes.wanted_budget_min || 0);
   const priceLabel = intent === "wanted" && budgetMin > 0
     ? `${formatPrice(budgetMin, listing.currency)}–${formatPrice(listing.price, listing.currency)}`
     : formatPrice(listing.price, listing.currency);
   return (
-    <article data-ui className="group min-w-0 w-[72vw] max-w-[19rem] shrink-0 snap-start overflow-hidden rounded-[var(--radius-lg)] bg-[var(--surface)] transition-[transform,background-color] duration-300 hover:-translate-y-1 hover:bg-[var(--surface-alt)] motion-reduce:transform-none sm:w-[17.5rem]">
-      <Link href={`/listing/${listing.id}`} className="block">
+    <article data-ui data-listing-id={listing.id} data-listing-anchor={listingAnchorKey(navigationContext, listing.id)} className="group min-w-0 w-[72vw] max-w-[19rem] shrink-0 snap-start overflow-hidden rounded-[var(--radius-lg)] bg-[var(--surface)] transition-[transform,background-color] duration-300 hover:-translate-y-1 hover:bg-[var(--surface-alt)] motion-reduce:transform-none sm:w-[17.5rem]">
+      <ListingNavigationLink href={`/listing/${listing.id}`} className="block">
         <div className="relative aspect-[4/3] overflow-hidden bg-[#151a26]">
           {listing.images[0] ? <Image src={listing.images[0]} alt={listing.title} fill sizes="(max-width: 640px) 72vw, 280px" className="object-contain p-2 transition-transform duration-300 ease-out group-hover:scale-[1.025] motion-reduce:transform-none" /> : <span className="grid size-full place-items-center text-[var(--muted)]"><ImageIcon className="size-10" aria-hidden="true" /><span className="sr-only">No image available</span></span>}
           {intent !== "sale" && <span className="absolute left-3 top-3 max-w-[calc(100%-4.5rem)] rounded-full bg-black/70 px-2.5 py-1.5 text-xs font-bold capitalize text-white [overflow-wrap:anywhere]">{intent.replaceAll("_", " ")}</span>}
@@ -28,7 +28,7 @@ export function DiscoveryListingCard({ listing }: { listing: Listing }) {
           <span className="mt-3 flex min-w-0 items-center gap-1 text-xs text-[var(--text-secondary)]"><MapPin className="size-3 shrink-0" aria-hidden="true" /> <span className="min-w-0 truncate">{listing.location}</span>{listing.shipping && <span className="shrink-0">· Ships</span>}</span>
           <span className="mt-3 flex min-w-0 items-center gap-1.5 text-xs text-[var(--text-secondary)]"><span className="min-w-0 truncate">{listing.seller.displayName}</span>{listing.seller.verified && <BadgeCheck className="size-4 shrink-0 text-[var(--success)]" aria-label="Verified seller" />}</span>
         </div>
-      </Link>
+      </ListingNavigationLink>
     </article>
   );
 }

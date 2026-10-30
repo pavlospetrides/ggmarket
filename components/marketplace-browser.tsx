@@ -9,6 +9,7 @@ import { SearchBar } from "./search-bar";
 import { TaxonomyBreadcrumbs } from "./taxonomy-breadcrumbs";
 import { TaxonomyNavigation } from "./taxonomy-navigation";
 import { useHydrated } from "./use-hydrated";
+import { BrowsingStateRestorer } from "./listing-navigation";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "./ui/sheet";
 import { conditions } from "@/lib/constants";
 import { pageHref } from "@/lib/pagination";
@@ -264,6 +265,7 @@ export function MarketplaceBrowser({
   );
   return (
     <div className="container-page py-7 md:py-12">
+      <BrowsingStateRestorer />
       <TaxonomyBreadcrumbs actionPath={actionPath} categorySlug={selectedCategorySlug || undefined} params={taxonomyDisplayParams} />
       <header className={`marketplace-command-deck ${actionPath === "/search" ? "marketplace-command-deck--search" : ""}`}>
         <h1>
@@ -362,7 +364,7 @@ export function MarketplaceBrowser({
           </div>}
           {items.length ? (
             <>
-              <ListingGrid listings={items} viewerId={viewerId} favoriteIds={new Set(favoriteIds)} eagerFirst sparseEditorial />
+              <ListingGrid listings={items} viewerId={viewerId} favoriteIds={new Set(favoriteIds)} eagerFirst sparseEditorial navigationContext={`${actionPath.slice(1)}:results`} />
               {total > pageSize && <nav className="mt-9 flex items-center justify-between gap-3 pt-5" aria-label="Marketplace pages">
                 {page > 1 ? <Link prefetch={false} className="btn-secondary" href={pageHref(actionPath, params, page - 1)}>Previous</Link> : <span />}
                 <p className="text-sm text-[var(--muted)]">Page <strong className="text-white">{page}</strong> of {Math.ceil(total / pageSize)}</p>

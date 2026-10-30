@@ -1,9 +1,9 @@
 import Image from "next/image";
-import Link from "next/link";
 import { BadgeCheck, ImageIcon, MapPin, Star } from "lucide-react";
 import { formatPrice, labelCondition } from "@/lib/constants";
 import type { Listing } from "@/lib/types";
 import { FavoriteButton } from "./favorite-button";
+import { ListingNavigationLink, listingAnchorKey } from "./listing-navigation";
 
 export function ListingCard({
   listing,
@@ -11,12 +11,14 @@ export function ListingCard({
   initialFavorite = false,
   eager = false,
   onFavoriteChange,
+  navigationContext = "listing-grid",
 }: {
   listing: Listing;
   viewerId: string | null;
   initialFavorite?: boolean;
   eager?: boolean;
   onFavoriteChange?: (listingId: string, active: boolean) => void;
+  navigationContext?: string;
 }) {
   const intent =
     typeof listing.attributes.intent === "string"
@@ -28,9 +30,9 @@ export function ListingCard({
       ? `${formatPrice(budgetMin)}–${formatPrice(listing.price)}`
       : formatPrice(listing.price);
   return (
-    <article className="card card-interactive group min-w-0 overflow-hidden bg-[var(--surface)]">
+    <article data-listing-id={listing.id} data-listing-anchor={listingAnchorKey(navigationContext, listing.id)} className="card card-interactive group min-w-0 overflow-hidden bg-[var(--surface)]">
       <div className="relative">
-        <Link
+        <ListingNavigationLink
           href={`/listing/${listing.id}`}
           className="block focus-visible:rounded-[var(--radius-lg)]"
         >
@@ -63,7 +65,7 @@ export function ListingCard({
               </span>
             )}
           </div>
-        </Link>
+        </ListingNavigationLink>
         <FavoriteButton
           viewerId={viewerId}
           listingId={listing.id}
@@ -72,7 +74,7 @@ export function ListingCard({
           className="absolute right-2.5 top-2.5 z-10"
         />
       </div>
-      <Link
+      <ListingNavigationLink
         href={`/listing/${listing.id}`}
         className="block min-w-0 focus-visible:rounded-xl"
       >
@@ -111,7 +113,7 @@ export function ListingCard({
             )}
           </div>
         </div>
-      </Link>
+      </ListingNavigationLink>
     </article>
   );
 }

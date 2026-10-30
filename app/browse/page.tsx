@@ -5,6 +5,7 @@ import { ArrowRight, Repeat2, Search } from "lucide-react";
 import { CategoryGrid } from "@/components/category-grid";
 import { DiscoveryListingCard } from "@/components/discovery-listing-card";
 import { ProductRail } from "@/components/product-rail";
+import { BrowsingStateRestorer } from "@/components/listing-navigation";
 import { SearchBar } from "@/components/search-bar";
 import { TaxonomyNavigation } from "@/components/taxonomy-navigation";
 import { getUser } from "@/lib/auth";
@@ -31,6 +32,7 @@ export default async function BrowsePage() {
   ];
 
   return <div className="overflow-hidden pb-16">
+    <BrowsingStateRestorer />
     <section className="browse-mobile-search container-page pt-5 lg:hidden" aria-label="Browse marketplace">
       <div className="rounded-[var(--radius-lg)] border border-white/8 bg-[#171529] p-4">
         <p className="mb-3 text-lg font-bold tracking-tight text-white">Find your next upgrade</p>
@@ -70,8 +72,8 @@ export default async function BrowsePage() {
       </section>
     </section>
 
-    {discovery.popular.length > 0 && <section className="container-page pb-20 md:pb-28"><Heading title="Popular now" href="/marketplace" /><ProductRail label="Popular listings">{discovery.popular.map((listing) => <DiscoveryListingCard key={listing.id} listing={listing} />)}</ProductRail></section>}
-    {discovery.fresh.length > 0 && <section className="container-page pb-20 md:pb-28"><Heading title="Just listed" href="/marketplace?sort=newest" /><ProductRail label="Fresh listings">{discovery.fresh.map((listing) => <DiscoveryListingCard key={listing.id} listing={listing} />)}</ProductRail></section>}
+    {discovery.popular.length > 0 && <section className="container-page pb-20 md:pb-28"><Heading title="Popular now" href="/marketplace" /><ProductRail label="Popular listings" restorationKey="browse:popular">{discovery.popular.map((listing) => <DiscoveryListingCard key={listing.id} listing={listing} navigationContext="browse:popular" />)}</ProductRail></section>}
+    {discovery.fresh.length > 0 && <section className="container-page pb-20 md:pb-28"><Heading title="Just listed" href="/marketplace?sort=newest" /><ProductRail label="Fresh listings" restorationKey="browse:fresh">{discovery.fresh.map((listing) => <DiscoveryListingCard key={listing.id} listing={listing} navigationContext="browse:fresh" />)}</ProductRail></section>}
 
     <section className="bg-[#121821] py-20 md:py-28">
       <div className="container-page grid gap-3 lg:grid-cols-2">
@@ -88,9 +90,9 @@ export default async function BrowsePage() {
       </div>
     </section>
 
-    {discovery.retro.length > 0 && <section className="container-page py-20 md:py-28"><Heading title="Retro vault" href="/marketplace?category=retro" /><ProductRail label="Retro listings">{discovery.retro.map((listing) => <DiscoveryListingCard key={listing.id} listing={listing} />)}</ProductRail></section>}
-    {discovery.recentlyViewed.length > 0 && <section className="container-page pb-20 md:pb-28"><Heading title="Recently viewed" /><ProductRail label="Recently viewed listings">{discovery.recentlyViewed.map((listing) => <DiscoveryListingCard key={listing.id} listing={listing} />)}</ProductRail></section>}
-    {discovery.recommended.length > 0 && <section className="container-page pb-20 md:pb-28"><Heading title={discovery.personalizedRecommendations ? "Picked for you" : "Explore more"} href="/marketplace" /><ProductRail label="Recommended listings">{discovery.recommended.map((listing) => <DiscoveryListingCard key={listing.id} listing={listing} />)}</ProductRail></section>}
+    {discovery.retro.length > 0 && <section className="container-page py-20 md:py-28"><Heading title="Retro vault" href="/marketplace?category=retro" /><ProductRail label="Retro listings" restorationKey="browse:retro">{discovery.retro.map((listing) => <DiscoveryListingCard key={listing.id} listing={listing} navigationContext="browse:retro" />)}</ProductRail></section>}
+    {discovery.recentlyViewed.length > 0 && <section className="container-page pb-20 md:pb-28"><Heading title="Recently viewed" /><ProductRail label="Recently viewed listings" restorationKey="browse:recently-viewed">{discovery.recentlyViewed.map((listing) => <DiscoveryListingCard key={listing.id} listing={listing} navigationContext="browse:recently-viewed" />)}</ProductRail></section>}
+    {discovery.recommended.length > 0 && <section className="container-page pb-20 md:pb-28"><Heading title={discovery.personalizedRecommendations ? "Picked for you" : "Explore more"} href="/marketplace" /><ProductRail label="Recommended listings" restorationKey="browse:recommended">{discovery.recommended.map((listing) => <DiscoveryListingCard key={listing.id} listing={listing} navigationContext="browse:recommended" />)}</ProductRail></section>}
 
     <section className="container-page">
       <div className="grid min-h-80 rounded-[var(--radius-xl)] bg-[var(--primary)] p-8 text-white sm:p-12 lg:grid-cols-[1fr_.55fr] lg:items-end">

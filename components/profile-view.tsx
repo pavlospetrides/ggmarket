@@ -17,6 +17,7 @@ import { ListingGrid } from "./listing-grid";
 import { RateUserDialog } from "./rate-user-dialog";
 import { replaceReviewerRating } from "@/lib/ratings";
 import type { Listing, Review, Seller } from "@/lib/types";
+import { BrowsingStateRestorer } from "./listing-navigation";
 
 type ProfileStats = {
   activeListings: number;
@@ -62,6 +63,7 @@ export function ProfileView({
 
   return (
     <div className="container-page py-6 pb-8 md:py-12 md:pb-12">
+      <BrowsingStateRestorer />
       <section className="profile-identity-stage card overflow-hidden" aria-labelledby="profile-name">
         <div
           className="relative h-24 overflow-hidden bg-[#1b2030] sm:h-36"
@@ -198,7 +200,7 @@ export function ProfileView({
         </div>
         <div className="mt-5 sm:mt-6">
           {items.length ? (
-            <ListingGrid listings={items} viewerId={viewerId} favoriteIds={favoriteIds} eagerFirst />
+            <ListingGrid listings={items} viewerId={viewerId} favoriteIds={favoriteIds} eagerFirst navigationContext={`profile:${seller.username}`} />
           ) : (
             <div className="card empty-state overflow-hidden"><div className="min-w-0">
               <span className="empty-state-icon" aria-hidden="true"><PackageOpen /></span>
