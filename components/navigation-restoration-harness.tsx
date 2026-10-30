@@ -4,8 +4,8 @@ import { useEffect, useState } from "react";
 import {
   BrowsingStateRestorer,
   ListingNavigationLink,
-  listingAnchorKey,
 } from "./listing-navigation";
+import { listingAnchorKey } from "@/lib/listing-navigation";
 
 export function NavigationRestorationHarness({
   source,

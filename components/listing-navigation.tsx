@@ -32,10 +32,6 @@ type DepartureCapture = {
   railScrollLeft: number | null;
 };
 
-export function listingAnchorKey(context: string, listingId: string) {
-  return `${context}:${listingId}`;
-}
-
 export function captureListingDeparture({
   target,
   sourceEntryId,
