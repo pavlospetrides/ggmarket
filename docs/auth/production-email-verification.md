@@ -21,10 +21,11 @@ Set these Production environment variables:
 - `NEXT_PUBLIC_SITE_URL=https://ggmarket.eu` (Production scope only)
 - `NEXT_PUBLIC_SUPABASE_URL=https://<project-ref>.supabase.co`
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY=<the project's public anon key>`
-- `SUPABASE_SERVICE_ROLE_KEY=<server-only key required by the authorized image-normalization endpoint>`
+- `SUPABASE_URL=https://<project-ref>.supabase.co`
+- `SUPABASE_SECRET_KEY=<server-only secret required by the authorized image-normalization endpoint>`
 - `ADMIN_EMAILS=<existing comma-separated admin allowlist>`
 
-`SUPABASE_SERVICE_ROLE_KEY` is not needed by email verification itself, but the current application requires it server-side for authorized image normalization. Never prefix it with `NEXT_PUBLIC_`, expose it to client code, or reuse it in Preview deployments. Leave `NEXT_PUBLIC_SITE_URL` unset in Preview: the application validates and uses Vercel's `VERCEL_URL` there. After changing an environment variable, create an authorized new deployment so the value is present in the server and browser build.
+`SUPABASE_SECRET_KEY` is not needed by email verification itself, but the application requires a privileged server key for authorized image normalization. The legacy `SUPABASE_SERVICE_ROLE_KEY` remains a supported fallback for manually configured projects. Never prefix either privileged key with `NEXT_PUBLIC_`, expose it to client code, or reuse it in Preview deployments. Leave `NEXT_PUBLIC_SITE_URL` unset in Preview: the application validates and uses Vercel's `VERCEL_URL` there. After changing an environment variable, create an authorized new deployment so the value is present in the server and browser build.
 
 ## Flow contract
 

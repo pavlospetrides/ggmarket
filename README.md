@@ -48,11 +48,13 @@ Open [http://localhost:3000](http://localhost:3000).
 | --- | --- | --- |
 | `NEXT_PUBLIC_SUPABASE_URL` | Browser/server | Supabase project URL |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Browser/server | Public anon key; RLS remains authoritative |
-| `SUPABASE_SERVICE_ROLE_KEY` | Server only | Required by the trusted image-normalization endpoint and destructive E2E/security audit cleanup; never expose in client code |
+| `SUPABASE_URL` | Server only | Preferred Supabase project URL for privileged server clients; provisioned by the Vercel Supabase integration |
+| `SUPABASE_SECRET_KEY` | Server only | Preferred key for the trusted image-normalization endpoint; never expose in client code |
+| `SUPABASE_SERVICE_ROLE_KEY` | Server only | Legacy fallback for the trusted endpoint and isolated E2E/security cleanup |
 | `NEXT_PUBLIC_SITE_URL` | Public | Canonical production origin (`https://ggmarket.eu`); localhost remains the local-development value |
 | `ADMIN_EMAILS` | Server only | Comma-separated allowlist used as an additional admin route guard |
 
-The service-role key is used only in a server-only module after user authorization and image decoding. It is also used by real-database E2E and adversarial audit cleanup. Never prefix it with `NEXT_PUBLIC_` or expose it to browser code.
+The modern secret key (or the legacy service-role fallback) is used only in a server-only module after user authorization and image decoding. The preferred `SUPABASE_URL`/`SUPABASE_SECRET_KEY` names match the Vercel Supabase integration. Isolated real-database E2E and adversarial audit cleanup may still use the legacy service-role variable. Never prefix a privileged key with `NEXT_PUBLIC_` or expose it to browser code.
 
 ## Supabase configuration
 
@@ -97,7 +99,7 @@ node --env-file=.env.local scripts/phase2-security-audit.mjs
 
 ## Current limitations
 
-- Listing photos upload directly to the owner-scoped Supabase Storage path after the listing is created; server-side resizing and moderation remain deferred.
+- Listing photos pass through the authenticated server upload endpoint, which decodes, bounds, and normalizes them to WebP before writing to the private owner/listing Storage path. Automated content moderation remains deferred.
 - Review creation remains closed until a transaction model can prove buyer eligibility. This prevents arbitrary review spam.
 - Price intelligence is derived from at least three active asking prices, not completed-sale history, and the UI labels it accordingly.
 - Identity and business verification are status architecture only until an external identity provider or explicit manual-review workflow is configured. GGMarket does not collect identity documents in the current implementation.
