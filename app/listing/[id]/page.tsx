@@ -19,6 +19,7 @@ import {
 import { ListingGallery } from "@/components/listing-gallery";
 import { ListingGrid } from "@/components/listing-grid";
 import { MessageSellerButton } from "@/components/message-seller-button";
+import { BrowsingStateRestorer, ListingBackButton } from "@/components/listing-navigation";
 import { ReportButton } from "@/components/report-button";
 import { getUser } from "@/lib/auth";
 import { formatPrice, labelCondition } from "@/lib/constants";
@@ -80,6 +81,7 @@ export default async function ListingPage({
     .sort(([left], [right]) => (listingAttributeRank.get(left) ?? Number.MAX_SAFE_INTEGER) - (listingAttributeRank.get(right) ?? Number.MAX_SAFE_INTEGER) || left.localeCompare(right));
   return (
     <div className="mobile-listing-page container-page min-w-0 pt-5 md:pt-10 md:pb-12">
+      <BrowsingStateRestorer />
       <ListingViewTracker listingId={id} />
       <nav className="mb-5 flex min-w-0 flex-wrap items-center gap-2 text-sm font-medium text-[var(--text-secondary)]" aria-label="Breadcrumb">
         <Link href="/marketplace" className="transition hover:text-white">Marketplace</Link> <span aria-hidden="true">/</span>
@@ -123,6 +125,9 @@ export default async function ListingPage({
         </div>
         <aside className="order-2 min-w-0 lg:order-none">
           <div className="min-w-0 rounded-[var(--radius-xl)] bg-[var(--surface)] p-5 lg:sticky lg:top-20 lg:p-6">
+            <div className="mb-1">
+              <ListingBackButton />
+            </div>
             <div className="flex items-start gap-3">
               <div className="min-w-0 flex-1">
                 <p className="badge w-fit capitalize">
@@ -274,7 +279,7 @@ export default async function ListingPage({
         <section className="mt-12">
           <h2 className="section-title">More from this seller</h2>
           <div className="mt-5">
-            <ListingGrid listings={extras.other} viewerId={user?.id ?? null} favoriteIds={favoriteIds} />
+            <ListingGrid listings={extras.other} viewerId={user?.id ?? null} favoriteIds={favoriteIds} navigationContext={`listing:${id}:seller`} />
           </div>
         </section>
       )}
@@ -282,7 +287,7 @@ export default async function ListingPage({
         <section className="mt-12">
           <h2 className="section-title">Similar listings</h2>
           <div className="mt-5">
-            <ListingGrid listings={extras.similar} viewerId={user?.id ?? null} favoriteIds={favoriteIds} />
+            <ListingGrid listings={extras.similar} viewerId={user?.id ?? null} favoriteIds={favoriteIds} navigationContext={`listing:${id}:similar`} />
           </div>
         </section>
       )}

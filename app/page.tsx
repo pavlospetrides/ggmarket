@@ -4,6 +4,7 @@ import Link from "next/link";
 import { ArrowRight, BadgeCheck, MessageCircle, PackageCheck, SearchCheck, ShieldCheck } from "lucide-react";
 import { CategorySwitchboard } from "@/components/category-switchboard";
 import { ListingGrid } from "@/components/listing-grid";
+import { BrowsingStateRestorer } from "@/components/listing-navigation";
 import { SearchBar } from "@/components/search-bar";
 import { MobileHomeHero } from "@/components/mobile-home-hero";
 import { JellyfishHeroBackground } from "@/components/ui/jellyfish-hero-background";
@@ -21,6 +22,7 @@ export default async function HomePage() {
     : [new Set<string>(), []];
 
   return <>
+    <BrowsingStateRestorer />
     <section className="campaign-hero" aria-labelledby="home-heading">
       <JellyfishHeroBackground />
       <span className="campaign-hero-scrim" aria-hidden="true" />
@@ -46,10 +48,10 @@ export default async function HomePage() {
 
     <section className="market-band" aria-labelledby="fresh-heading"><div className="container-page py-16 md:py-24">
       <div className="section-heading-row"><div><h2 id="fresh-heading" className="section-title">Just listed</h2><p className="mt-3 text-[var(--text-secondary)]">Real gear from real sellers, shown exactly as listed.</p></div><Link href="/marketplace?sort=newest" className="btn-ghost shrink-0">View marketplace <ArrowRight className="size-4" /></Link></div>
-      {recent.length ? <ListingGrid listings={recent} viewerId={user?.id ?? null} favoriteIds={favoriteIds} sparseEditorial /> : <div className="empty-state-editorial"><span className="empty-state-icon"><PackageCheck /></span><div><h3>The market is warming up</h3><p>Be the first to put gaming gear back in play.</p></div><Link href="/sell" prefetch={false} className="btn-primary">Create a listing</Link></div>}
+      {recent.length ? <ListingGrid listings={recent} viewerId={user?.id ?? null} favoriteIds={favoriteIds} sparseEditorial navigationContext="home:fresh" /> : <div className="empty-state-editorial"><span className="empty-state-icon"><PackageCheck /></span><div><h3>The market is warming up</h3><p>Be the first to put gaming gear back in play.</p></div><Link href="/sell" prefetch={false} className="btn-primary">Create a listing</Link></div>}
     </div></section>
 
-    {viewed.length > 0 && <section className="container-page py-16 md:py-24"><div className="section-heading-row"><div><h2 className="section-title">Recently viewed</h2></div></div><ListingGrid listings={viewed} viewerId={user?.id ?? null} favoriteIds={favoriteIds} /></section>}
+    {viewed.length > 0 && <section className="container-page py-16 md:py-24"><div className="section-heading-row"><div><h2 className="section-title">Recently viewed</h2></div></div><ListingGrid listings={viewed} viewerId={user?.id ?? null} favoriteIds={favoriteIds} navigationContext="home:recently-viewed" /></section>}
 
     <section className="container-page py-16 md:py-24" aria-labelledby="direct-heading">
       <div className="direct-intro"><h2 id="direct-heading" className="section-title">A clearer way to deal</h2><p>GGMarket keeps the useful signals close and the conversation between players.</p></div>

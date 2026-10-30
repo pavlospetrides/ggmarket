@@ -20,6 +20,17 @@ export default defineConfig({
   projects: [
     { name: "chromium", use: { browserName: "chromium", channel: "chrome" } },
     {
+      name: "chromium-mobile",
+      use: {
+        browserName: "chromium",
+        channel: "chrome",
+        viewport: { width: 390, height: 844 },
+        isMobile: true,
+        hasTouch: true,
+      },
+    },
+    { name: "webkit-desktop", use: { browserName: "webkit" } },
+    {
       name: "webkit",
       use: {
         browserName: "webkit",

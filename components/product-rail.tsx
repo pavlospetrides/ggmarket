@@ -3,7 +3,7 @@
 import { ArrowLeft, ArrowRight } from "lucide-react";
 import { useRef, type ReactNode } from "react";
 
-export function ProductRail({ label, children }: { label: string; children: ReactNode }) {
+export function ProductRail({ label, restorationKey, children }: { label: string; restorationKey?: string; children: ReactNode }) {
   const rail = useRef<HTMLDivElement>(null);
   const move = (direction: number) => {
     rail.current?.scrollBy({ left: direction * rail.current.clientWidth * 0.82, behavior: "smooth" });
@@ -12,6 +12,7 @@ export function ProductRail({ label, children }: { label: string; children: Reac
     <div className="relative">
       <div
         ref={rail}
+        data-listing-scroll-container={restorationKey}
         tabIndex={0}
         role="region"
         aria-label={label}
