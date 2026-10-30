@@ -163,3 +163,11 @@ test("switching synthetic accounts does not restore the previous account's sourc
   await expect(page.getByTestId("browsing-state")).toContainText("Auth account-b");
   await expect(page.getByTestId("browsing-state")).not.toContainText("account-a");
 });
+
+test("production listing cards render through a Server Component boundary", async ({ page }) => {
+  const response = await page.goto("/test-harness/navigation/server-cards", { waitUntil: "domcontentloaded" });
+  expect(response?.status()).toBe(200);
+  await expect(page.getByRole("heading", { name: "Server card boundary harness" })).toBeVisible();
+  await expect(page.locator('[data-listing-anchor="server:grid:77777777-7777-4777-8777-777777777777"]')).toHaveCount(1);
+  await expect(page.locator('[data-listing-anchor="server:discovery:77777777-7777-4777-8777-777777777777"]')).toHaveCount(1);
+});

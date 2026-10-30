@@ -1,9 +1,10 @@
 import Image from "next/image";
 import { BadgeCheck, ImageIcon, MapPin, Star } from "lucide-react";
 import { formatPrice, labelCondition } from "@/lib/constants";
+import { listingAnchorKey } from "@/lib/listing-navigation";
 import type { Listing } from "@/lib/types";
 import { FavoriteButton } from "./favorite-button";
-import { ListingNavigationLink, listingAnchorKey } from "./listing-navigation";
+import { ListingNavigationLink } from "./listing-navigation";
 
 export function ListingCard({
   listing,

@@ -4,8 +4,8 @@ import {
   captureListingDeparture,
   chooseListingBackAction,
   listingBackDestination,
-  listingAnchorKey,
 } from "../components/listing-navigation";
+import { listingAnchorKey } from "../lib/listing-navigation";
 import type { ListingBrowsingSnapshot } from "../lib/listing-navigation-state";
 
 function fakeTarget({ withAnchor = true, withRail = true } = {}) {

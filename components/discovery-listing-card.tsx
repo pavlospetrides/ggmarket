@@ -1,8 +1,9 @@
 import Image from "next/image";
 import { ArrowUpRight, BadgeCheck, ImageIcon, MapPin } from "lucide-react";
 import { formatPrice, labelCondition } from "@/lib/constants";
+import { listingAnchorKey } from "@/lib/listing-navigation";
 import type { Listing } from "@/lib/types";
-import { ListingNavigationLink, listingAnchorKey } from "./listing-navigation";
+import { ListingNavigationLink } from "./listing-navigation";
 
 export function DiscoveryListingCard({ listing, navigationContext = "discovery" }: { listing: Listing; navigationContext?: string }) {
   const intent = typeof listing.attributes.intent === "string" ? listing.attributes.intent : "sale";
