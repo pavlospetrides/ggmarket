@@ -56,6 +56,7 @@ export default async function SellerPage({
       pagination={profile.pagination}
       viewerId={user?.id ?? null}
       favoriteIds={favoriteIds}
+      ggCard={profile.ggCard}
     />
   );
 }

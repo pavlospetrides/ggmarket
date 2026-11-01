@@ -18,6 +18,8 @@ import { RateUserDialog } from "./rate-user-dialog";
 import { replaceReviewerRating } from "@/lib/ratings";
 import type { Listing, Review, Seller } from "@/lib/types";
 import { BrowsingStateRestorer } from "./listing-navigation";
+import type { GGCardConfig } from "@/lib/gg-card";
+import { GGCardSection } from "./gg-card-section";
 
 type ProfileStats = {
   activeListings: number;
@@ -38,6 +40,7 @@ export function ProfileView({
   viewerId,
   favoriteIds,
   own = false,
+  ggCard,
 }: {
   seller: Seller;
   items: Listing[];
@@ -47,6 +50,7 @@ export function ProfileView({
   viewerId: string | null;
   favoriteIds: Set<string>;
   own?: boolean;
+  ggCard: GGCardConfig | null;
 }) {
   const [ratingSummary, setRatingSummary] = useState({ average: seller.rating, count: seller.reviewCount });
   const [visibleReviews, setVisibleReviews] = useState(reviews);
@@ -192,6 +196,8 @@ export function ProfileView({
         <div className="card min-w-0 p-4 sm:p-5"><dt className="text-xs leading-5 text-[var(--muted)]">Ratings</dt><dd className="price mt-1 text-2xl tabular-nums">{ratingSummary.count}</dd></div>
         <div className="card min-w-0 p-4 sm:p-5"><dt className="text-xs leading-5 text-[var(--muted)]">Listing views</dt><dd className="price mt-1 text-2xl tabular-nums">{stats.totalViews}</dd></div>
       </dl>
+
+      <GGCardSection own={own} identity={{ displayName: seller.displayName, username: seller.username }} card={ggCard} />
 
       <section className="mt-10 min-w-0 sm:mt-12" aria-labelledby="active-listings">
         <div className="flex min-w-0 items-end justify-between gap-4">
