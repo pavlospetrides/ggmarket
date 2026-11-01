@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { PC_HARDWARE_MULTISELECT_KEYS } from "./pc-hardware-taxonomy";
+import { GG_CARD_THEMES } from "./gg-card";
 
 export const loginSchema = z.object({
   email: z.string().trim().email().max(320),
@@ -104,6 +105,15 @@ export const profileSchema = z.object({
   location: z.string().trim().max(120).optional().default(""),
   bio: z.string().trim().max(500).optional().default(""),
 });
+
+const ggCardThemeIds = Object.keys(GG_CARD_THEMES) as [keyof typeof GG_CARD_THEMES, ...(keyof typeof GG_CARD_THEMES)[]];
+export const ggCardSchema = z
+  .object({
+    slogan: z.string().trim().min(1).max(80).refine((value) => !/[\u0000-\u001f\u007f]/.test(value), "Slogan cannot contain control characters."),
+    themeId: z.enum(ggCardThemeIds),
+    isPublic: z.boolean(),
+  })
+  .strict();
 
 export const conversationSchema = z
   .object({ listingId: z.string().uuid() })

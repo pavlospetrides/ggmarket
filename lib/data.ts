@@ -7,6 +7,7 @@ import { createClient as createServerClient } from "./supabase/server";
 import { normalizeListingPage } from "./pagination";
 import { resolveTaxonomyQuery } from "./gaming-taxonomy";
 import type { Category, Listing, ListingQuery, PaginatedListings, Review, Seller } from "./types";
+import { mapGGCardRow, type GGCardConfig, type GGCardRow } from "./gg-card";
 
 export class DataAccessError extends Error {
   constructor(public operation: string) {
@@ -423,6 +424,7 @@ export const getProfileByUsername = cache(async function getProfileByUsername(
     listings: { page: number; total: number; pageSize: number };
     reviews: { page: number; total: number; pageSize: number };
   };
+  ggCard: GGCardConfig | null;
 } | null> {
   const supabase = publicClient();
   const { data, error } = await supabase
@@ -485,7 +487,7 @@ export const getProfileByUsername = cache(async function getProfileByUsername(
     reviewError = retry.error;
     reviewCount = retry.count;
   }
-  const [{ data: verification, error: verificationError }, { data: ratingRows, error: ratingError }] = await Promise.all([
+  const [{ data: verification, error: verificationError }, { data: ratingRows, error: ratingError }, { data: ggCardRow, error: ggCardError }] = await Promise.all([
     supabase
       .from("seller_verifications")
       .select("id")
@@ -494,8 +496,9 @@ export const getProfileByUsername = cache(async function getProfileByUsername(
       .limit(1)
       .maybeSingle(),
     supabase.from("reviews").select("rating").eq("seller_id", profile.id).limit(1000),
+    supabase.from("gg_cards").select("slogan,theme_id,is_public").eq("user_id", profile.id).maybeSingle(),
   ]);
-  if (listingError || reviewError || verificationError || ratingError)
+  if (listingError || reviewError || verificationError || ratingError || ggCardError)
     throw new DataAccessError("load seller activity");
   const ratings = (ratingRows ?? []).map((review) => Number(review.rating));
   const seller: Seller = {
@@ -547,8 +550,21 @@ export const getProfileByUsername = cache(async function getProfileByUsername(
       listings: { page: listingPage, total: listingCount ?? sellerListings.length, pageSize: listingPageSize },
       reviews: { page: reviewPage, total: reviewCount ?? mappedReviews.length, pageSize: reviewPageSize },
     },
+    ggCard: mapGGCardRow(ggCardRow as GGCardRow | null),
   };
 });
+
+export async function getOwnGGCard(userId: string): Promise<GGCardConfig> {
+  const supabase = await createServerClient();
+  if (!supabase) throw new DataAccessError("load your GG Card");
+  const { data, error } = await supabase
+    .from("gg_cards")
+    .select("slogan,theme_id,is_public")
+    .eq("user_id", userId)
+    .maybeSingle();
+  if (error) throw new DataAccessError("load your GG Card");
+  return mapGGCardRow(data as GGCardRow | null, true)!;
+}
 
 export async function getCurrentProfile(userId: string): Promise<ProfileRow> {
   const supabase = await createServerClient();
