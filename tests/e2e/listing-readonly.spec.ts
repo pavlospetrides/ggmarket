@@ -5,21 +5,21 @@ async function activate(target: ReturnType<import("@playwright/test").Page["getB
   else await target.click();
 }
 
-test("mobile listing actions clear navigation and dialogs restore focus", async ({ page }, testInfo) => {
+test("mobile seller chat stays in flow and dialogs restore focus", async ({ page }, testInfo) => {
   await page.setViewportSize({ width: 320, height: 720 });
   await page.goto("/marketplace");
   const listingHref = await page.locator('a[href^="/listing/"]').first().getAttribute("href");
   test.skip(!listingHref, "A public active listing is required for read-only layout verification");
 
   await page.goto(listingHref!);
-  const mobileActions = page.locator('[data-listing-actions="mobile"]');
-  await expect(mobileActions).toBeVisible();
-  await expect(mobileActions).toHaveCSS("position", "fixed");
-  const actions = await mobileActions.boundingBox();
-  const navigation = await page.getByRole("navigation", { name: "Mobile navigation" }).boundingBox();
-  expect(actions).toBeTruthy();
-  expect(navigation).toBeTruthy();
-  expect(actions!.y + actions!.height).toBeLessThanOrEqual(navigation!.y + 1);
+  await expect(page.locator('[data-listing-actions="mobile"]')).toHaveCount(0);
+  const messageSeller = page.getByRole("button", { name: "Message seller", exact: true });
+  await expect(messageSeller).toHaveCount(1);
+  await expect(messageSeller).toBeVisible();
+  await expect(messageSeller).not.toHaveCSS("position", "fixed");
+  const messageBox = await messageSeller.boundingBox();
+  expect(messageBox?.width).toBeGreaterThanOrEqual(44);
+  expect(messageBox?.height).toBeGreaterThanOrEqual(44);
   expect(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth)).toBeLessThanOrEqual(1);
 
   const galleryTrigger = page.getByRole("link", { name: "Open full-screen gallery" });

@@ -162,29 +162,39 @@ export default async function ListingPage({
               </span>
             </div>
             <div className="divider my-6" />
-            <Link
-              href={`/profile/${item.seller.username}`}
-              className="flex min-w-0 items-center gap-3 rounded-[var(--radius-md)] p-2 transition-colors hover:bg-[var(--surface-alt)]"
-            >
-              <span className="grid size-12 shrink-0 place-items-center rounded-full bg-[var(--surface-elevated)] font-extrabold text-[var(--primary-hover)]" aria-hidden="true">
-                {item.seller.displayName[0] || "?"}
-              </span>
-              <span className="min-w-0 flex-1">
-                <span className="flex min-w-0 items-start gap-1.5 font-bold">
-                  <span className="min-w-0 [overflow-wrap:anywhere]">{item.seller.displayName}</span>
-                  {item.seller.verified && (
-                    <BadgeCheck className="mt-1 size-4 shrink-0 text-[var(--success)]" aria-label="Verified seller" />
+            <div className="flex min-w-0 items-center gap-2">
+              <Link
+                href={`/profile/${item.seller.username}`}
+                className="flex min-w-0 flex-1 items-center gap-3 rounded-[var(--radius-md)] p-2 transition-colors hover:bg-[var(--surface-alt)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary-hover)]"
+              >
+                <span className="grid size-12 shrink-0 place-items-center rounded-full bg-[var(--surface-elevated)] font-extrabold text-[var(--primary-hover)]" aria-hidden="true">
+                  {item.seller.displayName[0] || "?"}
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="flex min-w-0 items-start gap-1.5 font-bold">
+                    <span className="min-w-0 [overflow-wrap:anywhere]">{item.seller.displayName}</span>
+                    {item.seller.verified && (
+                      <BadgeCheck className="mt-1 size-4 shrink-0 text-[var(--success)]" aria-label="Verified seller" />
+                    )}
+                  </span>
+                  {item.seller.reviewCount > 0 && (
+                    <span className="mt-1 flex flex-wrap items-center gap-1 text-xs text-[var(--text-secondary)]">
+                      <Star className="size-3 shrink-0 fill-[#f8bf4b] text-[#f8bf4b]" aria-hidden="true" />{" "}
+                      {item.seller.rating.toFixed(1)} · {item.seller.reviewCount}{" "}
+                      reviews
+                    </span>
                   )}
                 </span>
-                {item.seller.reviewCount > 0 && (
-                  <span className="mt-1 flex flex-wrap items-center gap-1 text-xs text-[var(--text-secondary)]">
-                    <Star className="size-3 shrink-0 fill-[#f8bf4b] text-[#f8bf4b]" aria-hidden="true" />{" "}
-                    {item.seller.rating.toFixed(1)} · {item.seller.reviewCount}{" "}
-                    reviews
-                  </span>
-                )}
-              </span>
-            </Link>
+              </Link>
+              {user?.id !== item.seller.id && (
+                <MessageSellerButton
+                  listingId={item.id}
+                  loggedIn={Boolean(user)}
+                  iconOnly
+                  label="Message seller"
+                />
+              )}
+            </div>
             <div className="mt-5 space-y-2 text-sm text-[var(--text-secondary)]">
               {item.shipping && (
                 <p className="flex items-center gap-2">
@@ -203,25 +213,13 @@ export default async function ListingPage({
                 item before paying
               </p>
             </div>
-            {user?.id === item.seller.id ? (
+            {user?.id === item.seller.id && (
               <Link
                 href={`/listing/${item.id}/edit`}
                 className="btn-secondary mt-6 w-full"
               >
                 Manage listing
               </Link>
-            ) : (
-              <div className="hidden md:block">
-                <MessageSellerButton
-                  listingId={item.id}
-                  loggedIn={Boolean(user)}
-                  label={
-                    item.attributes.intent === "wanted"
-                      ? "I have one"
-                      : "Message seller"
-                  }
-                />
-              </div>
             )}
             <div className="mt-4 flex flex-wrap items-center justify-center gap-x-3 gap-y-1">
               <span className="inline-flex min-h-11 items-center gap-1 text-sm tabular-nums text-[var(--text-secondary)]" aria-label={`${extras.favoriteCount} favorites`}>
@@ -290,18 +288,6 @@ export default async function ListingPage({
             <ListingGrid listings={extras.similar} viewerId={user?.id ?? null} favoriteIds={favoriteIds} navigationContext={`listing:${id}:similar`} />
           </div>
         </section>
-      )}
-      {user?.id !== item.seller.id && (
-        <div data-listing-actions="mobile" className="mobile-listing-actions md:hidden"> {/* taste-skill-ignore: fixed mobile action bar is a real overlay */}
-          <MessageSellerButton
-            listingId={item.id}
-            loggedIn={Boolean(user)}
-            compact
-            label={
-              item.attributes.intent === "wanted" ? "I have one" : "Message"
-            }
-          />
-        </div>
       )}
     </div>
   );

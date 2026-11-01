@@ -82,13 +82,14 @@ describe("premium marketplace visual foundation", () => {
     expect(mobile).not.toContain("backdrop-blur-2xl");
   });
 
-  it("owns mobile fixed-stack geometry in shared layout tokens", () => {
+  it("owns mobile navigation geometry without a second listing overlay", () => {
     const css = read("app/globals.css");
     const mobile = read("components/mobile-nav.tsx");
 
     expect(css).toContain("--mobile-nav-height:");
-    expect(css).toContain("--mobile-action-height:");
     expect(css).toContain(".mobile-navigation");
+    expect(css).not.toContain("--mobile-action-height:");
+    expect(css).not.toContain(".mobile-listing-actions");
     expect(mobile).toContain('className="mobile-navigation md:hidden"');
   });
 

@@ -39,8 +39,6 @@
   --mobile-nav-height: calc(var(--mobile-nav-content-height) + var(--mobile-nav-safe-area));
   --mobile-nav-raise: 1.5rem;
   --mobile-nav-clearance: calc(var(--mobile-nav-height) + var(--mobile-nav-raise));
-  --mobile-action-height: 4rem;
-  --mobile-fixed-gap: .5rem;
   --bg: var(--background);
   --surface-2: var(--surface-alt);
   --text: var(--text-primary);
@@ -222,8 +220,6 @@ select.input { cursor: pointer; }
 .browse-rail::-webkit-scrollbar, .browse-category-rail::-webkit-scrollbar { display: none; }
 .browse-hero-image { animation: browse-hero-in 7s ease-out both; }
 .mobile-navigation { position: fixed; z-index: 50; right: 0; bottom: 0; left: 0; min-height: var(--mobile-nav-height); background: rgb(12 16 24 / .97); padding: .375rem .5rem var(--mobile-nav-safe-area); }
-.mobile-listing-actions { position: fixed; z-index: 40; right: 0; bottom: calc(var(--mobile-nav-clearance) + var(--mobile-fixed-gap)); left: 0; display: flex; min-height: var(--mobile-action-height); align-items: center; background: var(--surface); padding: .625rem max(1rem, env(safe-area-inset-right)) .625rem max(1rem, env(safe-area-inset-left)); box-shadow: 0 -8px 24px rgb(0 0 0 / .2); } /* taste-skill-ignore: sticky action bar is a real overlay */
-.mobile-listing-actions > * { width: 100%; }
 }
 
 .campaign-hero { position: relative; min-height: calc(100svh - 4.5rem); overflow: hidden; background: #050713; isolation: isolate; }
@@ -421,7 +417,6 @@ select.input { cursor: pointer; }
   .container-page { width: min(calc(100% - 2rem), 1760px); }
   body { padding-bottom: var(--mobile-nav-clearance); }
   body:has(.auth-shell) { padding-bottom: 0; }
-  body:has([data-listing-actions="mobile"]) { padding-bottom: calc(var(--mobile-nav-clearance) + (2 * var(--mobile-fixed-gap)) + var(--mobile-action-height)); }
   .mobile-listing-page { padding-bottom: 1rem; }
   .page-header { margin-bottom: 1.75rem; }
   .page-title { font-size: clamp(2.25rem, 12vw, 3.25rem); }
