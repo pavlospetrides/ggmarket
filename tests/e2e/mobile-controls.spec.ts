@@ -8,6 +8,7 @@ const stamp = Date.now();
 const email = `ggmarket.mobile.${stamp}@example.invalid`;
 const password = `Gg!${crypto.randomUUID()}aA1`;
 let user: User;
+let seller: User;
 let listing: { id: string; title: string };
 let conversationId = "";
 const createdEntityIds: string[] = [];
@@ -26,15 +27,18 @@ test.beforeAll(async () => {
   });
   if (created.error || !created.data.user) throw created.error;
   user = created.data.user;
-  const active = await admin
-    .from("listings")
-    .select("id,title")
-    .eq("status", "active")
-    .neq("seller_id", user.id)
-    .limit(1)
-    .single();
-  if (active.error || !active.data)
-    throw new Error("An active marketplace listing is required");
+  const createdSeller = await admin.auth.admin.createUser({
+    email: `ggmarket.mobile.seller.${stamp}@example.invalid`,
+    password,
+    email_confirm: true,
+    user_metadata: { username: `mobile_seller_${String(stamp).slice(-7)}`, display_name: "Mobile Seller" },
+  });
+  if (createdSeller.error || !createdSeller.data.user) throw createdSeller.error;
+  seller = createdSeller.data.user;
+  const category = await admin.from("categories").select("id").eq("active", true).limit(1).single();
+  if (category.error) throw category.error;
+  const active = await admin.from("listings").insert({ seller_id: seller.id, category_id: category.data.id, title: `Mobile acceptance listing ${stamp}`, description: "Controlled active listing for mobile mutation testing.", price: 250, currency: "EUR", condition: "good", status: "active", location: "QA City", shipping_available: true, meetup_available: false, attributes: {} }).select("id,title").single();
+  if (active.error || !active.data) throw active.error;
   listing = active.data;
 });
 
@@ -43,7 +47,9 @@ test.afterAll(async () => {
     await admin.from("conversations").delete().eq("id", conversationId);
   if (createdEntityIds.length)
     await admin.from("notifications").delete().in("entity_id", createdEntityIds);
+  if (listing?.id) await admin.from("listings").delete().eq("id", listing.id);
   if (user) await admin.auth.admin.deleteUser(user.id);
+  if (seller) await admin.auth.admin.deleteUser(seller.id);
 });
 
 test("mobile controls mutate and persist through real taps", async ({ page }) => {
@@ -51,28 +57,32 @@ test("mobile controls mutate and persist through real taps", async ({ page }) =>
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/login");
   await page.getByLabel("Email").fill(email);
-  await page.getByLabel("Password").fill(password);
+  await page.getByLabel("Password", { exact: true }).fill(password);
+  await expect(page.locator("form[data-hydrated]")).toHaveAttribute("data-hydrated", "true", { timeout: 20_000 });
   await page.getByRole("button", { name: "Log in" }).click();
-  await expect(page).toHaveURL(/\/profile/);
+  await expect(page).toHaveURL(/\/profile/, { timeout: 20_000 });
 
   const nav = page.getByRole("navigation", { name: "Mobile navigation" });
   await nav.getByRole("link", { name: "Browse" }).click();
   await expect(page).toHaveURL(/\/browse/);
   await nav.getByRole("link", { name: "Home" }).click();
   await expect(page).toHaveURL("/");
+  await expect(page.getByRole("heading", { name: "Find your next setup" })).toBeVisible();
   await nav.getByRole("link", { name: "Favorites" }).click();
   await expect(page).toHaveURL(/\/favorites/);
+  await expect(page.getByRole("heading", { name: "Favorites" })).toBeVisible();
   await nav.getByRole("link", { name: "Profile" }).click();
   await expect(page).toHaveURL(/\/profile/);
+  await expect(page.getByRole("heading", { name: "Mobile WebKit User" })).toBeVisible();
 
   await page.goto("/marketplace");
   await page.getByRole("button", { name: "Filters" }).click();
   await expect(
-    page.getByRole("dialog", { name: "Marketplace filters" }),
+    page.getByRole("dialog", { name: "Filters", exact: true }),
   ).toBeVisible();
   await page.getByRole("button", { name: "Close filters" }).click();
   await expect(
-    page.getByRole("dialog", { name: "Marketplace filters" }),
+    page.getByRole("dialog", { name: "Filters", exact: true }),
   ).toBeHidden();
   await page.getByRole("button", { name: "Filters" }).click();
   await page.getByLabel("Condition").last().selectOption("good");
@@ -88,23 +98,21 @@ test("mobile controls mutate and persist through real taps", async ({ page }) =>
   await expect(
     detail.getByRole("button", { name: "Remove from favorites" }),
   ).toBeEnabled();
-  const favorite = await admin
+  await expect.poll(async () => (await admin
     .from("favorites")
     .select("listing_id")
     .eq("user_id", user.id)
     .eq("listing_id", listing.id)
-    .single();
-  expect(favorite.data?.listing_id).toBe(listing.id);
+    .maybeSingle()).data?.listing_id).toBe(listing.id);
 
   await page.reload();
   await detail.getByRole("button", { name: "Remove from favorites" }).click();
   await expect(detail.getByRole("button", { name: "Add to favorites" })).toBeEnabled();
-  const removedFavorite = await admin
+  await expect.poll(async () => (await admin
     .from("favorites")
     .select("listing_id", { count: "exact", head: true })
     .eq("user_id", user.id)
-    .eq("listing_id", listing.id);
-  expect(removedFavorite.count).toBe(0);
+    .eq("listing_id", listing.id)).count).toBe(0);
 
   await page.getByRole("button", { name: "Report listing" }).click();
   await expect(page.getByRole("dialog", { name: "Report listing" })).toBeVisible();
@@ -126,12 +134,13 @@ test("mobile controls mutate and persist through real taps", async ({ page }) =>
   await page.getByRole("button", { name: "Close" }).click();
   await expect(page.getByRole("dialog", { name: "Report listing" })).toBeHidden();
 
-  await page.goto("/admin");
-  await expect(page).toHaveURL("/");
-  await page.goto(`/listing/${listing.id}`);
+  const adminProbe = await page.context().newPage();
+  await adminProbe.goto("/admin");
+  await expect(adminProbe).toHaveURL("/");
+  await adminProbe.close();
 
   await detail.getByRole("button", { name: "Message seller" }).click();
-  await expect(page).toHaveURL(/\/messages\/[0-9a-f-]{36}$/);
+  await expect(page).toHaveURL(/\/messages\/[0-9a-f-]{36}$/, { timeout: 20_000 });
   conversationId = page.url().split("/").pop()!;
   const conversation = await admin
     .from("conversations")
@@ -143,7 +152,8 @@ test("mobile controls mutate and persist through real taps", async ({ page }) =>
     listing_id: listing.id,
   });
   await page.getByRole("link", { name: "Back to conversations" }).click();
-  await expect(page).toHaveURL(/\/messages$/);
+  await expect(page).toHaveURL(/\/messages$/, { timeout: 20_000 });
+  await expect(page.getByRole("heading", { name: "Messages" })).toBeVisible();
 
   await page.goto("/saved-searches");
   const alertName = `WebKit alert ${stamp}`;
@@ -170,6 +180,7 @@ test("mobile controls mutate and persist through real taps", async ({ page }) =>
   ).toBeVisible();
   await page.getByRole("button", { name: "Enable" }).click();
   await page.getByRole("button", { name: `Delete ${alertName} renamed` }).click();
+  await page.getByRole("button", { name: "Confirm delete" }).click();
   await expect(page.getByText(`${alertName} renamed`)).toBeHidden();
   const savedCount = await admin
     .from("saved_searches")
@@ -213,7 +224,6 @@ test("mobile controls mutate and persist through real taps", async ({ page }) =>
     })
     .toBeTruthy();
   await page.getByRole("button", { name: "Mark all read" }).click();
-  await expect(page.getByRole("button", { name: "Mark all read" })).toBeDisabled();
   await expect
     .poll(async () => {
       const unread = await admin
@@ -224,4 +234,6 @@ test("mobile controls mutate and persist through real taps", async ({ page }) =>
       return unread.count;
     })
     .toBe(0);
+  await page.reload();
+  await expect(page.getByRole("button", { name: "Mark all read" })).toBeDisabled();
 });

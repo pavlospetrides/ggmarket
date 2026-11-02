@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import type { RealtimeChannel, SupabaseClient } from "@supabase/supabase-js";
 import { applyRealtimeNotification, countUnreadMessages, createNotificationState, markNotificationItemsRead, reconcileNotificationState, switchNotificationAccount, type NotificationItem, type NotificationState } from "@/lib/notification-state";
+import { hasBrowserSupabaseAuthCookie } from "@/lib/supabase/cookie-security";
 
 export type NotificationContextValue = {
   items: NotificationItem[];
@@ -132,6 +133,11 @@ export function NotificationCenter({ children }: { children: ReactNode }) {
     }
 
     const bootstrap = async () => {
+      if (!hasBrowserSupabaseAuthCookie(document.cookie)) {
+        await activate(null, { items: [], unread: 0, unreadMessages: 0 });
+        setLoading(false);
+        return;
+      }
       try {
         const response = await fetch("/api/notifications", { cache: "no-store" });
         if (!response.ok) throw new Error("load failed");

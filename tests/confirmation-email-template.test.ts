@@ -6,7 +6,7 @@ describe("Confirm Signup email template", () => {
     const html = await readFile(new URL("../docs/auth/confirm-signup-email.html", import.meta.url), "utf8");
 
     expect(html).toMatch(/<a\s[^>]*href=/i);
-    expect(html).toContain("https://ggmarket-sage.vercel.app/auth/callback?token_hash={{ .TokenHash }}");
+    expect(html).toContain("https://ggmarket.eu/auth/callback?token_hash={{ .TokenHash }}");
     expect(html).toContain("&amp;type=email");
     expect(html).toContain("&amp;next=%2Fsettings%2Fverification");
     expect(html).toContain("&amp;welcome=1");

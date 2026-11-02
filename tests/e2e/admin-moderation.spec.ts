@@ -18,7 +18,7 @@ let reportId = "";
 async function login(page: Page, email: string) {
   await page.goto("/login");
   await page.getByLabel("Email").fill(email);
-  await page.getByLabel("Password").fill(password);
+  await page.getByLabel("Password", { exact: true }).fill(password);
   await page.getByRole("button", { name: "Log in" }).click();
   await expect(page).toHaveURL(/\/profile/);
 }
@@ -84,6 +84,7 @@ test("admin removes a reported listing and creates an immutable audit record", a
     await expect(page.getByRole("heading", { name: "Moderation" })).toBeVisible();
     await expect(page.getByText(`Moderation acceptance ${stamp}`)).toBeVisible();
     await page.getByRole("button", { name: "Remove listing" }).click();
+    await page.getByRole("button", { name: "Confirm removal" }).click();
     await expect(page.getByText(`Moderation acceptance ${stamp}`)).toBeHidden();
   } finally {
     await context.close();

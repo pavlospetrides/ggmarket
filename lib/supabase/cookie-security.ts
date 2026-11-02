@@ -15,6 +15,13 @@ export function hasSupabaseAuthStorageCookie(cookies: CookieName[]) {
   );
 }
 
+export function hasBrowserSupabaseAuthCookie(cookieHeader: string) {
+  return cookieHeader.split(";").some((cookie) => {
+    const name = cookie.trim().split("=", 1)[0] ?? "";
+    return /^sb-.+-auth-token(?:\.\d+)?$/.test(name);
+  });
+}
+
 export function withPrivateNoStore<T extends Response>(response: T): T {
   response.headers.set("Cache-Control", "private, no-store, max-age=0, must-revalidate");
   response.headers.set("Pragma", "no-cache");

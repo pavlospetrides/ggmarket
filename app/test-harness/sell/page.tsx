@@ -7,6 +7,8 @@ export const dynamic = "force-dynamic";
 const categories: Category[] = [
   { id: "11111111-1111-4111-8111-111111111111", name: "Games", slug: "games", icon: "gamepad" },
   { id: "22222222-2222-4222-8222-222222222222", name: "PC Components", slug: "pc-components", icon: "cpu" },
+  { id: "33333333-3333-4333-8333-333333333333", name: "Gaming PCs", slug: "gaming-pcs", icon: "monitor" },
+  { id: "44444444-4444-4444-8444-444444444444", name: "Consoles", slug: "consoles", icon: "gamepad" },
 ];
 
 export default function SellInteractionHarnessPage() {

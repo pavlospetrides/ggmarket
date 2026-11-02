@@ -33,7 +33,7 @@ export function Header() {
     <div className="container-page flex h-14 items-center justify-between md:hidden">
       <Logo />
       <div className="flex items-center gap-1">
-        <Link href="/messages" className={`icon-btn relative min-h-10 size-10 border-transparent bg-transparent ${active("/messages") ? "bg-[var(--surface-alt)] text-white" : ""}`} aria-label={`Messages${unreadMessages ? `, ${unreadMessages} unread` : ""}`}>
+        <Link href="/messages" prefetch={false} className={`icon-btn relative min-h-10 size-10 border-transparent bg-transparent ${active("/messages") ? "bg-[var(--surface-alt)] text-white" : ""}`} aria-label={`Messages${unreadMessages ? `, ${unreadMessages} unread` : ""}`}>
           <MessageCircle className="size-[19px]" />
           {unreadMessages > 0 ? <MessageUnreadBadge count={unreadMessages} /> : null}
         </Link>
@@ -52,10 +52,10 @@ export function Header() {
       </form>
       <div className="flex items-center gap-2">
         <NotificationBell panelId="desktop-notification-panel" />
-        <Link href="/messages" className={`icon-btn relative min-h-10 size-10 border-transparent bg-transparent ${active("/messages") ? "bg-[var(--surface-alt)] text-white" : ""}`} aria-label={`Messages${unreadMessages ? `, ${unreadMessages} unread` : ""}`}><MessageCircle className="size-[19px]" />{unreadMessages > 0 ? <MessageUnreadBadge count={unreadMessages} /> : null}</Link>
-        <Link href="/favorites" className={`icon-btn min-h-10 size-10 border-transparent bg-transparent ${active("/favorites") ? "bg-[var(--surface-alt)] text-white" : ""}`} aria-label="Favorites"><Heart className="size-[19px]" /></Link>
-        <Link href="/profile" className={`icon-btn min-h-10 size-10 border-transparent bg-transparent ${active("/profile") ? "bg-[var(--surface-alt)] text-white" : ""}`} aria-label="Profile"><UserRound className="size-[19px]" /></Link>
-        <Link href="/sell" className="btn-primary min-h-10 px-5">Sell</Link>
+        <Link href="/messages" prefetch={false} className={`icon-btn relative min-h-10 size-10 border-transparent bg-transparent ${active("/messages") ? "bg-[var(--surface-alt)] text-white" : ""}`} aria-label={`Messages${unreadMessages ? `, ${unreadMessages} unread` : ""}`}><MessageCircle className="size-[19px]" />{unreadMessages > 0 ? <MessageUnreadBadge count={unreadMessages} /> : null}</Link>
+        <Link href="/favorites" prefetch={false} className={`icon-btn min-h-10 size-10 border-transparent bg-transparent ${active("/favorites") ? "bg-[var(--surface-alt)] text-white" : ""}`} aria-label="Favorites"><Heart className="size-[19px]" /></Link>
+        <Link href="/profile" prefetch={false} className={`icon-btn min-h-10 size-10 border-transparent bg-transparent ${active("/profile") ? "bg-[var(--surface-alt)] text-white" : ""}`} aria-label="Profile"><UserRound className="size-[19px]" /></Link>
+        <Link href="/sell" prefetch={false} className="btn-primary min-h-10 px-5">Sell</Link>
       </div>
     </div>
   </header>;

@@ -14,7 +14,7 @@ export function SiteFooter() {
         <nav aria-label="Footer navigation">
           <Link href="/marketplace">Marketplace</Link>
           <Link href="/browse">Browse</Link>
-          <Link href="/sell">Sell</Link>
+          <Link href="/sell" prefetch={false}>Sell</Link>
           <Link href="/cookies">Cookie policy</Link>
           <Link href="/privacy">Privacy policy</Link>
         </nav>

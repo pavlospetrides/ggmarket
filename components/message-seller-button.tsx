@@ -8,12 +8,12 @@ import { Loader2 } from "./ui/loader-2";
 export function MessageSellerButton({
   listingId,
   loggedIn,
-  compact = false,
+  iconOnly = false,
   label = "Message seller",
 }: {
   listingId: string;
   loggedIn: boolean;
-  compact?: boolean;
+  iconOnly?: boolean;
   label?: string;
 }) {
   const router = useRouter();
@@ -50,18 +50,32 @@ export function MessageSellerButton({
     }
   }
   return (
-    <form action="/api/conversations" method="post" onSubmit={start} className={compact ? "min-w-0 flex-1 basis-28" : "block min-w-0"}>
+    <form action="/api/conversations" method="post" onSubmit={start} className={iconOnly ? "relative shrink-0" : "block min-w-0"}>
       <input type="hidden" name="listingId" value={listingId} />
       <button
         type="submit"
         disabled={busy}
         aria-busy={busy}
-        className={`btn-primary min-w-0 w-full ${compact ? "px-3" : "mt-6"}`}
+        aria-label={iconOnly ? (busy ? "Opening conversation…" : label) : undefined}
+        title={iconOnly ? label : undefined}
+        className={iconOnly
+          ? "grid size-11 shrink-0 touch-manipulation place-items-center rounded-full bg-[var(--primary)] p-0 text-white transition-colors hover:bg-[var(--primary-hover)] active:bg-[var(--primary-active)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary-hover)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--surface)] disabled:cursor-wait disabled:opacity-70"
+          : "btn-primary mt-6 min-w-0 w-full"}
       >
-        {busy ? <Loader2 size="compact" delayed decorative className="shrink-0" /> : <MessageCircle className="size-4 shrink-0" aria-hidden="true" />} <span className="min-w-0 [overflow-wrap:anywhere]">{busy ? "Opening…" : label}</span>
+        {busy ? (
+          <Loader2 size="compact" delayed decorative className="shrink-0" />
+        ) : (
+          <MessageCircle
+            className={iconOnly ? "size-[21px] shrink-0" : "size-4 shrink-0"}
+            aria-hidden="true"
+          />
+        )}
+        <span className={iconOnly ? "sr-only" : "min-w-0 [overflow-wrap:anywhere]"}>
+          {busy ? "Opening…" : label}
+        </span>
       </button>
       {error && (
-        <span role="alert" className="mt-2 block text-xs text-[var(--danger)] [overflow-wrap:anywhere]">
+        <span role="alert" className={iconOnly ? "absolute right-0 top-full z-10 mt-2 block w-[min(16rem,calc(100vw-2rem))] rounded-lg bg-[var(--surface-elevated)] p-2 text-xs text-[var(--danger)] shadow-lg [overflow-wrap:anywhere]" : "mt-2 block text-xs text-[var(--danger)] [overflow-wrap:anywhere]"}>
           {error}
         </span>
       )}

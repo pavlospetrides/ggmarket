@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { NextRequest } from "next/server";
-import { getPublicRequestOrigin, isTrustedMutationRequest } from "../lib/request-security";
+import { buildContentSecurityPolicy, getPublicRequestOrigin, isTrustedMutationRequest } from "../lib/request-security";
 import { proxy } from "../proxy";
 
 vi.mock("@/lib/request-security", async () => import("../lib/request-security"));
@@ -62,17 +62,17 @@ describe("mutation origin validation", () => {
 
   it("uses the configured production origin instead of client-supplied forwarding headers", () => {
     vi.stubEnv("NODE_ENV", "production");
-    vi.stubEnv("NEXT_PUBLIC_SITE_URL", "https://ggmarket-sage.vercel.app");
+    vi.stubEnv("NEXT_PUBLIC_SITE_URL", "https://ggmarket.eu");
     const requestHeaders = headers({
       host: "internal:3000",
-      "x-forwarded-host": "attacker.example",
+      "x-forwarded-host": "attacker.vercel.app",
       "x-forwarded-proto": "https",
     });
 
-    expect(getPublicRequestOrigin(requestHeaders, "http:")).toBe("https://ggmarket-sage.vercel.app");
+    expect(getPublicRequestOrigin(requestHeaders, "http:")).toBe("https://ggmarket.eu");
     expect(isTrustedMutationRequest(new Headers({
       ...Object.fromEntries(requestHeaders.entries()),
-      origin: "https://attacker.example",
+      origin: "https://attacker.vercel.app",
       "sec-fetch-site": "cross-site",
     }), "http:")).toBe(false);
   });
@@ -85,7 +85,20 @@ describe("mutation origin validation", () => {
       host: "localhost:3000",
       "x-forwarded-host": "attacker.example",
       "x-forwarded-proto": "http",
-    }), "http:")).toBe("https://ggmarket-sage.vercel.app");
+    }), "http:")).toBe("https://ggmarket.eu");
+  });
+
+  it("uses the trusted Vercel deployment origin for preview authentication", () => {
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("VERCEL_ENV", "preview");
+    vi.stubEnv("VERCEL_URL", "ggmarket-git-auth-a1b2c3.vercel.app");
+    vi.stubEnv("NEXT_PUBLIC_SITE_URL", "https://ggmarket.eu");
+
+    expect(getPublicRequestOrigin(headers({
+      host: "internal:3000",
+      "x-forwarded-host": "attacker.example",
+      "x-forwarded-proto": "https",
+    }), "http:")).toBe("https://ggmarket-git-auth-a1b2c3.vercel.app");
   });
 
   it("rejects cross-site auth mutations in the application proxy", async () => {
@@ -99,5 +112,43 @@ describe("mutation origin validation", () => {
     }));
 
     expect(response.status).toBe(403);
+  });
+
+  it.each([
+    ["https://www.ggmarket.eu/marketplace?q=gpu", "https://ggmarket.eu/marketplace?q=gpu"],
+    ["https://ggmarket-sage.vercel.app/listing/abc?ref=old", "https://ggmarket.eu/listing/abc?ref=old"],
+  ])("redirects legacy public host %s to the canonical host", async (source, expected) => {
+    const response = await proxy(new NextRequest(source));
+    expect(response.status).toBe(308);
+    expect(response.headers.get("location")).toBe(expected);
+  });
+});
+
+describe("content security policy", () => {
+  it("covers executable, network, image, framing, and navigation sources", () => {
+    const policy = buildContentSecurityPolicy(false);
+
+    for (const directive of [
+      "default-src 'self'",
+      "script-src 'self' 'unsafe-inline'",
+      "style-src 'self' 'unsafe-inline'",
+      "connect-src 'self' https://*.supabase.co wss://*.supabase.co",
+      "img-src 'self' blob: data: https://images.unsplash.com https://*.supabase.co",
+      "font-src 'self' data:",
+      "object-src 'none'",
+      "base-uri 'self'",
+      "form-action 'self'",
+      "frame-ancestors 'none'",
+      "upgrade-insecure-requests",
+    ]) expect(policy).toContain(`${directive};`);
+    expect(policy).not.toContain("'unsafe-eval'");
+  });
+
+  it("allows only the local development transports required by Next and Supabase", () => {
+    const policy = buildContentSecurityPolicy(true);
+    expect(policy).toContain("script-src 'self' 'unsafe-inline' 'unsafe-eval';");
+    expect(policy).toContain("http://127.0.0.1:* ws://127.0.0.1:*");
+    expect(policy).toContain("http://localhost:* ws://localhost:*");
+    expect(policy).not.toContain("upgrade-insecure-requests");
   });
 });

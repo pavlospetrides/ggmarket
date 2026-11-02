@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { favoriteSchema } from "@/lib/validation";
-import { readJson } from "@/lib/security";
+import { readJson, readUrlEncodedForm } from "@/lib/security";
 import { getPublicRequestOrigin, isTrustedMutationRequest } from "@/lib/request-security";
 
 type FavoriteIntent = "add" | "remove";
@@ -33,7 +33,8 @@ function formError(message: string, status: number) {
 async function parseFavoriteRequest(request: Request): Promise<FavoriteRequest | null> {
   const isForm = request.headers.get("content-type")?.toLowerCase().includes("application/x-www-form-urlencoded") ?? false;
   if (isForm) {
-    const body = await request.formData();
+    const body = await readUrlEncodedForm(request);
+    if (!body) return null;
     const parsed = favoriteSchema.safeParse({ listingId: body.get("listingId") });
     if (!parsed.success) return null;
 

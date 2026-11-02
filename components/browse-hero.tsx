@@ -72,7 +72,7 @@ export function BrowseHero({ slides }: { slides: BrowseHeroSlide[] }) {
         <p className="mt-5 max-w-lg text-sm leading-6 text-[#c7ccda] sm:text-lg sm:leading-8">
           {slide.description}
         </p>
-        <Link href={slide.href} className="btn-primary mt-7 w-fit px-5">
+        <Link prefetch={false} href={slide.href} className="btn-primary mt-7 w-fit px-5">
           {slide.cta} <ArrowRight className="size-4" />
         </Link>
       </div>

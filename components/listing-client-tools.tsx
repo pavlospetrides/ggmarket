@@ -15,7 +15,7 @@ export function ListingViewTracker({ listingId }: { listingId: string }) {
   return null;
 }
 
-export function ListingClientTools({ title }: { title: string }) {
+export function ListingClientTools({ title, canonicalUrl }: { title: string; canonicalUrl: string }) {
   const hydrated = useHydrated();
   const [status, setStatus] = useState<"" | "copied" | "error">("");
 
@@ -23,11 +23,11 @@ export function ListingClientTools({ title }: { title: string }) {
     setStatus("");
     try {
       if (navigator.share) {
-        await navigator.share({ title, url: location.href });
+        await navigator.share({ title, url: canonicalUrl });
         return;
       }
       if (!navigator.clipboard?.writeText) throw new Error("Clipboard unavailable");
-      await navigator.clipboard.writeText(location.href);
+      await navigator.clipboard.writeText(canonicalUrl);
       setStatus("copied");
       window.setTimeout(() => setStatus(""), 1_800);
     } catch (reason) {

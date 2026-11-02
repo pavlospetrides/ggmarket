@@ -15,7 +15,6 @@ import { useEffect, useRef, useState } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
 import { conditions, formatPrice } from "@/lib/constants";
-import { createClient } from "@/lib/supabase/client";
 import type { Category } from "@/lib/types";
 import { isAllowedImageFile } from "@/lib/security";
 import { createClientUuid } from "@/lib/client-id";
@@ -88,11 +87,12 @@ export function SellWizard({ categories }: { categories: Category[] }) {
   const values = useWatch({ control: form.control });
   const hasUnsavedChanges = form.formState.isDirty || photos.length > 0;
   const category = categories.find((item) => item.id === values.categoryId);
+  const previewListingAttributes = buildListingTaxonomyAttributes(taxonomySelection, taxonomyAttributes);
   const previewTaxonomyAttributes = category
-    ? Object.entries(buildListingTaxonomyAttributes(taxonomySelection, taxonomyAttributes))
+    ? Object.entries(previewListingAttributes)
       .filter(([key]) => key !== "taxonomy_version" && !key.startsWith("_"))
       .slice(0, 8)
-      .map(([key, attributeValue]) => formatTaxonomyAttribute(key, attributeValue))
+      .map(([key, attributeValue]) => formatTaxonomyAttribute(key, attributeValue, category.slug, previewListingAttributes))
     : [];
   const error = (name: keyof Values) => form.formState.errors[name]?.message;
 
@@ -212,32 +212,17 @@ export function SellWizard({ categories }: { categories: Category[] }) {
         return;
       }
       setMessage("Uploading photos…");
-      const supabase = createClient();
-      const { data: auth } = await supabase.auth.getUser();
-      if (!auth.user)
-        throw new Error("Your session expired. Please log in again.");
       for (const [index, photo] of photos.entries()) {
-        const extension =
-          photo.file.name.split(".").pop()?.toLowerCase() || "jpg";
-        const path = `${auth.user.id}/${listingId}/${createClientUuid()}.${extension}`;
-        const { error: uploadError } = await supabase.storage
-          .from("listing-images")
-          .upload(path, photo.file, {
-            contentType: photo.file.type,
-            upsert: false,
-          });
-        if (uploadError)
-          throw new Error(`Photo ${index + 1} could not be uploaded.`);
-        const { error: metadataError } = await supabase
-          .from("listing_images")
-          .insert({
-            listing_id: listingId,
-            storage_path: path,
-            sort_order: index,
-          });
-        if (metadataError) {
-          await supabase.storage.from("listing-images").remove([path]);
-          throw new Error(`Photo ${index + 1} could not be attached.`);
+        const form = new FormData();
+        form.set("image", photo.file);
+        form.set("sortOrder", String(index));
+        const uploadResponse = await fetch(`/api/listings/${listingId}/images`, {
+          method: "POST",
+          body: form,
+        });
+        if (!uploadResponse.ok) {
+          const uploadResult = await uploadResponse.json().catch(() => null);
+          throw new Error(uploadResult?.error || `Photo ${index + 1} could not be uploaded.`);
         }
       }
       setMessage("Publishing…");

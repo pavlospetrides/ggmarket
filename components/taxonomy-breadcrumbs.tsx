@@ -15,10 +15,10 @@ export function TaxonomyBreadcrumbs({ actionPath, categorySlug, params }: { acti
   const attributes: ListingAttributes = Object.fromEntries(["family", "subcategory", "platform", "model"].flatMap((key) => { const value = stringValue(params, key); return value ? [[key, value]] : []; }));
   const path = categorySlug ? getTaxonomyPath(categorySlug, attributes) : [];
   return <nav className="taxonomy-breadcrumbs" aria-label="Category breadcrumb">
-    <Link href={href(actionPath, params, [])}>Marketplace</Link>
+    <Link prefetch={false} href={href(actionPath, params, [])}>Marketplace</Link>
     {path.map((item, index) => {
       const keep = item.kind === "root" ? ["category"] : item.kind === "family" ? ["category", "family"] : ["category", "family", "subcategory", item.kind === "platform" ? "platform" : "model"];
-      return <span className="inline-flex min-w-0 items-center gap-1.5" key={`${item.kind}-${item.id}`}><ChevronRight className="size-3.5 shrink-0" aria-hidden="true" /><Link className="min-w-0 break-words" href={href(actionPath, params, keep)} aria-current={index === path.length - 1 ? "page" : undefined}>{item.label}</Link></span>;
+      return <span className="inline-flex min-w-0 items-center gap-1.5" key={`${item.kind}-${item.id}`}><ChevronRight className="size-3.5 shrink-0" aria-hidden="true" /><Link prefetch={false} className="min-w-0 break-words" href={href(actionPath, params, keep)} aria-current={index === path.length - 1 ? "page" : undefined}>{item.label}</Link></span>;
     })}
   </nav>;
 }

@@ -2,15 +2,8 @@ import { NextResponse } from "next/server";
 import { getUser } from "@/lib/auth";
 import { calculateRatingSummary } from "@/lib/ratings";
 import { createClient } from "@/lib/supabase/server";
+import { readJson } from "@/lib/security";
 import { ratingSchema } from "@/lib/validation";
-
-async function readBody(request: Request) {
-  try {
-    return await request.json();
-  } catch {
-    return null;
-  }
-}
 
 export async function GET(request: Request) {
   const user = await getUser();
@@ -33,7 +26,7 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   const user = await getUser();
   if (!user) return NextResponse.json({ error: "Log in to rate this user." }, { status: 401 });
-  const parsed = ratingSchema.safeParse(await readBody(request));
+  const parsed = ratingSchema.safeParse(await readJson(request));
   if (!parsed.success) {
     return NextResponse.json({ error: parsed.error.issues[0]?.message ?? "Invalid rating." }, { status: 400 });
   }

@@ -1,12 +1,14 @@
 import { defineConfig } from "@playwright/test";
+import { existsSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-process.loadEnvFile?.(".env.local");
+if (existsSync(".env.local")) process.loadEnvFile?.(".env.local");
 const baseURL = process.env.PLAYWRIGHT_BASE_URL ?? "http://localhost:3000";
 export default defineConfig({
   testDir: "./tests/e2e",
   outputDir: join(tmpdir(), "ggmarket-playwright-results"),
   timeout: 120_000,
+  expect: { timeout: 20_000 },
   fullyParallel: false,
   workers: 1,
   use: {
@@ -17,6 +19,17 @@ export default defineConfig({
   },
   projects: [
     { name: "chromium", use: { browserName: "chromium", channel: "chrome" } },
+    {
+      name: "chromium-mobile",
+      use: {
+        browserName: "chromium",
+        channel: "chrome",
+        viewport: { width: 390, height: 844 },
+        isMobile: true,
+        hasTouch: true,
+      },
+    },
+    { name: "webkit-desktop", use: { browserName: "webkit" } },
     {
       name: "webkit",
       use: {

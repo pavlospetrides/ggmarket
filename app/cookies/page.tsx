@@ -1,9 +1,11 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { PUBLIC_PAGE_SOCIAL_METADATA } from "@/lib/site-metadata";
 
 export const metadata: Metadata = {
   title: "Cookie policy",
   description: "How GGMarket uses essential authentication cookies and browser storage.",
+  ...PUBLIC_PAGE_SOCIAL_METADATA.cookies,
 };
 
 const rows = [

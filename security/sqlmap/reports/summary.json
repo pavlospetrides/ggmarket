@@ -1,0 +1,636 @@
+{
+  "automatable_local_targets": 16,
+  "confirmed_vulnerabilities": [],
+  "discovered_entry_points": 40,
+  "generated_by": "security/sqlmap/runner.py",
+  "parameter_coverage": {
+    "inventoried": 107,
+    "tested_this_run": 46,
+    "untested_this_run": 61
+  },
+  "results": [
+    {
+      "detail": "SQLMap rejected its preliminary signal",
+      "id": "page-marketplace-search",
+      "method": "GET",
+      "parameters": [
+        "q",
+        "category",
+        "min",
+        "max",
+        "condition",
+        "location",
+        "seller",
+        "intent",
+        "sort",
+        "page",
+        "taxonomy filters"
+      ],
+      "route": "/marketplace",
+      "sources": [
+        "app/marketplace/page.tsx",
+        "lib/data.ts",
+        "lib/validation.ts"
+      ],
+      "status": "false_positive"
+    },
+    {
+      "detail": "SQLMap rejected its preliminary signal",
+      "id": "page-search",
+      "method": "GET",
+      "parameters": [
+        "q",
+        "category",
+        "sort",
+        "page"
+      ],
+      "route": "/search",
+      "sources": [
+        "app/search/page.tsx",
+        "lib/data.ts"
+      ],
+      "status": "false_positive"
+    },
+    {
+      "detail": "SQLMap found no injectable parameter",
+      "id": "page-listing-detail",
+      "method": "GET",
+      "parameters": [
+        "id"
+      ],
+      "route": "/listing/{id}",
+      "sources": [
+        "app/listing/[id]/page.tsx",
+        "lib/data.ts"
+      ],
+      "status": "not_injectable"
+    },
+    {
+      "detail": "SQLMap found no injectable parameter",
+      "id": "page-public-profile",
+      "method": "GET",
+      "parameters": [
+        "username",
+        "listingsPage",
+        "reviewsPage"
+      ],
+      "route": "/profile/{username}",
+      "sources": [
+        "app/profile/[username]/page.tsx",
+        "lib/data.ts"
+      ],
+      "status": "not_injectable"
+    },
+    {
+      "detail": "SQLMap found no injectable parameter",
+      "id": "api-reviews-get",
+      "method": "GET",
+      "parameters": [
+        "sellerId"
+      ],
+      "route": "/api/reviews",
+      "sources": [
+        "app/api/reviews/route.ts"
+      ],
+      "status": "not_injectable"
+    },
+    {
+      "detail": "SQLMap found no injectable parameter",
+      "id": "api-reviews-post",
+      "method": "POST",
+      "parameters": [
+        "sellerId",
+        "rating",
+        "comment"
+      ],
+      "route": "/api/reviews",
+      "sources": [
+        "app/api/reviews/route.ts"
+      ],
+      "status": "not_injectable"
+    },
+    {
+      "detail": "static/manual target",
+      "id": "api-listings-create",
+      "method": "POST",
+      "parameters": [
+        "title",
+        "description",
+        "price",
+        "category",
+        "condition",
+        "location",
+        "intent",
+        "taxonomy"
+      ],
+      "route": "/api/listings",
+      "sources": [
+        "app/api/listings/route.ts",
+        "lib/validation.ts"
+      ],
+      "status": "not_run"
+    },
+    {
+      "detail": "static/manual target",
+      "id": "api-listings-update",
+      "method": "PATCH",
+      "parameters": [
+        "id",
+        "listing fields",
+        "publish"
+      ],
+      "route": "/api/listings/{id}",
+      "sources": [
+        "app/api/listings/[id]/route.ts"
+      ],
+      "status": "not_run"
+    },
+    {
+      "detail": "static/manual target",
+      "id": "api-listings-delete",
+      "method": "DELETE",
+      "parameters": [
+        "id"
+      ],
+      "route": "/api/listings/{id}",
+      "sources": [
+        "app/api/listings/[id]/route.ts"
+      ],
+      "status": "not_run"
+    },
+    {
+      "detail": "static/manual target",
+      "id": "api-listing-images-upload",
+      "method": "POST",
+      "parameters": [
+        "id",
+        "multipart file"
+      ],
+      "route": "/api/listings/{id}/images",
+      "sources": [
+        "app/api/listings/[id]/images/route.ts"
+      ],
+      "status": "not_run"
+    },
+    {
+      "detail": "static/manual target",
+      "id": "api-listing-image-delete",
+      "method": "DELETE",
+      "parameters": [
+        "id"
+      ],
+      "route": "/api/listing-images/{id}",
+      "sources": [
+        "app/api/listing-images/[id]/route.ts"
+      ],
+      "status": "not_run"
+    },
+    {
+      "detail": "SQLMap found no injectable parameter",
+      "id": "api-favorites-post",
+      "method": "POST",
+      "parameters": [
+        "listingId",
+        "intent"
+      ],
+      "route": "/api/favorites",
+      "sources": [
+        "app/api/favorites/route.ts"
+      ],
+      "status": "not_injectable"
+    },
+    {
+      "detail": "SQLMap found no injectable parameter",
+      "id": "api-recently-viewed",
+      "method": "POST",
+      "parameters": [
+        "listingId"
+      ],
+      "route": "/api/recently-viewed",
+      "sources": [
+        "app/api/recently-viewed/route.ts"
+      ],
+      "status": "not_injectable"
+    },
+    {
+      "detail": "SQLMap found no injectable parameter",
+      "id": "api-conversations-create",
+      "method": "POST",
+      "parameters": [
+        "listingId"
+      ],
+      "route": "/api/conversations",
+      "sources": [
+        "app/api/conversations/route.ts"
+      ],
+      "status": "not_injectable"
+    },
+    {
+      "detail": "SQLMap found no injectable parameter",
+      "id": "api-messages-get",
+      "method": "GET",
+      "parameters": [
+        "id"
+      ],
+      "route": "/api/conversations/{id}/messages",
+      "sources": [
+        "app/api/conversations/[id]/messages/route.ts"
+      ],
+      "status": "not_injectable"
+    },
+    {
+      "detail": "SQLMap found no injectable parameter",
+      "id": "api-messages-post",
+      "method": "POST",
+      "parameters": [
+        "id",
+        "body",
+        "clientId"
+      ],
+      "route": "/api/conversations/{id}/messages",
+      "sources": [
+        "app/api/conversations/[id]/messages/route.ts"
+      ],
+      "status": "not_injectable"
+    },
+    {
+      "detail": "SQLMap found no injectable parameter",
+      "id": "api-offers-create",
+      "method": "POST",
+      "parameters": [
+        "conversationId",
+        "amount",
+        "parentOfferId"
+      ],
+      "route": "/api/offers",
+      "sources": [
+        "app/api/offers/route.ts"
+      ],
+      "status": "not_injectable"
+    },
+    {
+      "detail": "static/manual target",
+      "id": "api-offers-respond",
+      "method": "PATCH",
+      "parameters": [
+        "id",
+        "action"
+      ],
+      "route": "/api/offers/{id}",
+      "sources": [
+        "app/api/offers/[id]/route.ts"
+      ],
+      "status": "not_run"
+    },
+    {
+      "detail": "SQLMap found no injectable parameter",
+      "id": "api-trades-create",
+      "method": "POST",
+      "parameters": [
+        "conversationId",
+        "offeredListingId",
+        "cashAdjustment",
+        "note"
+      ],
+      "route": "/api/trades",
+      "sources": [
+        "app/api/trades/route.ts"
+      ],
+      "status": "not_injectable"
+    },
+    {
+      "detail": "static/manual target",
+      "id": "api-trades-respond",
+      "method": "PATCH",
+      "parameters": [
+        "id",
+        "action"
+      ],
+      "route": "/api/trades/{id}",
+      "sources": [
+        "app/api/trades/[id]/route.ts"
+      ],
+      "status": "not_run"
+    },
+    {
+      "detail": "SQLMap found no injectable parameter",
+      "id": "api-saved-searches-create",
+      "method": "POST",
+      "parameters": [
+        "name",
+        "query",
+        "category",
+        "filters"
+      ],
+      "route": "/api/saved-searches",
+      "sources": [
+        "app/api/saved-searches/route.ts"
+      ],
+      "status": "not_injectable"
+    },
+    {
+      "detail": "static/manual target",
+      "id": "api-saved-searches-update",
+      "method": "PATCH",
+      "parameters": [
+        "id",
+        "name",
+        "enabled",
+        "filters"
+      ],
+      "route": "/api/saved-searches/{id}",
+      "sources": [
+        "app/api/saved-searches/[id]/route.ts"
+      ],
+      "status": "not_run"
+    },
+    {
+      "detail": "static/manual target",
+      "id": "api-notifications-get",
+      "method": "GET",
+      "parameters": [],
+      "route": "/api/notifications",
+      "sources": [
+        "app/api/notifications/route.ts"
+      ],
+      "status": "not_run"
+    },
+    {
+      "detail": "static/manual target",
+      "id": "api-notifications-patch",
+      "method": "PATCH",
+      "parameters": [
+        "id",
+        "ids",
+        "all"
+      ],
+      "route": "/api/notifications",
+      "sources": [
+        "app/api/notifications/route.ts"
+      ],
+      "status": "not_run"
+    },
+    {
+      "detail": "SQLMap found no injectable parameter",
+      "id": "api-reports-create",
+      "method": "POST",
+      "parameters": [
+        "listingId",
+        "reason",
+        "details"
+      ],
+      "route": "/api/reports",
+      "sources": [
+        "app/api/reports/route.ts"
+      ],
+      "status": "not_injectable"
+    },
+    {
+      "detail": "static/manual target",
+      "id": "api-profile-update",
+      "method": "PATCH",
+      "parameters": [
+        "username",
+        "displayName",
+        "location",
+        "bio"
+      ],
+      "route": "/api/profile",
+      "sources": [
+        "app/api/profile/route.ts"
+      ],
+      "status": "not_run"
+    },
+    {
+      "detail": "SQLMap found no injectable parameter",
+      "id": "api-item-verification",
+      "method": "POST",
+      "parameters": [
+        "listingId"
+      ],
+      "route": "/api/verification/item",
+      "sources": [
+        "app/api/verification/item/route.ts"
+      ],
+      "status": "not_injectable"
+    },
+    {
+      "detail": "static/manual target",
+      "id": "api-admin-reports",
+      "method": "PATCH",
+      "parameters": [
+        "reportId",
+        "listingId",
+        "action"
+      ],
+      "route": "/api/admin/reports",
+      "sources": [
+        "app/api/admin/reports/route.ts"
+      ],
+      "status": "not_run"
+    },
+    {
+      "detail": "static/manual target",
+      "id": "api-email-verification",
+      "method": "POST",
+      "parameters": [
+        "authenticated email"
+      ],
+      "route": "/api/verification/email",
+      "sources": [
+        "app/api/verification/email/route.ts"
+      ],
+      "status": "not_run"
+    },
+    {
+      "detail": "static/manual target",
+      "id": "page-private-account-reads",
+      "method": "GET",
+      "parameters": [
+        "authenticated identity",
+        "page where applicable"
+      ],
+      "route": "/profile, /favorites, /messages, /notifications, /saved-searches, /admin",
+      "sources": [
+        "app/profile/page.tsx",
+        "app/favorites/page.tsx",
+        "app/messages/page.tsx",
+        "app/notifications/page.tsx",
+        "app/saved-searches/page.tsx",
+        "app/admin/page.tsx"
+      ],
+      "status": "not_run"
+    },
+    {
+      "detail": "static/manual target",
+      "id": "page-conversation",
+      "method": "GET",
+      "parameters": [
+        "id"
+      ],
+      "route": "/messages/{id}",
+      "sources": [
+        "app/messages/[id]/page.tsx",
+        "lib/phase2-data.ts"
+      ],
+      "status": "not_run"
+    },
+    {
+      "detail": "static/manual target",
+      "id": "auth-login",
+      "method": "POST",
+      "parameters": [
+        "email",
+        "password"
+      ],
+      "route": "/auth/login",
+      "sources": [
+        "app/auth/login/route.ts"
+      ],
+      "status": "not_run"
+    },
+    {
+      "detail": "static/manual target",
+      "id": "auth-register",
+      "method": "POST",
+      "parameters": [
+        "username",
+        "email",
+        "password"
+      ],
+      "route": "/auth/register",
+      "sources": [
+        "app/auth/register/route.ts",
+        "supabase/migrations"
+      ],
+      "status": "not_run"
+    },
+    {
+      "detail": "static/manual target",
+      "id": "auth-forgot-password",
+      "method": "POST",
+      "parameters": [
+        "email"
+      ],
+      "route": "/auth/forgot-password",
+      "sources": [
+        "app/auth/forgot-password/route.ts"
+      ],
+      "status": "not_run"
+    },
+    {
+      "detail": "static/manual target",
+      "id": "auth-logout",
+      "method": "POST",
+      "parameters": [],
+      "route": "/auth/logout",
+      "sources": [
+        "app/auth/logout/route.ts"
+      ],
+      "status": "not_run"
+    },
+    {
+      "detail": "static/manual target",
+      "id": "auth-callback",
+      "method": "GET",
+      "parameters": [
+        "code",
+        "token_hash",
+        "type",
+        "next",
+        "welcome"
+      ],
+      "route": "/auth/callback",
+      "sources": [
+        "app/auth/callback/route.ts"
+      ],
+      "status": "not_run"
+    },
+    {
+      "detail": "static/manual target",
+      "id": "rpc-search-listings",
+      "method": "RPC",
+      "parameters": [
+        "query",
+        "filters",
+        "sort",
+        "pagination"
+      ],
+      "route": "Supabase RPC search_listings",
+      "sources": [
+        "lib/data.ts",
+        "supabase/migrations/202610030001_add_search_listings_rpc.sql"
+      ],
+      "status": "not_run"
+    },
+    {
+      "detail": "static/manual target",
+      "id": "rpc-marketplace-mutations",
+      "method": "RPC",
+      "parameters": [
+        "typed UUIDs",
+        "amount",
+        "action",
+        "note"
+      ],
+      "route": "Supabase offer/trade/conversation RPCs",
+      "sources": [
+        "supabase/migrations/202610120001_add_marketplace_workflows.sql"
+      ],
+      "status": "not_run"
+    },
+    {
+      "detail": "static/manual target",
+      "id": "db-dynamic-sql-migrations",
+      "method": "SQL",
+      "parameters": [
+        "catalog-derived schema/column names",
+        "hard-coded table names"
+      ],
+      "route": "migration bootstrap/maintenance functions",
+      "sources": [
+        "supabase/migrations/202610030003_fix_saved_search_similarity.sql",
+        "supabase/migrations/202610030005_add_updated_at_triggers.sql",
+        "supabase/migrations/202610200001_harden_profile_constraints.sql",
+        "supabase/migrations/202610280002_harden_security_definer_search_paths.sql"
+      ],
+      "status": "not_run"
+    },
+    {
+      "detail": "static/manual target",
+      "id": "db-security-definer-functions",
+      "method": "SQL",
+      "parameters": [
+        "RPC arguments",
+        "NEW/OLD row values",
+        "auth.uid()"
+      ],
+      "route": "SECURITY DEFINER functions and triggers",
+      "sources": [
+        "supabase/migrations/202610280002_harden_security_definer_search_paths.sql"
+      ],
+      "status": "not_run"
+    }
+  ],
+  "schema_version": 1,
+  "source_review": {
+    "conclusion": "No request-controlled raw SQL sink was identified. Application queries use Supabase/PostgREST builders or typed RPC arguments; sort branches and taxonomy keys are allowlisted. Migration EXECUTE/format uses catalog-derived or hard-coded identifiers with %I. SECURITY DEFINER functions reviewed in the hardened baseline use an empty search_path and schema-qualified objects.",
+    "dynamic_sql": [
+      "supabase/migrations/202610030003_fix_saved_search_similarity.sql",
+      "supabase/migrations/202610030005_add_updated_at_triggers.sql",
+      "supabase/migrations/202610200001_harden_profile_constraints.sql",
+      "supabase/migrations/202610280002_harden_security_definer_search_paths.sql"
+    ],
+    "previous_local_evidence": [
+      "Bounded disposable-lab SQLMap: listings PostgREST filter - no injectable parameter",
+      "Bounded disposable-lab SQLMap: search_listings RPC JSON marker - no injectable parameter",
+      "Bounded disposable-lab SQLMap: Next.js /search?q=console - no injectable parameter"
+    ],
+    "production_history": "A prior operator scan of /marketplace?q=ps5 ended as false positive or unexploitable. This suite does not repeat it automatically."
+  },
+  "totals": {
+    "false_positive": 2,
+    "not_injectable": 14,
+    "not_run": 24
+  }
+}

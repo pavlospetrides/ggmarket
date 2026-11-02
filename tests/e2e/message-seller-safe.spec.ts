@@ -10,7 +10,7 @@ async function activate(page: Page, name: string) {
   await button.tap();
 }
 
-test("authenticated detail and sticky taps carry listing context and serialize conversation creation", async ({ page }) => {
+test("authenticated seller chat action carries listing context and serializes conversation creation", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   let release!: () => void;
   const gate = new Promise<void>((resolve) => { release = resolve; });
@@ -31,9 +31,10 @@ test("authenticated detail and sticky taps carry listing context and serialize c
     });
   });
   await page.goto("/test-harness/message-seller?authenticated=1");
+  await page.locator("html[data-gg-hydrated='true']").waitFor();
 
   await activate(page, "Message seller");
-  const opening = page.getByRole("button", { name: "Opening…" });
+  const opening = page.getByRole("button", { name: "Opening conversation…" });
   await expect(opening).toBeDisabled();
   await expect(opening.locator('[data-loader-size="compact"]')).toBeVisible();
   await opening.dispatchEvent("click");
@@ -42,18 +43,14 @@ test("authenticated detail and sticky taps carry listing context and serialize c
 
   release();
   await expect.poll(() => messageNavigations.length).toBe(1);
-
-  await page.goto("/test-harness/message-seller?authenticated=1");
-  await activate(page, "Message");
-  await expect.poll(() => bodies.length).toBe(2);
-  expect(JSON.parse(bodies[1])).toEqual({ listingId });
 });
 
 test("signed-out touch preserves listing context for login", async ({ page }) => {
   await page.setViewportSize({ width: 393, height: 852 });
   await page.goto("/test-harness/message-seller");
+  await page.locator("html[data-gg-hydrated='true']").waitFor();
 
-  await activate(page, "Message");
+  await activate(page, "Message seller");
 
   await expect(page).toHaveURL(`/login?next=%2Flisting%2F${listingId}`);
 });
@@ -105,7 +102,7 @@ test("Message Seller remains a native authenticated POST when hydration never at
     await route.fulfill({ status: 204 });
   });
   await page.goto("/test-harness/message-seller?authenticated=1", { waitUntil: "domcontentloaded" });
-  const button = page.getByRole("button", { name: "Message", exact: true });
+  const button = page.getByRole("button", { name: "Message seller", exact: true });
 
   await expect(button).toBeEnabled();
   await button.tap({ noWaitAfter: true });
@@ -116,12 +113,12 @@ test("Message Seller remains a native authenticated POST when hydration never at
 });
 
 for (const width of [320, 375, 390, 393, 430]) {
-  test(`mobile sticky Message Seller accepts touch at ${width}px`, async ({ page }) => {
+  test(`mobile seller chat action accepts touch at ${width}px`, async ({ page }) => {
     await page.setViewportSize({ width, height: 844 });
     await page.goto("/test-harness/message-seller");
     await page.locator("html[data-gg-hydrated='true']").waitFor();
 
-    await activate(page, "Message");
+    await activate(page, "Message seller");
 
     await expect(page).toHaveURL(`/login?next=%2Flisting%2F${listingId}`);
   });

@@ -3,7 +3,7 @@ import {
   inferPcHardwareIntent,
   PC_HARDWARE_FIELDS,
   PC_HARDWARE_FILTER_KEYS,
-  PC_HARDWARE_OPTIONS,
+  PC_HARDWARE_OPTION_LABELS_BY_FIELD,
   PC_HARDWARE_ROOT,
   getPcHardwareFields,
   updatePcHardwareAttribute,
@@ -34,7 +34,7 @@ const compatibilityField: TaxonomyField = { key: "compatibility", label: "Compat
 const connectionField: TaxonomyField = { key: "connection", label: "Connection", type: "select", options: [option("wired", "Wired"), option("wireless", "Wireless"), option("both", "Wired & wireless")] };
 
 const gameFields: readonly TaxonomyField[] = [
-  { key: "genre", label: "Genre", type: "select", options: GENRE_OPTIONS }, { key: "edition", label: "Edition", type: "text", placeholder: "e.g. Standard, Collector’s" }, { key: "packaging", label: "Original packaging", type: "select", options: [option("original", "Original case / box"), option("replacement", "Replacement case"), option("none", "No case / loose")] }, { key: "manuals", label: "Manuals or inserts included", type: "boolean" }, { key: "region", label: "Region", type: "select", options: [option("pal", "PAL"), option("ntsc-u", "NTSC-U"), option("ntsc-j", "NTSC-J"), option("region-free", "Region free"), option("other", "Other / Unknown")] }, { key: "pegi", label: "Age rating", type: "select", options: PEGI_OPTIONS },
+  { key: "genre", label: "Genre", type: "select", options: GENRE_OPTIONS }, { key: "edition", label: "Edition", type: "text", placeholder: "e.g. Standard, Collector’s" }, { key: "packaging", label: "Original packaging", type: "select", options: [option("original", "Original case / box"), option("replacement", "Replacement case"), option("none", "No case / loose")] }, { key: "manuals", label: "Manuals or inserts included", type: "boolean" }, { key: "region", label: "Region", type: "select", options: [option("pal", "PAL"), option("ntsc-u", "NTSC-U"), option("ntsc-j", "NTSC-J"), option("region-free", "Region free"), option("other", "Other / Unknown")] }, { key: "pegi", label: "PEGI", type: "select", options: PEGI_OPTIONS },
 ];
 const gameFamily = (id: string, label: string, platformIds: readonly string[]) => node("games", "family", id, label, GAME_PLATFORM_OPTIONS.filter((item) => platformIds.includes(item.value)).map((item) => node("games", "platform", item.value, item.label, undefined, item.description)));
 
@@ -71,7 +71,6 @@ export const GAMING_TAXONOMY: readonly TaxonomyNode[] = [
 
 const allNodes = (root: TaxonomyNode): TaxonomyNode[] => [root, ...(root.children?.flatMap(allNodes) ?? [])];
 const rootsBySlug = new Map(GAMING_TAXONOMY.map((root) => [root.categorySlug, root]));
-const optionsByValue = new Map<string, TaxonomyOption>([...GAME_PLATFORM_OPTIONS, ...COMPATIBILITY_OPTIONS, ...GENRE_OPTIONS, ...PEGI_OPTIONS, ...PC_HARDWARE_OPTIONS, ...Object.entries(MODEL_LABELS).map(([value, label]) => option(value, label))].map((item) => [item.value, item]));
 export function getTaxonomyRoot(categorySlug: string): TaxonomyNode | undefined { return rootsBySlug.get(categorySlug); }
 function findNode(root: TaxonomyNode, id: string): TaxonomyNode | undefined { return allNodes(root).find((item) => item.id === id); }
 function findParent(root: TaxonomyNode, childId: string): TaxonomyNode | undefined { return allNodes(root).find((candidate) => candidate.children?.some((child) => child.id === childId)); }
@@ -124,6 +123,18 @@ export function validateTaxonomyAttributes(categorySlug: string, input: ListingA
   return { success: true };
 }
 const FIELD_LABELS = new Map([...GAMING_TAXONOMY.flatMap((root) => allNodes(root).flatMap((item) => item.fields ?? [])), ...PC_HARDWARE_FIELDS].map((field) => [field.key, field.label]));
+const OPTION_LABELS_BY_FIELD = new Map<string, Map<string, string>>();
+for (const field of [...GAMING_TAXONOMY.flatMap((root) => allNodes(root).flatMap((item) => item.fields ?? [])), ...PC_HARDWARE_FIELDS]) {
+  if (!field.options) continue;
+  const labels = OPTION_LABELS_BY_FIELD.get(field.key) ?? new Map<string, string>();
+  for (const item of field.options) labels.set(item.value, item.label);
+  OPTION_LABELS_BY_FIELD.set(field.key, labels);
+}
+for (const [key, pcLabels] of PC_HARDWARE_OPTION_LABELS_BY_FIELD) {
+  const labels = OPTION_LABELS_BY_FIELD.get(key) ?? new Map<string, string>();
+  for (const [value, label] of pcLabels) labels.set(value, label);
+  OPTION_LABELS_BY_FIELD.set(key, labels);
+}
 export const TAXONOMY_FIELD_KEYS = new Set(FIELD_LABELS.keys());
 const deprecatedTaxonomyAttributes = new Set(["physical_format", "physical-format", "physicalFormat", "format"]);
 export function isDeprecatedTaxonomyAttribute(key: string): boolean { return deprecatedTaxonomyAttributes.has(key); }
@@ -137,8 +148,42 @@ export function mergeListingAttributes(existing: ListingAttributes, changes: Lis
   return { ...Object.fromEntries(Object.entries(existing).filter(([key]) => !cleared.has(key))), ...changes };
 }
 const humanize = (value: string) => { const words = value.replaceAll("_", " ").replaceAll("-", " "); return words.charAt(0).toUpperCase() + words.slice(1); };
-const displayValue = (value: AttributeValue): string => Array.isArray(value) ? value.map((item) => optionsByValue.get(item)?.label ?? humanize(item)).join(", ") : typeof value === "boolean" ? value ? "Yes" : "No" : typeof value === "number" ? new Intl.NumberFormat("en").format(value) : optionsByValue.get(value)?.label ?? value;
-export function formatTaxonomyAttribute(key: string, value: AttributeValue): { label: string; value: string } { return { label: FIELD_LABELS.get(key) ?? humanize(key), value: displayValue(value) }; }
+const structuralOptionLabel = (key: string, value: string, categorySlug?: string): string | undefined => {
+  if (key === "platform") return GAME_PLATFORM_OPTIONS.find((item) => item.value === value)?.label;
+  if (key === "compatibility") return COMPATIBILITY_OPTIONS.find((item) => item.value === value)?.label;
+  if (key === "model") return MODEL_LABELS[value];
+  const root = categorySlug ? getTaxonomyRoot(categorySlug) : undefined;
+  if (root && ["subcategory", "family", "platform", "model"].includes(key)) return findNode(root, value)?.label;
+  return undefined;
+};
+
+export function formatTaxonomyAttribute(
+  key: string,
+  value: AttributeValue,
+  categorySlug?: string,
+  attributes: ListingAttributes = {},
+): { label: string; value: string } {
+  const field = categorySlug ? getTaxonomyFields(categorySlug, attributes).find((candidate) => candidate.key === key) : undefined;
+  const optionLabels = field?.options
+    ? new Map(field.options.map((item) => [item.value, item.label]))
+    : categorySlug
+      ? undefined
+      : OPTION_LABELS_BY_FIELD.get(key);
+  const formatString = (item: string) => {
+    if (key === "pegi") return item;
+    if (field?.type === "text") return item;
+    return optionLabels?.get(item) ?? structuralOptionLabel(key, item, categorySlug) ?? item;
+  };
+  const displayValue = Array.isArray(value)
+    ? value.map((item) => formatString(item)).join(", ")
+    : typeof value === "boolean"
+      ? value ? "Yes" : "No"
+      : typeof value === "number"
+        ? new Intl.NumberFormat("en").format(value)
+        : formatString(value);
+
+  return { label: field?.label ?? FIELD_LABELS.get(key) ?? humanize(key), value: displayValue };
+}
 
 export type TaxonomyFilter = { key: string; value: string | number | boolean; mode: "scalar" | "array" };
 const FILTER_KEYS = [...new Set(["subcategory", "family", "platform", "model", "exact_model", "compatibility", "manufacturer", "genre", "edition", "packaging", "region", "pegi", "connection", "keyboard_type", "layout", "switch_type", "dpi", "pedals_included", "force_feedback", ...PC_HARDWARE_FILTER_KEYS])];

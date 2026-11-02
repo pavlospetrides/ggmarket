@@ -22,7 +22,7 @@ export function CategorySwitchboard({ compact = false }: { compact?: boolean }) 
       </div>
       <nav className="category-switchboard-grid" aria-label="Explore gaming categories">
         {categories.map(({ label, note, href, Icon, tone }) => (
-          <Link key={href} href={href} className={`category-switchboard-card category-switchboard-${tone}`}>
+          <Link key={href} href={href} prefetch={false} className={`category-switchboard-card category-switchboard-${tone}`}>
             <span className="category-switchboard-visual" aria-hidden="true"><Icon /></span>
             <span className="category-switchboard-copy"><strong>{label}</strong><span>{note}</span></span>
             <ArrowUpRight className="category-switchboard-arrow" aria-hidden="true" />

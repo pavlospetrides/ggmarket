@@ -1,9 +1,11 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { PUBLIC_PAGE_SOCIAL_METADATA } from "@/lib/site-metadata";
 
 export const metadata: Metadata = {
   title: "Privacy policy",
   description: "How GGMarket handles account, marketplace, and session information.",
+  ...PUBLIC_PAGE_SOCIAL_METADATA.privacy,
 };
 
 export default function PrivacyPolicyPage() {

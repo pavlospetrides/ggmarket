@@ -1,0 +1,57 @@
+- generic [active] [ref=e1] [box=0,0,390,1105]:
+  - link "Skip to content" [ref=e2] [cursor=pointer] [box=16,-80,155,50]:
+    - /url: "#main-content"
+  - banner [ref=e3] [box=0,0,390,58]:
+    - generic [ref=e111] [box=16,0,358,56]:
+      - link "GGMarket home" [ref=e112] [cursor=pointer] [box=16,6,122,44]:
+        - /url: /
+        - generic [ref=e116] [box=62,15,76,25]: GGMarket
+      - generic [ref=e117] [box=290,8,84,40]:
+        - link "Messages" [ref=e118] [cursor=pointer] [box=290,8,40,40]:
+          - /url: /messages
+        - button "Notifications" [ref=e122] [box=334,8,40,40]
+  - main [ref=e36] [box=0,58,390,506]:
+    - generic [ref=e127] [box=16,114,358,394]:
+      - paragraph [ref=e131] [box=48,222,294,20]: System signal
+      - heading "We couldn't load this page" [level=1] [ref=e132] [box=48,250,294,72]
+      - paragraph [ref=e133] [box=48,334,294,72]: The marketplace service may be temporarily unavailable. Your data is safe—try again in a moment.
+      - button "Try again" [ref=e134] [cursor=pointer] [box=145,430,100,46]
+  - contentinfo "Site footer" [ref=e91] [box=0,564,390,462]:
+    - generic [ref=e92] [box=16,612,358,378]:
+      - generic [ref=e97] [box=104,652,183,32]: GGMarket
+      - generic [ref=e98] [box=16,772,358,218]:
+        - link "GGMarket home" [ref=e99] [cursor=pointer] [box=16,772,358,44]:
+          - /url: /
+          - generic [ref=e103] [box=62,782,76,25]: GGMarket
+        - navigation "Footer navigation" [ref=e104] [box=16,848,358,59]:
+          - link "Marketplace" [ref=e105] [cursor=pointer] [box=16,848,92,24]:
+            - /url: /marketplace
+          - link "Browse" [ref=e106] [cursor=pointer] [box=132,848,55,24]:
+            - /url: /browse
+          - link "Sell" [ref=e107] [cursor=pointer] [box=210,848,28,24]:
+            - /url: /sell
+          - link "Cookie policy" [ref=e108] [cursor=pointer] [box=262,848,98,24]:
+            - /url: /cookies
+          - link "Privacy policy" [ref=e109] [cursor=pointer] [box=16,884,101,24]:
+            - /url: /privacy
+        - paragraph [ref=e110] [box=16,940,358,51]: Buy, sell, and trade gaming gear player to player. Essential storage only; no advertising trackers.
+  - navigation "Mobile navigation" [ref=e135] [box=0,783,390,61]:
+    - generic [ref=e136] [box=8,789,374,48]:
+      - link "Home" [ref=e137] [cursor=pointer] [box=8,789,75,48]:
+        - /url: /
+      - link "Browse" [ref=e141] [cursor=pointer] [box=83,789,75,48]:
+        - /url: /browse
+      - link [ref=e145] [cursor=pointer] [box=158,765,75,72]:
+        - /url: /sell
+      - link "Favorites" [ref=e148] [cursor=pointer] [box=232,789,75,48]:
+        - /url: /favorites
+      - link "Profile" [ref=e151] [cursor=pointer] [box=307,789,75,48]:
+        - /url: /profile
+  - generic [ref=e160] [cursor=pointer] [box=20,790,98,32]:
+    - button "Open issues overlay" [ref=e161] [box=28,790,60,32]:
+      - generic [ref=e165] [box=46,788,8,36]:
+        - generic [aria-hidden] [ref=e166] [box=46,776,8,36]: "0"
+        - generic [ref=e167] [box=46,788,8,36]: "1"
+      - generic [ref=e168] [box=56,788,32,36]: Issue
+    - button "Collapse issues badge" [ref=e169] [box=90,794,24,24]
+  - alert [ref=e172] [box=-1,1026,1,1]

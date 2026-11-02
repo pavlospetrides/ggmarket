@@ -134,6 +134,89 @@ describe("gaming taxonomy", () => {
     expect(formatTaxonomyAttribute("interface", "pcie-4")).toEqual({ label: "Interface", value: "PCIe 4.0" });
   });
 
+  it("preserves Gaming PC RAM text instead of interpreting it as a PEGI option", () => {
+    const attributes = {
+      taxonomy_version: "1",
+      subcategory: "complete-gaming-pc",
+      ram: "16",
+    } as const;
+
+    expect(formatTaxonomyAttribute("ram", attributes.ram, "gaming-pcs", attributes)).toEqual({
+      label: "RAM",
+      value: "16",
+    });
+  });
+
+  it("formats PEGI only for the games PEGI field", () => {
+    const attributes = {
+      taxonomy_version: "1",
+      subcategory: "game",
+      family: "playstation",
+      platform: "ps5",
+      pegi: "16",
+    } as const;
+
+    expect(formatTaxonomyAttribute("pegi", attributes.pegi, "games", attributes)).toEqual({
+      label: "PEGI",
+      value: "16",
+    });
+    expect(formatTaxonomyAttribute("platform", attributes.platform, "games", attributes)).toEqual({
+      label: "Platform",
+      value: "PlayStation 5",
+    });
+  });
+
+  it("does not reinterpret free text that collides with an option value", () => {
+    const attributes = {
+      taxonomy_version: "1",
+      subcategory: "game",
+      family: "playstation",
+      platform: "ps5",
+      edition: "other",
+    } as const;
+
+    expect(formatTaxonomyAttribute("edition", attributes.edition, "games", attributes)).toEqual({
+      label: "Edition",
+      value: "other",
+    });
+  });
+
+  it("keeps PEGI and RAM isolated to their supported category schemas", () => {
+    for (const root of GAMING_TAXONOMY) {
+      const descendants = (node: typeof root): (typeof root)[] => [node, ...(node.children?.flatMap(descendants) ?? [])];
+      for (const item of descendants(root)) {
+        const attributes: Record<string, string> = root.categorySlug === "games"
+          ? { subcategory: "game", ...(item.kind === "family" ? { family: item.id } : {}), ...(item.kind === "platform" ? { platform: item.id } : {}) }
+          : root.categorySlug === "consoles"
+            ? item.kind === "model" ? { model: item.id } : item.kind === "family" ? { family: item.id } : {}
+            : item.kind === "subcategory"
+              ? { subcategory: item.id }
+              : {};
+        const keys = getTaxonomyFields(root.categorySlug, attributes).map((field) => field.key);
+
+        expect(keys.includes("pegi"), `${root.categorySlug}/${item.id}`).toBe(root.categorySlug === "games");
+        expect(keys.includes("ram"), `${root.categorySlug}/${item.id}`).toBe(root.categorySlug === "gaming-pcs");
+      }
+    }
+  });
+
+  it.each([
+    ["games", { subcategory: "game", family: "playstation", platform: "ps5", pegi: "16" }, "pegi", "16", "PEGI", "16"],
+    ["consoles", { family: "playstation", model: "ps5", storage: "16" }, "storage", "16", "Storage", "16"],
+    ["controllers", { subcategory: "gamepad", exact_model: "16" }, "exact_model", "16", "Exact model", "16"],
+    ["peripherals", { subcategory: "headset", manufacturer: "other" }, "manufacturer", "other", "Manufacturer", "other"],
+    ["pc-components", { subcategory: "gpu", gpu_chipset_vendor: "nvidia", gpu_series: "rtx-40", gpu_model: "rtx-4070", manufacturer: "asus" }, "manufacturer", "asus", "Board manufacturer", "ASUS"],
+    ["gaming-pcs", { subcategory: "complete-gaming-pc", ram: "16" }, "ram", "16", "RAM", "16"],
+    ["monitors", { resolution: "16" }, "resolution", "16", "Resolution", "16"],
+    ["vr", { subcategory: "vr-headset", exact_model: "16" }, "exact_model", "16", "Exact model", "16"],
+  ] as const)("formats %s specifications using only that category schema", (categorySlug, attributes, key, value, label, displayed) => {
+    expect(formatTaxonomyAttribute(key, value, categorySlug, attributes)).toEqual({ label, value: displayed });
+  });
+
+  it("supports categories without specification fields without borrowing another schema", () => {
+    expect(getTaxonomyFields("gaming-setup", { subcategory: "gaming-chair" })).toEqual([]);
+  });
+
   it("merges edits without dropping unknown legacy attributes", () => {
     expect(mergeListingAttributes(
       { platform: "PlayStation 5", physical_format: "blu-ray-disc", seller_note: "First owner", serial_verified: true },

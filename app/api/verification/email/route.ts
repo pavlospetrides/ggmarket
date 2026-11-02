@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getPublicRequestOrigin } from "@/lib/request-security";
+import { readJson } from "@/lib/security";
 import { createClient } from "@/lib/supabase/server";
 import { passwordResetRequestSchema } from "@/lib/validation";
 
@@ -15,10 +16,7 @@ export async function POST(request: Request) {
   }
   let email = user?.email ?? "";
   if (!email) {
-    let body: unknown = null;
-    try {
-      body = await request.json();
-    } catch {}
+    const body = await readJson(request);
     const parsed = passwordResetRequestSchema.safeParse(body);
     if (!parsed.success) {
       return NextResponse.json({ error: "Enter a valid email address." }, { status: 400 });

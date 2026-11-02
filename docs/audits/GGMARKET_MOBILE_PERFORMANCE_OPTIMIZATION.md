@@ -2,7 +2,7 @@
 
 Date: 2026-10-22
 Target: Next.js 16 production build, with emphasis on iPhone Safari
-Production origin: `https://ggmarket-sage.vercel.app`
+Production origin: `https://ggmarket.eu`
 
 ## Scope and measurement method
 
@@ -80,7 +80,7 @@ The automated WebKit engine is the closest available Safari signal, but it is no
 ## Physical iPhone validation checklist
 
 1. On an iPhone, open Safari’s Web Inspector from a trusted Mac and enable a fresh Network/Timelines recording.
-2. Test once on a cold cache and once on a warm cache at `https://ggmarket-sage.vercel.app`; note the device model, iOS version and connection type.
+2. Test once on a cold cache and once on a warm cache at `https://ggmarket.eu`; note the device model, iOS version and connection type.
 3. Scroll Home, Marketplace and Browse continuously. Confirm no hitch when the bottom navigation is visible and when listing images enter the viewport.
 4. Tap Home → Marketplace → listing → seller profile, use Back, open/close filters, type a search and change sorting. Confirm the first tap is acknowledged immediately.
 5. Sign in with a dedicated test account. Verify Favorites, Profile → Edit Profile, Messages → conversation, send/receive, Notifications and every Sell Wizard step.

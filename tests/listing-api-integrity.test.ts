@@ -242,4 +242,32 @@ describe("listing PATCH taxonomy integrity", () => {
     });
     expect(invalidCpuResponse.status).toBe(400);
   });
+
+  it("replaces stale game specifications with stable Gaming PC fields during editing", async () => {
+    state.category.slug = "gaming-pcs";
+    state.current.attributes = { pegi: "16", genre: "action", seller_note: "Keep this note" };
+
+    const response = await patch({
+      ...validUpdate,
+      attributes: {
+        taxonomy_version: "1",
+        subcategory: "complete-gaming-pc",
+        cpu: "Ryzen 7 7800X3D",
+        gpu: "RTX 4070",
+        ram: "16 GB",
+        storage: "1 TB NVMe",
+      },
+    });
+
+    expect(response.status).toBe(200);
+    expect(state.updatePayload?.attributes).toEqual({
+      seller_note: "Keep this note",
+      taxonomy_version: "1",
+      subcategory: "complete-gaming-pc",
+      cpu: "Ryzen 7 7800X3D",
+      gpu: "RTX 4070",
+      ram: "16 GB",
+      storage: "1 TB NVMe",
+    });
+  });
 });

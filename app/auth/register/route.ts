@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getPublicRequestOrigin } from "@/lib/request-security";
+import { readUrlEncodedForm } from "@/lib/security";
 import { createClient } from "@/lib/supabase/server";
 import { registerSchema } from "@/lib/validation";
 import { withPrivateNoStore } from "../../../lib/supabase/cookie-security";
@@ -13,11 +14,11 @@ function registrationRedirect(origin: string, key: "error" | "status", value: st
 export async function POST(request: Request) {
   const requestUrl = new URL(request.url);
   const publicOrigin = getPublicRequestOrigin(request.headers, requestUrl.protocol) ?? requestUrl.origin;
-  const formData = await request.formData();
+  const formData = await readUrlEncodedForm(request);
   const registration = registerSchema.safeParse({
-    username: formData.get("username"),
-    email: formData.get("email"),
-    password: formData.get("password"),
+    username: formData?.get("username"),
+    email: formData?.get("email"),
+    password: formData?.get("password"),
   });
   if (!registration.success) return registrationRedirect(publicOrigin, "error", "invalid_input");
 

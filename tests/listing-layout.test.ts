@@ -23,13 +23,14 @@ describe("listing presentation contracts", () => {
     expect(source).toMatch(/<span className="[^"]*shrink-0[^"]*"[^>]*>\s*\{item\.seller\.displayName\[0\]/);
   });
 
-  it("reserves content space for a reflowing mobile action row above navigation", () => {
+  it("integrates one compact seller chat action without a fixed mobile overlay", () => {
     const source = page();
-    expect(source).toContain("pb-40");
+    expect(source).toContain("mobile-listing-page");
     expect(source).toContain("md:pb-12");
-    expect(source).toContain("bottom-[calc(78px+env(safe-area-inset-bottom))]");
-    expect(source).toMatch(/data-listing-actions="mobile"\s+className="[^"]*flex-wrap/);
-    expect(source).toMatch(/data-listing-actions="mobile"[\s\S]*?<strong className="[^"]*min-w-0[^"]*\[overflow-wrap:anywhere\]/);
+    expect(source).toContain("<MessageSellerButton");
+    expect(source).toContain("iconOnly");
+    expect(source).not.toContain("mobile-listing-actions");
+    expect(source).not.toContain('data-listing-actions="mobile"');
   });
 
   it("releases the page animation containing block so fixed contact actions stay attached to the viewport", () => {

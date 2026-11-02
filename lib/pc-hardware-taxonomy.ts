@@ -280,6 +280,12 @@ const allFields = [
   ...Object.values(COOLING_FIELDS).flat(), ...Object.values(ADDITIONAL_FIELDS).flat(),
 ];
 export const PC_HARDWARE_FIELDS: readonly TaxonomyField[] = [...new Map(allFields.map((field) => [field.key, field])).values()];
+export const PC_HARDWARE_OPTION_LABELS_BY_FIELD: ReadonlyMap<string, ReadonlyMap<string, string>> = new Map(
+  [...new Set(allFields.map((field) => field.key))].map((key) => [
+    key,
+    new Map(allFields.filter((field) => field.key === key).flatMap((field) => field.options ?? []).map((item) => [item.value, item.label])),
+  ]),
+);
 export const PC_HARDWARE_FIELD_KEYS = new Set(PC_HARDWARE_FIELDS.map((field) => field.key));
 export const PC_HARDWARE_MULTISELECT_KEYS = new Set(PC_HARDWARE_FIELDS.filter((field) => field.type === "multiselect").map((field) => field.key));
 export const PC_HARDWARE_FILTER_KEYS = [...PC_HARDWARE_FIELD_KEYS];

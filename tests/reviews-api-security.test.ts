@@ -9,6 +9,7 @@ vi.mock("@/lib/auth", () => ({ getUser: mocks.getUser }));
 vi.mock("@/lib/supabase/server", () => ({ createClient: mocks.createClient }));
 vi.mock("@/lib/validation", async () => import("../lib/validation"));
 vi.mock("@/lib/ratings", async () => import("../lib/ratings"));
+vi.mock("@/lib/security", async () => import("../lib/security"));
 
 const accountA = "11111111-1111-4111-8111-111111111111";
 const accountB = "22222222-2222-4222-8222-222222222222";
@@ -50,6 +51,18 @@ describe("reviews API authorization", () => {
     mocks.getUser.mockResolvedValue({ id: accountA });
     const { POST } = await import("../app/api/reviews/route");
     const response = await POST(request({ sellerId: accountB, reviewerId: accountB, rating: 5 }));
+    expect(response.status).toBe(400);
+    expect(mocks.createClient).not.toHaveBeenCalled();
+  });
+
+  it("rejects a declared oversized body before database access", async () => {
+    mocks.getUser.mockResolvedValue({ id: accountA });
+    const { POST } = await import("../app/api/reviews/route");
+    const response = await POST(new Request("https://ggmarket.test/api/reviews", {
+      method: "POST",
+      headers: { "content-type": "application/json", "content-length": "70000" },
+      body: JSON.stringify({ sellerId: accountB, rating: 5 }),
+    }));
     expect(response.status).toBe(400);
     expect(mocks.createClient).not.toHaveBeenCalled();
   });

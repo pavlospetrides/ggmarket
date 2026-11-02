@@ -19,7 +19,7 @@ let messageSellerConversationId = "";
 async function login(page: Page, email: string) {
   await page.goto("/login");
   await page.getByLabel("Email").fill(email);
-  await page.getByLabel("Password").fill(password);
+  await page.getByLabel("Password", { exact: true }).fill(password);
   await page.getByRole("button", { name: "Log in" }).click();
   await expect(page).toHaveURL(/\/profile/);
 }
@@ -30,6 +30,8 @@ async function typeMessage(page: Page, value: string) {
   await composer.click({ timeout: 15_000 });
   await composer.fill(value, { timeout: 15_000 });
 }
+
+const messageLog = (page: Page) => page.getByRole("log", { name: "Messages" });
 
 async function openOfferForm(page: Page) {
   const amount = page.locator('input[name="amount"]');
@@ -145,7 +147,7 @@ test("two users exchange realtime messages and offers", async ({ browser }) => {
       .getByRole("complementary")
       .getByRole("button", { name: "Message seller" })
       .click();
-    await expect(pageB).toHaveURL(/\/messages\/[0-9a-f-]{36}$/);
+    await expect(pageB).toHaveURL(/\/messages\/[0-9a-f-]{36}$/, { timeout: 20_000 });
     messageSellerConversationId = pageB.url().split("/").pop()!;
     const started = await admin
       .from("conversations")
@@ -164,7 +166,7 @@ test("two users exchange realtime messages and offers", async ({ browser }) => {
     const firstBody = `Initial unread message ${stamp}`;
     await typeMessage(pageB, firstBody);
     await pageB.getByRole("button", { name: "Send message" }).click();
-    await expect(pageB.getByText(firstBody)).toBeVisible();
+    await expect(messageLog(pageB).getByText(firstBody)).toBeVisible();
     await expect
       .soft
       .poll(async () => {
@@ -182,7 +184,7 @@ test("two users exchange realtime messages and offers", async ({ browser }) => {
     const conversationLinkA = pageA.locator(`a[href="/messages/${conversationId}"]`);
     await expect(conversationLinkA).toContainText("1");
     await conversationLinkA.click();
-    await expect(pageA.getByText(firstBody)).toBeVisible();
+    await expect(messageLog(pageA).getByText(firstBody)).toBeVisible();
     await expect
       .poll(async () => {
         const member = await admin
@@ -201,20 +203,19 @@ test("two users exchange realtime messages and offers", async ({ browser }) => {
     await expect(pageA.getByText(/Realtime Buyer B is typing/)).toBeVisible({
       timeout: 10_000,
     });
-    await pageB.locator('input[name="message"]').fill("");
+    await pageB.locator('textarea[name="message"]').fill("");
 
     const realtimeBody = `Realtime delivery ${stamp}`;
     await typeMessage(pageB, realtimeBody);
     await pageB.getByRole("button", { name: "Send message" }).click();
-    await expect(pageA.getByText(realtimeBody)).toBeVisible({ timeout: 15_000 });
+    await expect(messageLog(pageA).getByText(realtimeBody)).toBeVisible({ timeout: 15_000 });
     const replyBody = `Realtime reply ${stamp}`;
     await typeMessage(pageA, replyBody);
     await pageA.getByRole("button", { name: "Send message" }).click();
-    await expect(pageB.getByText(replyBody)).toBeVisible({ timeout: 15_000 });
-    await pageA.reload();
-    await pageB.reload();
-    await expect(pageA.getByText(realtimeBody)).toBeVisible();
-    await expect(pageB.locator("p").filter({ hasText: replyBody })).toBeVisible();
+    await expect(messageLog(pageB).getByText(replyBody)).toBeVisible({ timeout: 15_000 });
+    await Promise.all([pageA.goto(pageA.url()), pageB.goto(pageB.url())]);
+    await expect(messageLog(pageA).getByText(realtimeBody)).toBeVisible();
+    await expect(messageLog(pageB).getByText(replyBody)).toBeVisible();
     await expect(pageA.getByText("Online now")).toBeVisible({ timeout: 15_000 });
     await expect(pageB.getByText("Online now")).toBeVisible({ timeout: 15_000 });
 
@@ -260,7 +261,8 @@ test("two users exchange realtime messages and offers", async ({ browser }) => {
     await openOfferForm(pageB);
     await pageB.locator('input[name="amount"]').fill("120");
     await pageB.getByRole("button", { name: "Send offer" }).click();
-    await pageB.getByRole("button", { name: "Withdraw" }).click();
+    await expect.poll(async () => (await admin.from("offers").select("id").eq("conversation_id", conversationId).eq("amount", 120).maybeSingle()).data?.id).toBeTruthy();
+    await pageB.locator("article").filter({ hasText: "Structured offer" }).filter({ hasText: "120" }).getByRole("button", { name: "Withdraw" }).click();
     await expect
       .poll(async () =>
         (

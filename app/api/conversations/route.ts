@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { getPublicRequestOrigin } from "@/lib/request-security";
-import { readJson } from "@/lib/security";
+import { readJson, readUrlEncodedForm } from "@/lib/security";
 import { conversationSchema } from "@/lib/validation";
 
 function isFormRequest(request: Request) {
@@ -27,8 +27,8 @@ function formError(message: string, status: number) {
 
 async function requestBody(request: Request) {
   if (!isFormRequest(request)) return readJson(request);
-  const body = await request.formData();
-  return { listingId: body.get("listingId") };
+  const body = await readUrlEncodedForm(request);
+  return { listingId: body?.get("listingId") };
 }
 
 export async function POST(request: Request) {
