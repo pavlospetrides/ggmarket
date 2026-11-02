@@ -125,6 +125,12 @@ export const messageSchema = z
     clientId: z.string().uuid(),
   })
   .strict();
+export const voiceMessageSchema = z
+  .object({
+    clientId: z.string().uuid(),
+    durationMs: z.coerce.number().int().min(250).max(300_000),
+  })
+  .strict();
 export const offerSchema = z
   .object({
     conversationId: z.string().uuid(),

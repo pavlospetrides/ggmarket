@@ -4,6 +4,10 @@ export type ChatMessage = {
   id: string;
   senderId: string;
   body: string;
+  type: "text" | "voice";
+  attachmentPath?: string;
+  attachmentMime?: string;
+  durationMs?: number;
   createdAt: string;
   clientId?: string;
   status: MessageStatus;
@@ -14,6 +18,10 @@ export type PersistedMessageRow = {
   conversation_id: string;
   sender_id: string;
   body: string;
+  message_type: "text" | "voice";
+  attachment_path: string | null;
+  attachment_mime: string | null;
+  attachment_duration_ms: number | null;
   client_id: string | null;
   created_at: string;
 };
@@ -43,6 +51,7 @@ export function createPendingMessage({
     clientId,
     senderId,
     body,
+    type: "text",
     createdAt,
     status: "pending",
   };
@@ -53,6 +62,10 @@ export function messageFromRow(row: PersistedMessageRow): ChatMessage {
     id: row.id,
     senderId: row.sender_id,
     body: row.body,
+    type: row.message_type,
+    ...(row.attachment_path ? { attachmentPath: row.attachment_path } : {}),
+    ...(row.attachment_mime ? { attachmentMime: row.attachment_mime } : {}),
+    ...(row.attachment_duration_ms != null ? { durationMs: row.attachment_duration_ms } : {}),
     ...(row.client_id ? { clientId: row.client_id } : {}),
     createdAt: row.created_at,
     status: "sent",

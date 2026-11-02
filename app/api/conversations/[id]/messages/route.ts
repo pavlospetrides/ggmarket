@@ -5,7 +5,7 @@ import { readJson, readUrlEncodedForm } from "@/lib/security";
 import { createClient } from "@/lib/supabase/server";
 import { conversationIdSchema, messageSchema } from "@/lib/validation";
 
-const messageColumns = "id,conversation_id,sender_id,body,client_id,created_at";
+const messageColumns = "id,conversation_id,sender_id,body,message_type,attachment_path,attachment_mime,attachment_duration_ms,client_id,created_at";
 
 type RouteContext = { params: Promise<{ id: string }> };
 

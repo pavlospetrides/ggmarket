@@ -9,6 +9,8 @@ import { buildAuthCallbackUrl } from "@/lib/auth-redirect";
 import { createClient } from "@/lib/supabase/client";
 import { useHydrated } from "./use-hydrated";
 import { PasswordField } from "./password-field";
+import { GoogleMark } from "./google-mark";
+import { Loader2 } from "./ui/loader-2";
 
 const loginErrors: Record<string, string> = {
   invalid_credentials: "Invalid email or password.",
@@ -16,6 +18,9 @@ const loginErrors: Record<string, string> = {
   unavailable: "Login is temporarily unavailable. Please try again.",
   signup_failed: "Account creation failed. The email may already be registered.",
   invalid_callback: "This verification link is invalid or has expired.",
+  oauth_cancelled: "Google sign-in was cancelled.",
+  oauth_failed: "Google sign-in could not be completed. Please try again.",
+  account_suspended: "This account is suspended and cannot sign in.",
 };
 
 export function AuthForm({ mode }: { mode: "login" | "register" }) {
@@ -27,6 +32,8 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
   const [success, setSuccess] = useState(false);
   const errorRef = useRef<HTMLParagraphElement>(null);
   const next = safeRedirectPath(params.get("next"));
+  const alternateAuthPath = mode === "login" ? "/register" : "/login";
+  const alternateAuthHref = next === "/profile" ? alternateAuthPath : `${alternateAuthPath}?next=${encodeURIComponent(next)}`;
   const visibleError = error || loginErrors[params.get("error") ?? ""] || "";
 
   useEffect(() => {
@@ -51,6 +58,11 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
           password,
         });
         if (authError) throw new Error("Invalid email or password.");
+        const { data: active, error: activeError } = await supabase.rpc("is_active_user");
+        if (activeError || active !== true) {
+          await supabase.auth.signOut();
+          throw new Error(active === false ? "This account is suspended and cannot sign in." : "Account status could not be verified.");
+        }
         window.dispatchEvent(new Event("ggmarket:auth-changed"));
         router.replace(next);
         router.refresh();
@@ -82,6 +94,25 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
     }
   }
 
+  async function continueWithGoogle() {
+    if (loading) return;
+    setLoading(true);
+    setError("");
+    try {
+      const supabase = createClient();
+      const { error: authError } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: {
+          redirectTo: buildAuthCallbackUrl(location.origin, next),
+        },
+      });
+      if (authError) throw authError;
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : "Google sign-in could not be started.");
+      setLoading(false);
+    }
+  }
+
   if (success || params.get("status") === "check_email") {
     return (
       <div className="text-center">
@@ -99,6 +130,13 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
   return (
     <form action={mode === "login" ? "/auth/login" : "/auth/register"} method="post" onSubmit={submit} className="space-y-4" aria-busy={loading} data-hydrated={hydrated}>
       {mode === "login" && <input type="hidden" name="next" value={next} />}
+      <button type="button" disabled={loading} onClick={() => void continueWithGoogle()} className="btn-secondary min-h-12 w-full !bg-white !text-[#202124] hover:!bg-[#f6f7f8] hover:!text-[#202124]">
+        {loading ? <Loader2 size="compact" delayed label="Opening Google sign-in" /> : <GoogleMark />}
+        <span>Continue with Google</span>
+      </button>
+      <div className="flex items-center gap-3 text-xs uppercase tracking-[.16em] text-[var(--muted)]" aria-hidden="true">
+        <span className="h-px flex-1 bg-[var(--border)]" /> or <span className="h-px flex-1 bg-[var(--border)]" />
+      </div>
       {mode === "register" && (
         <div>
           <label className="label" htmlFor="username">
@@ -170,7 +208,7 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
         {mode === "login" ? "New to GGMarket?" : "Already have an account?"}{" "}
         <Link
           className="font-bold text-[#aa98ff]"
-          href={mode === "login" ? "/register" : "/login"}
+          href={alternateAuthHref}
         >
           {mode === "login" ? "Create account" : "Log in"}
         </Link>

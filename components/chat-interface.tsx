@@ -23,6 +23,8 @@ import type {
 import { useHydrated } from "./use-hydrated";
 import { TradeProposalForm } from "./trade-proposal-form";
 import { Loader2 } from "./ui/loader-2";
+import { VoiceMessageBubble } from "./voice-message-bubble";
+import { VoiceRecorder } from "./voice-recorder";
 
 type Conversation = {
   id: string;
@@ -373,6 +375,34 @@ export function ChatInterface({
     }
   }
 
+  async function sendVoiceMessage(recording: Blob, durationMs: number) {
+    if (sendInFlight.current) throw new Error("Another message is still being sent.");
+    const requestScope = scope;
+    const clientId = nextClientId;
+    sendInFlight.current = true;
+    setBusy(true);
+    setError("");
+    try {
+      const form = new FormData();
+      form.set("audio", recording, `voice-${clientId}`);
+      form.set("clientId", clientId);
+      form.set("durationMs", String(durationMs));
+      const response = await fetch(`/api/conversations/${conversation.id}/voice`, { method: "POST", body: form });
+      const result = await response.json() as PersistedMessageRow & { error?: string };
+      if (!response.ok) throw new Error(result.error || "Voice message could not be sent.");
+      if (scopeRef.current !== requestScope) return;
+      pinnedToLatestRef.current = true;
+      setMessages((current) => mergeChatMessages(current, [result]));
+      updateConversationPreview(result.body, result.created_at);
+      setNextClientId(createClientUuid());
+    } catch (reason) {
+      throw reason;
+    } finally {
+      if (scopeRef.current === requestScope) setBusy(false);
+      sendInFlight.current = false;
+    }
+  }
+
   function sendMessage(event: FormEvent<HTMLFormElement>) {
     if (!hydrated) return;
     event.preventDefault();
@@ -494,8 +524,8 @@ export function ChatInterface({
   }
 
   return (
-    <div data-conversation-shell className="conversation-viewport container-page min-w-0">
-      <div className="card flex h-full min-h-0 min-w-0 overflow-hidden bg-[#0b0f17] md:grid md:grid-cols-[330px_1fr] md:shadow-[var(--shadow-md)]">
+    <div data-conversation-shell className="conversation-viewport min-w-0">
+      <div className="card flex h-full min-h-0 min-w-0 overflow-hidden rounded-none bg-[#0b0f17] md:grid md:grid-cols-[330px_1fr] md:rounded-[var(--radius-lg)] md:shadow-[var(--shadow-md)]">
         <aside className="hidden border-r border-[var(--border)] md:block">
           <div className="flex items-center justify-between border-b border-[var(--border)] p-4 text-lg font-bold">
             <span>Messages</span>
@@ -573,7 +603,11 @@ export function ChatInterface({
                     data-message-status={item.status}
                     className={`min-w-0 max-w-[82%] rounded-2xl px-4 py-2.5 text-sm shadow-sm ${item.senderId === currentUserId ? "rounded-br-md bg-gradient-to-br from-[#8063f8] to-[#6748dc]" : "rounded-bl-md border border-white/[.055] bg-[var(--surface-alt)]"} ${item.status === "failed" ? "ring-1 ring-[var(--danger)]" : ""}`}
                   >
-                    <p className="[overflow-wrap:anywhere]">{item.body}</p>
+                    {item.type === "voice" && item.durationMs != null ? (
+                      <VoiceMessageBubble conversationId={conversation.id} messageId={item.id} durationMs={item.durationMs} />
+                    ) : (
+                      <p className="[overflow-wrap:anywhere]">{item.body}</p>
+                    )}
                     <span className="mt-1 flex items-center justify-end gap-2 text-[10px] opacity-70">
                       <time>{chatTimeFormatter.format(new Date(item.createdAt))}</time>
                       {item.status === "pending" && <span>Sending…</span>}
@@ -715,8 +749,8 @@ export function ChatInterface({
                 </button>
               </p>
             )}
-            <div className="flex gap-2">
-              <div ref={composerActionsRef} className="relative shrink-0">
+            <div className="flex gap-2 has-[[data-recording-state]]:[&>form]:hidden has-[[data-recording-state]]:[&>[data-composer-actions]]:hidden">
+              <div ref={composerActionsRef} data-composer-actions className="relative shrink-0">
                 <button
                   type="button"
                   className="icon-btn size-11 rounded-full bg-[var(--surface-elevated)]"
@@ -773,6 +807,7 @@ export function ChatInterface({
                   </div>
                 ) : null}
               </div>
+              <VoiceRecorder disabled={busy} onUpload={sendVoiceMessage} />
               <form action={`/api/conversations/${conversation.id}/messages`} method="post" onSubmit={sendMessage} className="flex min-w-0 flex-1 gap-2" data-hydrated={hydrated}>
                 <input type="hidden" name="clientId" value={nextClientId} />
                 <label className="sr-only" htmlFor="chat-message">

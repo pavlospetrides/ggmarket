@@ -23,6 +23,10 @@ const persisted: PersistedMessageRow = {
   conversation_id: "conversation-1",
   sender_id: "account-a",
   body: "Hello",
+  message_type: "text",
+  attachment_path: null,
+  attachment_mime: null,
+  attachment_duration_ms: null,
   client_id: clientId,
   created_at: "2026-10-20T08:00:02.000Z",
 };
@@ -35,6 +39,7 @@ describe("account-scoped chat state", () => {
       id: persisted.id,
       senderId: "account-a",
       body: "Hello",
+      type: "text",
       clientId,
       createdAt: persisted.created_at,
       status: "sent",
@@ -47,6 +52,23 @@ describe("account-scoped chat state", () => {
 
     expect(afterResponse).toHaveLength(1);
     expect(afterResponse[0]?.id).toBe(persisted.id);
+  });
+
+  it("maps voice metadata without changing idempotent reconciliation", () => {
+    const voice = {
+      ...persisted,
+      body: "Voice message",
+      message_type: "voice" as const,
+      attachment_path: "conversation-1/account-a/voice.webm",
+      attachment_mime: "audio/webm",
+      attachment_duration_ms: 3200,
+    };
+    expect(mergeChatMessages([], [voice])).toEqual([expect.objectContaining({
+      type: "voice",
+      attachmentPath: voice.attachment_path,
+      attachmentMime: "audio/webm",
+      durationMs: 3200,
+    })]);
   });
 
   it("orders reconciled messages chronologically regardless of arrival order", () => {

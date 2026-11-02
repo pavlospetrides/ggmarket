@@ -29,7 +29,12 @@ describe("Phase 1 server validation", () => {
   it("validates identities and report enums", () => { expect(profileSchema.safeParse({ username: "valid.user", displayName: "Valid User", bio: "", location: "" }).success).toBe(true); expect(profileSchema.safeParse({ username: "<script>", displayName: "X" }).success).toBe(false); expect(favoriteSchema.safeParse({ listingId: "not-a-uuid" }).success).toBe(false); expect(reportSchema.safeParse({ listingId: crypto.randomUUID(), reason: "invented" }).success).toBe(false); });
 });
 describe("Security helpers", () => {
-  it("only permits local redirect paths", () => { expect(safeRedirectPath("/settings")).toBe("/settings"); expect(safeRedirectPath("//evil.example")).toBe("/profile"); expect(safeRedirectPath("https://evil.example")).toBe("/profile"); expect(safeRedirectPath("/\\evil.example")).toBe("/profile"); });
+  it("only permits unambiguous local redirect paths", () => {
+    expect(safeRedirectPath("/settings?tab=profile#bio")).toBe("/settings?tab=profile#bio");
+    for (const unsafe of ["//evil.example", "https://evil.example", "/\\evil.example", "/%5cevil.example", "/%2fevil.example", "/\u0000profile"]) {
+      expect(safeRedirectPath(unsafe)).toBe("/profile");
+    }
+  });
   it("enforces image type and size", () => { expect(isAllowedImageFile({ type: "image/webp", size: 1024 })).toBe(true); expect(isAllowedImageFile({ type: "image/svg+xml", size: 1024 })).toBe(false); expect(isAllowedImageFile({ type: "image/jpeg", size: 11_000_000 })).toBe(false); expect(isAllowedImageFile({ type: "image/jpeg", size: 0 })).toBe(false); });
   it("rejects malformed and non-JSON request bodies", async () => {
     expect(await readJson(new Request("https://ggmarket.test", { method: "POST", headers: { "content-type": "application/json" }, body: "{" }))).toBeNull();
