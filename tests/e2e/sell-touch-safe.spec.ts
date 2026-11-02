@@ -10,11 +10,16 @@ const png = Buffer.from(
 
 test("Sell wizard accepts touch through every step and recovers from a mocked publish error", async ({ page }, testInfo) => {
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.route("**/api/listings", (route) => route.fulfill({
-    status: 503,
-    contentType: "application/json",
-    body: JSON.stringify({ error: "Test publish unavailable" }),
-  }));
+  let releasePublish!: () => void;
+  const publishGate = new Promise<void>((resolve) => { releasePublish = resolve; });
+  await page.route("**/api/listings", async (route) => {
+    await publishGate;
+    await route.fulfill({
+      status: 503,
+      contentType: "application/json",
+      body: JSON.stringify({ error: "Test publish unavailable" }),
+    });
+  });
   await page.goto("/test-harness/sell", { waitUntil: "domcontentloaded" });
 
   const form = page.locator('form[data-hydrated]');
@@ -81,8 +86,13 @@ test("Sell wizard accepts touch through every step and recovers from a mocked pu
     animations: "disabled",
   });
   await publish.tap();
+  const publishing = page.getByRole("button", { name: "Publishing…" });
+  await expect(publishing.locator('[data-loader-size="compact"]')).toBeVisible();
+  await expect(page.locator("p:not(.sr-only)", { hasText: "Creating draft…" })).toBeVisible();
+  releasePublish();
   await expect(page.locator("p:not(.sr-only)", { hasText: "Test publish unavailable" })).toBeVisible();
   await expect(publish).toBeEnabled();
+  await expect(page.locator('[data-loader-size="compact"]')).toHaveCount(0);
 });
 
 test("Sell PC Hardware dependent selectors reset incompatible values on touch", async ({ page }) => {
@@ -110,11 +120,16 @@ test("Sell PC Hardware dependent selectors reset incompatible values on touch", 
 
 test("Edit Listing touch controls preserve data and recover from mocked request failures", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.route("**/api/listings/33333333-3333-4333-8333-333333333333", (route) => route.fulfill({
-    status: 503,
-    contentType: "application/json",
-    body: JSON.stringify({ error: "Test update unavailable" }),
-  }));
+  let releaseSave!: () => void;
+  const saveGate = new Promise<void>((resolve) => { releaseSave = resolve; });
+  await page.route("**/api/listings/33333333-3333-4333-8333-333333333333", async (route) => {
+    if (route.request().method() === "PATCH") await saveGate;
+    await route.fulfill({
+      status: 503,
+      contentType: "application/json",
+      body: JSON.stringify({ error: "Test update unavailable" }),
+    });
+  });
   await page.route("**/api/listing-images/**", (route) => route.fulfill({
     status: 503,
     contentType: "application/json",
@@ -131,8 +146,12 @@ test("Edit Listing touch controls preserve data and recover from mocked request 
   await page.getByLabel("Description").fill("A");
   const save = page.getByRole("button", { name: "Save changes" });
   await save.tap();
+  const saving = page.getByRole("button", { name: "Saving…" });
+  await expect(saving.locator('[data-loader-size="compact"]')).toBeVisible();
+  releaseSave();
   await expect(page.getByText("Test update unavailable", { exact: true })).toBeVisible();
   await expect(save).toBeEnabled();
+  await expect(page.locator('[data-loader-size="compact"]')).toHaveCount(0);
   await expect(page.getByLabel("Title")).toHaveValue("Updated test listing");
 
   await page.getByRole("button", { name: "Delete photo" }).first().tap();

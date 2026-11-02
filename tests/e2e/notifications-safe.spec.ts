@@ -30,3 +30,28 @@ test("opening the panel reads only its displayed snapshot and keeps later arriva
   await expect(harness.getByRole("link", { name: "Messages, 1 unread" })).toBeVisible();
   await expect(panelTrigger).toHaveAttribute("aria-label", "Notifications, 1 unread");
 });
+
+test("notification mutations show one compact loader and clear it after completion", async ({ page }) => {
+  test.setTimeout(20_000);
+  const pageErrors: string[] = [];
+  page.on("pageerror", (error) => pageErrors.push(error.message));
+  let release!: () => void;
+  const held = new Promise<void>((resolve) => { release = resolve; });
+  await page.route("**/api/notifications", async (route) => {
+    if (route.request().method() !== "PATCH") return route.fallback();
+    await held;
+    await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ ok: true }) });
+  });
+
+  await page.goto("/test-harness/notifications?list=1");
+  const markAll = page.getByRole("button", { name: "Mark all read" });
+  await markAll.click();
+  const updating = page.getByRole("button", { name: "Updating…" });
+  await expect(updating.locator('[data-loader-size="compact"]')).toBeVisible();
+  await expect(page.locator('[role="status"] [data-loader-size="compact"]')).toHaveCount(0);
+
+  release();
+  await expect(page.getByRole("button", { name: "Mark all read" })).toBeDisabled();
+  await expect(page.locator('[data-loader-size="compact"]')).toHaveCount(0);
+  expect(pageErrors.filter((message) => message.includes("Hydration failed"))).toEqual([]);
+});

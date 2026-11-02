@@ -34,8 +34,10 @@ test("authenticated seller chat action carries listing context and serializes co
   await page.locator("html[data-gg-hydrated='true']").waitFor();
 
   await activate(page, "Message seller");
-  await expect(page.getByRole("button", { name: "Opening conversation…" })).toBeDisabled();
-  await page.getByRole("button", { name: "Opening conversation…" }).dispatchEvent("click");
+  const opening = page.getByRole("button", { name: "Opening conversation…" });
+  await expect(opening).toBeDisabled();
+  await expect(opening.locator('[data-loader-size="compact"]')).toBeVisible();
+  await opening.dispatchEvent("click");
   expect(bodies).toHaveLength(1);
   expect(JSON.parse(bodies[0])).toEqual({ listingId });
 
@@ -67,6 +69,7 @@ test("conversation failure remains visible and retryable", async ({ page }) => {
 
   await expect(page.getByText("This conversation could not be started.", { exact: true })).toHaveAttribute("role", "alert");
   await expect(page.getByRole("button", { name: "Message seller" })).toBeEnabled();
+  await expect(page.locator('[data-loader-size="compact"]')).toHaveCount(0);
 });
 
 test("own listing intentionally offers no conversation action", async ({ page }) => {

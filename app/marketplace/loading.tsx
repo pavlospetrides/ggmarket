@@ -1,1 +1,28 @@
-export default function Loading() { return <div className="container-page py-8 md:py-12" aria-label="Loading marketplace"><div className="skeleton h-3 w-24 rounded-full" /><div className="skeleton mt-4 h-11 w-64 rounded-xl" /><div className="skeleton mt-6 h-12 max-w-2xl rounded-2xl" /><div className="mt-10 grid grid-cols-2 gap-3 sm:gap-5 lg:grid-cols-4">{Array.from({ length: 8 }, (_, i) => <div key={i} className="card overflow-hidden"><div className="skeleton aspect-[4/3]" /><div className="p-4"><div className="skeleton h-4 w-4/5 rounded" /><div className="skeleton mt-3 h-6 w-2/5 rounded" /><div className="skeleton mt-4 h-3 w-3/4 rounded" /></div></div>)}</div><span className="sr-only">Loading listings</span></div>; }
+import { Loader2 } from "@/components/ui/loader-2";
+
+export default function Loading() {
+  return (
+    <div className="container-page relative py-8 md:py-12" aria-busy="true">
+      <div className="pointer-events-none absolute inset-x-0 top-7 z-10 flex justify-center">
+        <Loader2 delayed label="Loading marketplace" />
+      </div>
+      <div aria-hidden="true">
+        <div className="skeleton h-3 w-24 rounded-full" />
+        <div className="skeleton mt-4 h-11 w-64 rounded-xl" />
+        <div className="skeleton mt-6 h-12 max-w-2xl rounded-2xl" />
+        <div className="mt-10 grid grid-cols-2 gap-3 sm:gap-5 lg:grid-cols-4">
+          {Array.from({ length: 8 }, (_, index) => (
+            <div key={index} className="card overflow-hidden">
+              <div className="skeleton aspect-[4/3]" />
+              <div className="p-4">
+                <div className="skeleton h-4 w-4/5 rounded" />
+                <div className="skeleton mt-3 h-6 w-2/5 rounded" />
+                <div className="skeleton mt-4 h-3 w-3/4 rounded" />
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}

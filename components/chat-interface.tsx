@@ -22,6 +22,7 @@ import type {
 } from "@/lib/phase2-data";
 import { useHydrated } from "./use-hydrated";
 import { TradeProposalForm } from "./trade-proposal-form";
+import { Loader2 } from "./ui/loader-2";
 
 type Conversation = {
   id: string;
@@ -603,7 +604,9 @@ export function ChatInterface({
                   </p>
                   {item.status === "pending" && (
                     <div className="mt-3 flex flex-wrap gap-2">
-                      {item.createdBy === currentUserId ? (
+                      {pendingActionId === `offer-${item.id}` ? (
+                        <Loader2 size="compact" delayed label="Updating offer" />
+                      ) : item.createdBy === currentUserId ? (
                         <button
                           type="button"
                           disabled={pendingActionId !== null}
@@ -661,7 +664,9 @@ export function ChatInterface({
                   </p>
                   {item.status === "pending" && (
                     <div className="mt-3 flex gap-2">
-                      {item.proposerId === currentUserId ? (
+                      {pendingActionId === `trade-${item.id}` ? (
+                        <Loader2 size="compact" delayed label="Updating trade proposal" />
+                      ) : item.proposerId === currentUserId ? (
                         <button
                           type="button"
                           disabled={pendingActionId !== null}

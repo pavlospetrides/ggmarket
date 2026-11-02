@@ -5,6 +5,13 @@ import { Bell, CheckCheck } from "lucide-react";
 import { useEffect, useState, type MouseEvent } from "react";
 import { useNotificationCenter } from "./notification-center";
 import type { NotificationItem } from "@/lib/notification-state";
+import { Loader2 } from "./ui/loader-2";
+
+const notificationDateFormatter = new Intl.DateTimeFormat("en-GB", {
+  dateStyle: "medium",
+  timeStyle: "short",
+  timeZone: "Europe/Athens",
+});
 
 export function NotificationsList({ initial }: { initial: NotificationItem[] }) {
   const router = useRouter();
@@ -44,7 +51,7 @@ export function NotificationsList({ initial }: { initial: NotificationItem[] }) 
     <section className="min-w-0">
       <div className="mb-4 flex min-w-0 items-center justify-between gap-3"><p className="text-sm text-[var(--muted)]" role="status" aria-live="polite">{items.filter((item) => !item.read_at).length} unread</p>
         <button type="button" disabled={busy || busyItemId !== null || !items.some((item) => !item.read_at)} onClick={() => void readAll()} className="btn-secondary shrink-0 disabled:cursor-not-allowed disabled:opacity-50">
-          <CheckCheck className="size-4" aria-hidden="true" /> {busy ? "Updating…" : "Mark all read"}
+          {busy ? <Loader2 size="compact" delayed decorative /> : <CheckCheck className="size-4" aria-hidden="true" />} {busy ? "Updating…" : "Mark all read"}
         </button>
       </div>
       {(error || centerError) && <p role="alert" className="mb-4 text-sm text-[var(--danger)]">{error || centerError}</p>}
@@ -69,9 +76,10 @@ export function NotificationsList({ initial }: { initial: NotificationItem[] }) 
                       {item.body}
                     </p>
                   )}
-                  <time className="mt-2 block text-xs text-[var(--muted)]">
-                    {new Date(item.created_at).toLocaleString()}
+                  <time dateTime={item.created_at} className="mt-2 block text-xs text-[var(--muted)]">
+                    {notificationDateFormatter.format(new Date(item.created_at))}
                   </time>
+                  {busyItemId === item.id ? <span className="mt-2 block"><Loader2 size="compact" delayed label="Opening notification" /></span> : null}
                 </div>
               </div>
             </Link>
