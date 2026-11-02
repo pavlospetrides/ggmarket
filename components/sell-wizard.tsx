@@ -24,6 +24,7 @@ import type { ListingAttributes } from "@/lib/types";
 import { TaxonomyAttributeFields } from "./taxonomy-attribute-fields";
 import { buildListingTaxonomyAttributes, isTaxonomySelectionComplete, TaxonomySelector, type TaxonomySelection } from "./taxonomy-selector";
 import { useHydrated } from "./use-hydrated";
+import { Loader2 } from "./ui/loader-2";
 
 const schema = z
   .object({
@@ -632,7 +633,7 @@ export function SellWizard({ categories }: { categories: Category[] }) {
               type="submit"
               className="btn-primary ml-auto min-w-32"
             >
-              <Check className="size-4" />{" "}
+              {publishing ? <Loader2 size="compact" delayed decorative /> : <Check className="size-4" />}{" "}
               {publishing ? "Publishing…" : "Publish"}
             </button>
           ) : (

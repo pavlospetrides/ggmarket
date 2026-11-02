@@ -3,6 +3,7 @@ import { MessageCircle } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useRef, useState, type FormEvent } from "react";
 import { useHydrated } from "./use-hydrated";
+import { Loader2 } from "./ui/loader-2";
 
 export function MessageSellerButton({
   listingId,
@@ -57,7 +58,7 @@ export function MessageSellerButton({
         aria-busy={busy}
         className={`btn-primary min-w-0 w-full ${compact ? "px-3" : "mt-6"}`}
       >
-        <MessageCircle className="size-4 shrink-0" aria-hidden="true" /> <span className="min-w-0 [overflow-wrap:anywhere]">{busy ? "Opening…" : label}</span>
+        {busy ? <Loader2 size="compact" delayed decorative className="shrink-0" /> : <MessageCircle className="size-4 shrink-0" aria-hidden="true" />} <span className="min-w-0 [overflow-wrap:anywhere]">{busy ? "Opening…" : label}</span>
       </button>
       {error && (
         <span role="alert" className="mt-2 block text-xs text-[var(--danger)] [overflow-wrap:anywhere]">

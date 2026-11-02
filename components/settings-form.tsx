@@ -3,6 +3,7 @@
 import { LogOut } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, type FormEvent, type MouseEvent as ReactMouseEvent } from "react";
+import { Loader2 } from "./ui/loader-2";
 
 type SettingsFormProps = {
   email: string;
@@ -201,6 +202,7 @@ export function SettingsForm({
         )}
         <div className="mt-6 flex flex-col items-stretch gap-3 sm:flex-row sm:items-center sm:gap-4">
           <button type="submit" disabled={saving} className="btn-primary">
+            {saving ? <Loader2 size="compact" delayed decorative /> : null}
             {saving ? "Saving…" : "Save changes"}
           </button>
           {status && (

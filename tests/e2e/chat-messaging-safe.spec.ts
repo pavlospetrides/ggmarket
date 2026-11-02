@@ -123,6 +123,30 @@ test("pending send serializes taps and a failure remains retryable", async ({ pa
   expect(messages.filter((item) => item.body === "Please retry me")).toHaveLength(1);
 });
 
+test("a foreground offer mutation shows one loader and clears it on completion", async ({ page }) => {
+  test.setTimeout(20_000);
+  let release!: () => void;
+  const held = new Promise<void>((resolve) => { release = resolve; });
+  await page.route("**/api/offers/offer-1", async (route) => {
+    await held;
+    await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ ok: true }) });
+  });
+  await page.route("**/api/conversations/**/messages", async (route) => {
+    await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ messages: [] }) });
+  });
+
+  await page.goto("/test-harness/chat?viewer=account-a&actions=1");
+  await page.locator('form[data-hydrated="true"]').waitFor();
+  await page.getByRole("button", { name: "Accept" }).click();
+  const status = page.locator('[role="status"][data-loader-size="compact"]', { hasText: "Updating offer" });
+  await expect(status).toBeVisible();
+  await expect(status).toHaveCount(1);
+
+  release();
+  await expect(status).toHaveCount(0);
+  await expect(page.getByText("accepted", { exact: true })).toBeVisible();
+});
+
 test("Safari without crypto.randomUUID keeps accepted messages sent", async ({ page }) => {
   const messages: StoredMessage[] = [];
   const pageErrors: string[] = [];

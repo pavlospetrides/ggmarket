@@ -3,6 +3,7 @@ import { BellRing, Check, Pencil, Plus, Trash2, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 import type { Category } from "@/lib/types";
+import { Loader2 } from "./ui/loader-2";
 
 type SavedSearch = {
   id: string;
@@ -216,7 +217,7 @@ export function SavedSearchesManager({
           </p>
         )}
         <button disabled={createBusy} className="btn-primary w-full">
-          <Plus className="size-4" /> {createBusy ? "Creating…" : "Create alert"}
+          {createBusy ? <Loader2 size="compact" delayed decorative /> : <Plus className="size-4" />} {createBusy ? "Creating…" : "Create alert"}
         </button>
       </form>
       <section>
@@ -233,7 +234,7 @@ export function SavedSearchesManager({
                   <BellRing className="size-5" aria-hidden="true" />
                 </span>
                 <div className="min-w-0 flex-1">
-                  {editingId === item.id ? <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto_auto] gap-2"><label className="sr-only" htmlFor={`rename-${item.id}`}>Edit alert name</label><input id={`rename-${item.id}`} className="input min-h-10 min-w-0 py-2" value={draftName} maxLength={80} autoFocus disabled={busyId === item.id} onChange={(event) => setDraftName(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") { event.preventDefault(); void rename(item); } if (event.key === "Escape" && !busyId) setEditingId(null); }} /><button type="button" disabled={busyId === item.id} className="icon-btn size-10 min-h-10" onClick={() => void rename(item)} aria-label="Save alert name"><Check className="size-4" aria-hidden="true" /></button><button type="button" disabled={busyId === item.id} className="icon-btn size-10 min-h-10" onClick={() => setEditingId(null)} aria-label="Cancel rename"><X className="size-4" aria-hidden="true" /></button></div> : <h2 className="min-w-0 font-bold [overflow-wrap:anywhere]">{item.name}</h2>}
+                  {editingId === item.id ? <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto_auto] gap-2"><label className="sr-only" htmlFor={`rename-${item.id}`}>Edit alert name</label><input id={`rename-${item.id}`} className="input min-h-10 min-w-0 py-2" value={draftName} maxLength={80} autoFocus disabled={busyId === item.id} onChange={(event) => setDraftName(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") { event.preventDefault(); void rename(item); } if (event.key === "Escape" && !busyId) setEditingId(null); }} /><button type="button" disabled={busyId === item.id} className="icon-btn size-10 min-h-10" onClick={() => void rename(item)} aria-label="Save alert name"><Check className="size-4" aria-hidden="true" /></button><button type="button" disabled={busyId === item.id} className="icon-btn size-10 min-h-10" onClick={() => setEditingId(null)} aria-label="Cancel rename"><X className="size-4" aria-hidden="true" /></button></div> : <div className="flex min-w-0 items-center gap-2"><h2 className="min-w-0 font-bold [overflow-wrap:anywhere]">{item.name}</h2>{busyId === item.id ? <Loader2 size="compact" delayed label="Updating saved search" /> : null}</div>}
                   <p className="mt-1 line-clamp-2 text-sm text-[var(--muted)] [overflow-wrap:anywhere]">
                     {[
                       item.search_term,

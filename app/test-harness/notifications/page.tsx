@@ -3,7 +3,12 @@ import { NotificationHarness } from "@/components/notification-harness";
 
 export const dynamic = "force-dynamic";
 
-export default function NotificationHarnessPage() {
+export default async function NotificationHarnessPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ list?: string }>;
+}) {
   if (process.env.NODE_ENV === "production" && process.env.E2E_UI_HARNESS !== "1") notFound();
-  return <main className="container-page py-10"><NotificationHarness /></main>;
+  const { list } = await searchParams;
+  return <main className="container-page py-10"><NotificationHarness showList={list === "1"} /></main>;
 }
