@@ -3,6 +3,15 @@ import type { Listing } from "./types";
 
 export const FAVORITE_RAIL_BATCH_SIZE = 8;
 
+const RAIL_PITCH_MIN = 1.16;
+const RAIL_PITCH_MAX = 1.62;
+const CAROUSEL_PITCH = 1.2;
+const RAIL_CARD_GAP = 0.07;
+
+function clamp(value: number, min: number, max: number) {
+  return Math.max(min, Math.min(max, value));
+}
+
 export type FavoriteRailItem = {
   id: string;
   href: string;
@@ -103,4 +112,76 @@ export function shouldRunFavoriteRailAnimation({
   intersecting: boolean;
 }) {
   return busy && !reduced && documentVisible && intersecting;
+}
+
+export function favoriteRailLayoutTargets(
+  width: number,
+  cardWidth: number,
+  carousel: boolean,
+  center: number | null,
+  count: number,
+) {
+  if (!carousel) {
+    const pitch = clamp(
+      (width - 40 - cardWidth * 0.6) / Math.max(1, count),
+      cardWidth * RAIL_PITCH_MIN,
+      cardWidth * RAIL_PITCH_MAX,
+    );
+    const start = width / 2 - (pitch * (count - 1)) / 2;
+    return {
+      xs: Array.from({ length: count }, (_, index) => Number((start + index * pitch).toFixed(2))),
+      total: 0,
+    };
+  }
+
+  const pitch = cardWidth * CAROUSEL_PITCH;
+  const total = pitch * count;
+  const cyclic = count > 2 && total >= width + cardWidth * 2;
+  const selected = center ?? 0;
+  const xs = Array.from({ length: count }, (_, index) => {
+    let offset = index - selected;
+    if (cyclic) {
+      offset = ((offset % count) + count) % count;
+      if (offset >= count / 2) offset -= count;
+    }
+    return Number((width / 2 + offset * pitch).toFixed(2));
+  });
+  return { xs, total: cyclic ? total : 0 };
+}
+
+export function softenFavoriteRailPull(distance: number, max: number) {
+  const knee = max * 0.75;
+  if (distance <= knee) return distance;
+  return knee + (max - knee) * (1 - Math.exp(-(distance - knee) / (max - knee)));
+}
+
+export function favoriteRailMinGap(cardWidth: number, firstPop: number, secondPop: number) {
+  const firstWidth = cardWidth * (1 + 0.08 * firstPop);
+  const secondWidth = cardWidth * (1 + 0.08 * secondPop);
+  return (firstWidth + secondWidth) / 2 + cardWidth * RAIL_CARD_GAP;
+}
+
+export function favoriteRailIdentityChanged(previousIds: string[], nextIds: string[]) {
+  return previousIds.length !== nextIds.length || previousIds.some((id, index) => id !== nextIds[index]);
+}
+
+export function favoriteRailCarouselIndex({
+  current,
+  deltaX,
+  velocity,
+  count,
+  cyclic,
+}: {
+  current: number;
+  deltaX: number;
+  velocity: number;
+  count: number;
+  cyclic: boolean;
+}) {
+  if (count <= 0) return 0;
+  const movement = Math.abs(deltaX) > 40 || Math.abs(velocity) > 0.45
+    ? deltaX < 0 || velocity < -0.45 ? 1 : -1
+    : 0;
+  if (cyclic) return ((current + movement) % count + count) % count;
+  return clamp(current + movement, 0, count - 1);
 }
