@@ -1,9 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const signInWithPassword = vi.fn();
+const signOut = vi.fn();
+const rpc = vi.fn();
 
 vi.mock("@/lib/supabase/server", () => ({
-  createClient: vi.fn(async () => ({ auth: { signInWithPassword } })),
+  createClient: vi.fn(async () => ({ auth: { signInWithPassword, signOut }, rpc })),
 }));
 vi.mock("@/lib/security", async () => import("../lib/security"));
 vi.mock("@/lib/request-security", async () => import("../lib/request-security"));
@@ -26,7 +28,12 @@ function loginRequest(next = "/profile", options: { url?: string; host?: string 
 }
 
 describe("native login fallback", () => {
-  beforeEach(() => signInWithPassword.mockReset());
+  beforeEach(() => {
+    signInWithPassword.mockReset();
+    signOut.mockReset();
+    rpc.mockReset();
+    rpc.mockResolvedValue({ data: true, error: null });
+  });
 
   it("sets the session and redirects to the safe requested route", async () => {
     signInWithPassword.mockResolvedValue({ error: null });
@@ -75,5 +82,14 @@ describe("native login fallback", () => {
     expect(response.headers.get("location")).toBe(
       "http://192.168.2.21:3000/login?error=invalid_credentials&next=%2Fprofile",
     );
+  });
+
+  it("ends a session when the authenticated account is suspended", async () => {
+    signInWithPassword.mockResolvedValue({ error: null });
+    rpc.mockResolvedValue({ data: false, error: null });
+    const { POST } = await import("../app/auth/login/route");
+    const response = await POST(loginRequest("/messages"));
+    expect(signOut).toHaveBeenCalledOnce();
+    expect(response.headers.get("location")).toBe("https://ggmarket.example/login?error=account_suspended&next=%2Fmessages");
   });
 });

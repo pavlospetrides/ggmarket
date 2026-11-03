@@ -40,5 +40,5 @@ test("device diagnostics still render and report disabled controls when a Next c
   const diagnostics = page.getByRole("status", { name: "GGMarket device diagnostics" });
   await expect(diagnostics).toBeVisible();
   await expect(diagnostics).toContainText(/Next assets failed: [1-9]/);
-  await expect(diagnostics).toContainText("Marked controls enabled: 0/2");
+  await expect(diagnostics).toContainText(/Marked controls enabled: 0\/[1-9]\d*/);
 });

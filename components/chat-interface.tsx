@@ -494,8 +494,8 @@ export function ChatInterface({
   }
 
   return (
-    <div data-conversation-shell className="conversation-viewport container-page min-w-0">
-      <div className="card flex h-full min-h-0 min-w-0 overflow-hidden bg-[#0b0f17] md:grid md:grid-cols-[330px_1fr] md:shadow-[var(--shadow-md)]">
+    <div data-conversation-shell className="conversation-viewport min-w-0">
+      <div className="card flex h-full min-h-0 min-w-0 overflow-hidden rounded-none bg-[#0b0f17] md:grid md:grid-cols-[330px_1fr] md:rounded-[var(--radius-lg)] md:shadow-[var(--shadow-md)]">
         <aside className="hidden border-r border-[var(--border)] md:block">
           <div className="flex items-center justify-between border-b border-[var(--border)] p-4 text-lg font-bold">
             <span>Messages</span>

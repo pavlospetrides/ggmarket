@@ -219,7 +219,7 @@ test("WebKit can native-POST a message before hydration", async ({ browser, brow
   await context.close();
 });
 
-test("conversation follows a panned visual viewport during repeated keyboard cycles", async ({ page }) => {
+test("native dictation text survives keyboard viewport changes and sends as an ordinary message", async ({ page }) => {
   await page.addInitScript(() => {
     const metrics = { height: 844, width: 390, offsetTop: 0, offsetLeft: 0 };
     const viewport = new EventTarget();
@@ -242,7 +242,8 @@ test("conversation follows a panned visual viewport during repeated keyboard cyc
     });
   });
   await page.setViewportSize({ width: 390, height: 844 });
-  await installMessageService(page, []);
+  const messages: StoredMessage[] = [];
+  await installMessageService(page, messages);
   await page.goto("/test-harness/chat?viewer=account-a");
   await page.locator('form[data-hydrated="true"]').waitFor();
 
@@ -274,7 +275,18 @@ test("conversation follows a panned visual viewport during repeated keyboard cyc
     };
   });
 
-  await page.getByLabel("Message", { exact: true }).tap();
+  const composer = page.getByLabel("Message", { exact: true });
+  await composer.tap();
+  await composer.evaluate((element) => {
+    element.dispatchEvent(new CompositionEvent("compositionstart", { bubbles: true, data: "" }));
+    const setter = Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, "value")?.set;
+    setter?.call(element, "Dictated with the iPhone keyboard");
+    element.dispatchEvent(new InputEvent("input", { bubbles: true, data: "Dictated with the iPhone keyboard", inputType: "insertText" }));
+    element.dispatchEvent(new CompositionEvent("compositionend", { bubbles: true, data: "Dictated with the iPhone keyboard" }));
+  });
+  await expect(composer).toHaveValue("Dictated with the iPhone keyboard");
+  await expect(composer).toBeFocused();
+  await expect(page.getByRole("button", { name: "Record voice message" })).toHaveCount(0);
   for (const [height, offsetTop] of [[512, 276], [844, 0], [486, 301], [844, 0]] as const) {
     await setViewport(height, offsetTop);
     await expect.poll(readViewportLayout).toMatchObject({
@@ -289,7 +301,15 @@ test("conversation follows a panned visual viewport during repeated keyboard cyc
       header: { top: offsetTop },
       composer: { bottom: offsetTop + height },
     });
+    await expect(composer).toBeFocused();
+    await expect(composer).toHaveValue("Dictated with the iPhone keyboard");
   }
+
+  if (process.env.CHAT_DICTATION_SCREENSHOT) await page.screenshot({ path: process.env.CHAT_DICTATION_SCREENSHOT, fullPage: false });
+  await page.getByRole("button", { name: "Send message" }).tap();
+  await expect(page.getByRole("log", { name: "Messages" }).getByText("Dictated with the iPhone keyboard", { exact: true })).toBeVisible();
+  expect(messages).toHaveLength(1);
+  expect(messages[0]?.body).toBe("Dictated with the iPhone keyboard");
 
   await page.getByRole("link", { name: "Back to conversations" }).click();
   await expect(page.locator("[data-conversation-shell]")).toHaveCount(0);
@@ -498,9 +518,11 @@ test("conversation owns the viewport and only its message history scrolls", asyn
 
   for (const { width, height } of [
     { width: 320, height: 568 },
+    { width: 360, height: 800 },
     { width: 375, height: 667 },
     { width: 390, height: 844 },
     { width: 393, height: 852 },
+    { width: 414, height: 896 },
     { width: 430, height: 932 },
     { width: 667, height: 375 },
     { width: 768, height: 1024 },

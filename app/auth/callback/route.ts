@@ -31,12 +31,20 @@ function isExpiredOrUsed(error: unknown) {
 export async function GET(request: Request) {
   const url = new URL(request.url);
   const code = url.searchParams.get("code");
+  const providerError = url.searchParams.get("error");
   const tokenHash = url.searchParams.get("token_hash");
   const requestedType = url.searchParams.get("type");
   const next = safeRedirectPath(url.searchParams.get("next"));
   const verificationFlow = next === "/settings/verification";
   const welcome = url.searchParams.get("welcome") === "1";
   const publicOrigin = getPublicRequestOrigin(request.headers, url.protocol) ?? url.origin;
+  if (providerError) {
+    const errorCode = providerError === "access_denied" ? "oauth_cancelled" : "oauth_failed";
+    const target = new URL("/login", publicOrigin);
+    target.searchParams.set("error", errorCode);
+    target.searchParams.set("next", next);
+    return withPrivateNoStore(NextResponse.redirect(target));
+  }
   const supabase = await createClient();
   if (!supabase) {
     return withPrivateNoStore(NextResponse.redirect(new URL("/login?error=invalid_callback", publicOrigin)));
@@ -54,6 +62,17 @@ export async function GET(request: Request) {
       token_hash: tokenHash,
       type: requestedType as EmailOtpType,
     }));
+  }
+
+  if (!error) {
+    const { data: active, error: activeError } = await supabase.rpc("is_active_user");
+    if (activeError || active !== true) {
+      await supabase.auth.signOut();
+      const target = new URL("/login", publicOrigin);
+      target.searchParams.set("error", active === false ? "account_suspended" : "oauth_failed");
+      target.searchParams.set("next", next);
+      return withPrivateNoStore(NextResponse.redirect(target));
+    }
   }
 
   const { data: { user } } = await supabase.auth.getUser();

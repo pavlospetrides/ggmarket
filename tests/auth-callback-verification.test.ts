@@ -1,8 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const auth = vi.hoisted(() => ({ exchangeCodeForSession: vi.fn(), verifyOtp: vi.fn(), getUser: vi.fn() }));
+const mocks = vi.hoisted(() => ({
+  auth: { exchangeCodeForSession: vi.fn(), verifyOtp: vi.fn(), getUser: vi.fn(), signOut: vi.fn() },
+  rpc: vi.fn(),
+}));
+const auth = mocks.auth;
 
-vi.mock("@/lib/supabase/server", () => ({ createClient: vi.fn(async () => ({ auth })) }));
+vi.mock("@/lib/supabase/server", () => ({ createClient: vi.fn(async () => ({ auth, rpc: mocks.rpc })) }));
 vi.mock("@/lib/security", async () => import("../lib/security"));
 vi.mock("@/lib/request-security", async () => import("../lib/request-security"));
 
@@ -11,6 +15,9 @@ describe("Supabase confirmation callback", () => {
     auth.exchangeCodeForSession.mockReset();
     auth.verifyOtp.mockReset();
     auth.getUser.mockReset();
+    auth.signOut.mockReset();
+    mocks.rpc.mockReset();
+    mocks.rpc.mockResolvedValue({ data: true, error: null });
     vi.unstubAllEnvs();
   });
 
@@ -79,5 +86,30 @@ describe("Supabase confirmation callback", () => {
     const { GET } = await import("../app/auth/callback/route");
     const response = await GET(new Request("https://ggmarket.test/auth/callback?code=recovery&next=%2Freset-password"));
     expect(response.headers.get("location")).toBe("https://ggmarket.test/reset-password");
+  });
+
+  it("handles OAuth cancellation without attempting a code exchange", async () => {
+    auth.getUser.mockResolvedValue({ data: { user: null }, error: null });
+    const { GET } = await import("../app/auth/callback/route");
+    const response = await GET(new Request("https://ggmarket.test/auth/callback?error=access_denied&error_description=User+cancelled&next=%2Flisting%2Ftest"));
+    expect(auth.exchangeCodeForSession).not.toHaveBeenCalled();
+    expect(response.headers.get("location")).toBe("https://ggmarket.test/login?error=oauth_cancelled&next=%2Flisting%2Ftest");
+  });
+
+  it("rejects unsafe OAuth return destinations", async () => {
+    auth.exchangeCodeForSession.mockResolvedValue({ error: null });
+    auth.getUser.mockResolvedValue({ data: { user: { email_confirmed_at: "2026-10-20T10:00:00Z" } }, error: null });
+    const { GET } = await import("../app/auth/callback/route");
+    const response = await GET(new Request("https://ggmarket.test/auth/callback?code=valid&next=%2F%252fevil.example"));
+    expect(response.headers.get("location")).toBe("https://ggmarket.test/profile");
+  });
+
+  it("ends a newly established OAuth session for a suspended account", async () => {
+    auth.exchangeCodeForSession.mockResolvedValue({ error: null });
+    mocks.rpc.mockResolvedValue({ data: false, error: null });
+    const { GET } = await import("../app/auth/callback/route");
+    const response = await GET(new Request("https://ggmarket.test/auth/callback?code=google&next=%2Fmessages"));
+    expect(auth.signOut).toHaveBeenCalledOnce();
+    expect(response.headers.get("location")).toBe("https://ggmarket.test/login?error=account_suspended&next=%2Fmessages");
   });
 });
