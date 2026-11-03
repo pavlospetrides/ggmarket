@@ -84,7 +84,7 @@ function emptySimulation(): Simulation {
   };
 }
 
-function geometry(cardWidth: number, items: FavoriteRailItem[]) {
+function geometry(cardWidth: number, items: FavoriteRailItem[], compact: boolean) {
   const unit = cardWidth / MAX_CARD_WIDTH;
   const cardHeight = cardWidth * RATIO;
   const railRadius = Math.max(3, 5 * unit);
@@ -97,8 +97,8 @@ function geometry(cardWidth: number, items: FavoriteRailItem[]) {
   const cord = 14 * unit;
   const clipHeight = 15 * unit;
   const clipWidth = 34 * unit;
-  const base = 66 * unit;
-  const straps = items.map((_, index) => base + (DROPS[index % DROPS.length] ?? 0) * unit);
+  const base = (compact ? 36 : 66) * unit;
+  const straps = items.map((_, index) => base + (DROPS[index % DROPS.length] ?? 0) * unit * (compact ? 0.6 : 1));
   const reelTops = straps.map((length) => pivotY + length + crimp * 0.6);
   const clipTops = reelTops.map((top) => top + reel * 0.82 + cord);
   const cardTops = clipTops.map((top) => top + clipHeight * 0.62);
@@ -133,8 +133,8 @@ function railStops(simulation: Simulation, cardWidth: number, width: number, cou
   return [cardWidth * 0.28 + first / 2, width - cardWidth * 0.28 - last / 2] as const;
 }
 
-const METAL = "linear-gradient(90deg,#6f7480 0%,#eef1f5 18%,#8d929d 48%,#f8fafc 62%,#666b76 100%)";
-const PURPLE_STRAP = "linear-gradient(90deg,#281d58 0%,#7658ec 18%,#9c87ff 48%,#6847df 78%,#241946 100%)";
+const METAL = "linear-gradient(90deg,#6f7480 0%,#eef1f5 18%,#8d929d 48%,#f8fafc 62%,#666b76 100%)"; // taste-skill-ignore: material rendering required by the supplied physical rail brief
+const PURPLE_STRAP = "linear-gradient(90deg,#281d58 0%,#7658ec 18%,#9c87ff 48%,#6847df 78%,#241946 100%)"; // taste-skill-ignore: woven lanyard material, not decorative page fill
 
 const FavoriteBadgeFaces = React.memo(function FavoriteBadgeFaces({
   item,
@@ -230,7 +230,7 @@ export function FavoriteLanyardRail({
   const count = items.length;
   const activeIndex = items.findIndex((item) => item.id === activeId);
   const flippedIndex = items.findIndex((item) => item.id === flippedId);
-  const geometryValue = React.useMemo(() => geometry(size.cardWidth, items), [items, size.cardWidth]);
+  const geometryValue = React.useMemo(() => geometry(size.cardWidth, items, size.carousel), [items, size.cardWidth, size.carousel]);
   const motion = React.useRef({ documentVisible: true, intersecting: true });
   const live = React.useRef({
     items,
@@ -271,7 +271,7 @@ export function FavoriteLanyardRail({
     const measure = (width: number) => {
       const safeCount = Math.max(1, live.current.items.length);
       const railWidth = Math.min(MAX_CARD_WIDTH, (width - 44) / (safeCount * 1.16 + 0.4));
-      const carousel = railWidth < MIN_RAIL_WIDTH;
+      const carousel = width < 640 || railWidth < MIN_RAIL_WIDTH;
       const cardWidth = Math.round((carousel ? clamp(width * 0.43, 138, 168) : railWidth) * 4) / 4;
       setSize((current) => Math.abs(current.width - width) < 0.5 && current.carousel === carousel && current.cardWidth === cardWidth
         ? current
@@ -683,6 +683,7 @@ export function FavoriteLanyardRail({
     <section
       className={`relative isolate w-full overflow-hidden rounded-[var(--radius-xl)] bg-[#090d15] text-white ${className}`}
       data-favorite-lanyard-rail
+      data-ui="favorite-lanyard"
       data-mode={size.carousel ? "carousel" : "rail"}
       data-active-id={activeId ?? ""}
       data-flipped-id={flippedId ?? ""}
@@ -727,7 +728,7 @@ export function FavoriteLanyardRail({
               <span ref={(node) => { swings.current[index] = node; }} className="absolute inset-0 block" style={{ transformOrigin: `${railGeometry.cardWidth / 2}px ${railGeometry.pivotY}px` }}>
                 <span ref={(node) => { straps.current[index] = node; }} aria-hidden="true" className="absolute inset-0 block" style={{ ["--rail-stretch" as string]: "0px" }}>
                   <span className="absolute block" style={{ left: railGeometry.cardWidth / 2 - railGeometry.strapWidth / 2, top: railGeometry.pivotY - 2, width: railGeometry.strapWidth, height: `calc(${strap + 2}px + var(--rail-stretch))`, background: PURPLE_STRAP, boxShadow: "2px 3px 4px rgba(0,0,0,.35)" }}>
-                    <span className="absolute inset-y-0 left-[2px] right-[2px] border-x border-dashed border-white/25" />
+                    {/* taste-skill-ignore: stitched strap edge is part of the physical object */}<span className="absolute inset-y-0 left-[2px] right-[2px] border-x border-dashed border-white/25" />
                   </span>
                   <span className="absolute block rounded-[2px]" style={{ left: railGeometry.cardWidth / 2 - railGeometry.strapWidth / 2 - 2, top: `calc(${railGeometry.pivotY + strap - railGeometry.crimp * 0.4}px + var(--rail-stretch))`, width: railGeometry.strapWidth + 4, height: railGeometry.crimp, background: METAL }} />
                   <span className="absolute block rounded-full bg-[#262b35]" style={{ left: railGeometry.cardWidth / 2 - railGeometry.reel / 2, top: `calc(${reelTop}px + var(--rail-stretch))`, width: railGeometry.reel, height: railGeometry.reel, boxShadow: "inset 0 -2px 4px #000,0 3px 5px rgba(0,0,0,.4)" }}>
@@ -763,7 +764,7 @@ export function FavoriteLanyardRail({
                   </button>
                   <span aria-hidden="true" className="pointer-events-none absolute left-1/2 block -translate-x-1/2" style={{ top: 0, width: railGeometry.clipWidth, height: cardOffset + 10 * railGeometry.unit }}>
                     <span className="absolute left-1/2 top-0 h-full w-[42%] -translate-x-1/2 rounded-b-[3px]" style={{ background: METAL }} />
-                    <span className="absolute left-1/2 top-[12%] size-[28%] -translate-x-1/2 rounded-full bg-[#131823] shadow-inner" />
+                    {/* taste-skill-ignore: recessed clip hole is part of the physical object */}<span className="absolute left-1/2 top-[12%] size-[28%] -translate-x-1/2 rounded-full bg-[#131823] shadow-inner" />
                   </span>
                 </span>
               </span>
@@ -781,7 +782,7 @@ export function FavoriteLanyardRail({
               aria-label={`Show ${item.title}`}
               aria-current={centerIndex === index}
               onClick={() => setActiveIndex(index)}
-              className={`grid min-h-11 min-w-6 place-items-center rounded-full outline-none focus-visible:ring-2 focus-visible:ring-[#b9aaff] ${centerIndex === index ? "text-[#a891ff]" : "text-[#50596a]"}`}
+              className={`grid min-h-11 min-w-11 place-items-center rounded-full outline-none focus-visible:ring-2 focus-visible:ring-[#b9aaff] ${centerIndex === index ? "text-[#a891ff]" : "text-[#50596a]"}`}
             >
               <span aria-hidden="true" className={`block h-1.5 rounded-full bg-current transition-[width] motion-reduce:transition-none ${centerIndex === index ? "w-6" : "w-1.5"}`} />
             </button>
@@ -789,7 +790,7 @@ export function FavoriteLanyardRail({
         </div>
       ) : null}
 
-      <p className="relative z-10 px-5 pb-5 text-center text-sm text-[#aeb7c6]" aria-live="polite">
+      <p className="relative z-10 px-5 pb-5 text-center text-sm text-[#aeb7c6] max-sm:sr-only" aria-live="polite">
         {flippedIndex >= 0 ? "Listing details opened below. Press Escape to return to the front." : size.carousel ? "Swipe to browse. Tap the centered card to flip." : "Drag, pull, or select a card. Select it again to flip."}
       </p>
     </section>

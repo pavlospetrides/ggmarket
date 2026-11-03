@@ -153,14 +153,27 @@ test("Favorites restores an optimistically removed rail item when the mutation f
   await expect(page.getByText("Showing 1–1 of 1 saved listing")).toBeVisible();
 });
 
-for (const width of [320, 390, 430]) {
+for (const width of [320, 360, 375, 390, 414, 430]) {
   test(`Favorites rail and expanded details do not overflow at ${width}px`, async ({ page }) => {
     await page.setViewportSize({ width, height: 844 });
     await page.goto("/test-harness/favorites?long=1");
     await page.locator("html[data-gg-hydrated='true']").waitFor();
     const badge = page.locator("[data-favorite-lanyard-rail]").getByRole("button", { name: /item 1 of/ });
+    const badgeBox = await badge.boundingBox();
+    const mobileNavBox = await page.getByRole("navigation", { name: "Mobile navigation" }).boundingBox();
+    expect(badgeBox && mobileNavBox ? badgeBox.y + badgeBox.height <= mobileNavBox.y - 8 : false).toBe(true);
     await activate(badge);
     await expect(page.getByRole("region", { name: /Details for/ })).toBeVisible();
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
+  });
+}
+
+for (const width of [768, 1024, 1280, 1440]) {
+  test(`Favorites rail stays within the page at ${width}px`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 900 });
+    await page.goto("/test-harness/favorites?many=1");
+    await page.locator("html[data-gg-hydrated='true']").waitFor();
+    await expect(page.locator("[data-favorite-lanyard-rail]")).toBeVisible();
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
   });
 }

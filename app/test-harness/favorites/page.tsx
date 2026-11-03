@@ -26,7 +26,7 @@ const listing: Listing = {
   isFavorite: true,
 };
 
-export default async function FavoritesInteractionHarnessPage({ searchParams }: { searchParams: Promise<{ accounts?: string; long?: string }> }) {
+export default async function FavoritesInteractionHarnessPage({ searchParams }: { searchParams: Promise<{ accounts?: string; long?: string; many?: string }> }) {
   if (process.env.NODE_ENV === "production" && process.env.E2E_UI_HARNESS !== "1") notFound();
   const query = await searchParams;
   if (query.accounts === "1") return <FavoriteAccountHarness />;
@@ -37,5 +37,14 @@ export default async function FavoritesInteractionHarnessPage({ searchParams }: 
     location: "A very long public marketplace location that must wrap safely on narrow phones",
     images: [],
   } : listing;
-  return <main className="container-page py-8"><FavoriteListings listings={[fixture]} viewerId="aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa" /></main>;
+  const fixtures = query.many === "1"
+    ? Array.from({ length: 9 }, (_, index) => ({
+      ...listing,
+      id: `77777777-7777-4777-8777-${String(index).padStart(12, "0")}`,
+      title: ["Test console", "Mechanical keyboard", "Collector game", "Gaming headset", "Graphics card", "Arcade stick", "Handheld console", "Racing wheel", "Retro monitor"][index] ?? `Test listing ${index + 1}`,
+      price: 100 + index * 35,
+      images: ["/icon.svg"],
+    }))
+    : [fixture];
+  return <main className="container-page py-8"><FavoriteListings listings={fixtures} viewerId="aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa" /></main>;
 }

@@ -23,7 +23,7 @@ export function FavoriteListings({ listings, viewerId }: { listings: Listing[]; 
   return <>
     <BrowsingStateRestorer />
     <PageMasthead eyebrow="Saved for later" title="Favorites" description={visible.length ? `${visible.length} saved ${visible.length === 1 ? "listing" : "listings"}. Keep your next find close.` : "Your shortlist starts with a heart."} variant="identity" actions={visible.length > 0 ? <Link href="/marketplace" className="btn-secondary">Keep browsing <ArrowUpRight className="size-4" aria-hidden="true" /></Link> : undefined} />
-    {favoriteError ? <div className="fixed bottom-[calc(5.75rem+env(safe-area-inset-bottom))] left-1/2 z-[80] w-[min(calc(100%-2rem),24rem)] -translate-x-1/2 rounded-xl border border-[#ff6978]/30 bg-[#29151af2] px-4 py-3 text-center text-sm text-[#ffc1c7] shadow-xl md:bottom-6" role="alert">{favoriteError}</div> : null}
+    {favoriteError ? <div className="fixed bottom-[calc(5.75rem+env(safe-area-inset-bottom))] left-1/2 z-[80] w-[min(calc(100%-2rem),24rem)] -translate-x-1/2 rounded-xl border border-[#ff6978]/30 bg-[#29151af2] px-4 py-3 text-center text-sm text-[#ffc1c7] md:bottom-6" role="alert">{favoriteError}</div> : null}
     {visible.length ? <FavoriteLanyardCollection listings={visible} viewerId={viewerId} onFavoriteChange={updateFavorite} onFavoriteError={setFavoriteError} /> : (
       <div className="grid min-h-80 place-items-center rounded-[var(--radius-xl)] bg-[var(--surface)] p-6 text-center sm:p-10">
         <div className="min-w-0 max-w-md">
