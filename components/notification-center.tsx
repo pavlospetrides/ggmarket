@@ -4,7 +4,8 @@ import { Bell } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import type { RealtimeChannel, SupabaseClient } from "@supabase/supabase-js";
-import { applyRealtimeNotification, countUnreadMessages, createNotificationState, markNotificationItemsRead, reconcileNotificationState, switchNotificationAccount, type NotificationItem, type NotificationState } from "@/lib/notification-state";
+import { createActiveConversationRegistry, shouldSuppressForegroundMessage, type ActiveConversationRegistry } from "@/lib/active-conversation-notifications";
+import { applyNotificationEvent, countUnreadMessages, createNotificationState, markNotificationItemsRead, reconcileNotificationState, switchNotificationAccount, type NotificationItem, type NotificationState } from "@/lib/notification-state";
 import { hasBrowserSupabaseAuthCookie } from "@/lib/supabase/cookie-security";
 
 export type NotificationContextValue = {
@@ -21,6 +22,7 @@ export type NotificationContextValue = {
 };
 
 export const NotificationContext = createContext<NotificationContextValue | null>(null);
+const ActiveConversationContext = createContext<ActiveConversationRegistry | null>(null);
 
 function safeHref(href: string | null) {
   return href?.startsWith("/") && !href.startsWith("//") ? href : "/notifications";
@@ -36,6 +38,7 @@ export function NotificationCenter({ children }: { children: ReactNode }) {
   const [error, setError] = useState("");
   const [toast, setToast] = useState<NotificationItem | null>(null);
   const accountGeneration = useRef(0);
+  const [activeConversationRegistry] = useState(createActiveConversationRegistry);
   useEffect(() => {
     stateRef.current = state;
   }, [state]);
@@ -106,17 +109,21 @@ export function NotificationCenter({ children }: { children: ReactNode }) {
       const receive = (payload: { new: Record<string, unknown> }) => {
           if (accountGeneration.current !== generation || !("new" in payload) || !payload.new) return;
           const item = payload.new as NotificationItem;
-          setState((current) => {
-            const previous = current.items.find((value) => value.id === item.id);
-            const result = applyRealtimeNotification(current, userId, item);
-            if (result.isNew && item.type === "message") setToast(item);
-            if (result.isNew && !item.read_at) {
-              setUnreadScope((scope) => scope.userId === userId ? { ...scope, count: scope.count + 1, messages: scope.messages + (item.type === "message" ? 1 : 0) } : scope);
-            } else if (previous && !previous.read_at && item.read_at) {
-              setUnreadScope((scope) => scope.userId === userId ? { ...scope, count: Math.max(0, scope.count - 1), messages: Math.max(0, scope.messages - (item.type === "message" ? 1 : 0)) } : scope);
-            }
-            return result.state;
+          const suppressForegroundMessage = shouldSuppressForegroundMessage(item, activeConversationRegistry, {
+            visibilityState: document.visibilityState,
+            hasFocus: document.hasFocus(),
           });
+          const result = applyNotificationEvent(stateRef.current, userId, item, { suppressForegroundMessage });
+          stateRef.current = result.state;
+          setState(result.state);
+          if (result.toast) setToast(result.toast);
+          if (result.unreadDelta || result.unreadMessagesDelta) {
+            setUnreadScope((scope) => scope.userId === userId ? {
+              ...scope,
+              count: Math.max(0, scope.count + result.unreadDelta),
+              messages: Math.max(0, scope.messages + result.unreadMessagesDelta),
+            } : scope);
+          }
         };
       channel = client.channel(`user-notifications:${userId}`)
         .on("postgres_changes", { event: "INSERT", schema: "public", table: "notifications", filter: `user_id=eq.${userId}` }, receive)
@@ -172,7 +179,7 @@ export function NotificationCenter({ children }: { children: ReactNode }) {
       document.removeEventListener("visibilitychange", visibility);
       if (channel && supabase) void supabase.removeChannel(channel);
     };
-  }, [reconcile]);
+  }, [activeConversationRegistry, reconcile]);
 
   useEffect(() => {
     if (!toast) return;
@@ -257,21 +264,35 @@ export function NotificationCenter({ children }: { children: ReactNode }) {
     seed,
   }), [connected, error, loading, markAllRead, markRead, markViewed, seed, state, unreadScope]);
 
-  return <NotificationContext.Provider value={value}>
-    {children}
-    {toast ? <button type="button" className="fixed bottom-24 right-3 z-[65] flex w-[min(24rem,calc(100vw-1.5rem))] items-start gap-3 rounded-2xl border border-[#51437f] bg-[#171329] p-4 text-left shadow-[var(--shadow-lg)] md:bottom-6 md:right-6" onClick={async () => {
+  return <ActiveConversationContext.Provider value={activeConversationRegistry}>
+    <NotificationContext.Provider value={value}>
+      {children}
+      {toast ? <button type="button" className="fixed bottom-24 right-3 z-[65] flex w-[min(24rem,calc(100vw-1.5rem))] items-start gap-3 rounded-2xl border border-[#51437f] bg-[#171329] p-4 text-left shadow-[var(--shadow-lg)] md:bottom-6 md:right-6" onClick={async () => {
       await markRead(toast.id);
       setToast(null);
       router.push(safeHref(toast.href));
     }} aria-label={`Open notification: ${toast.title}`}>
       <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-[#211a3a] text-[#aa98ff]"><Bell className="size-5" aria-hidden="true" /></span>
       <span className="min-w-0"><strong className="block [overflow-wrap:anywhere]">{toast.title}</strong>{toast.body ? <span className="mt-1 line-clamp-2 block text-sm text-[var(--text-secondary)] [overflow-wrap:anywhere]">{toast.body}</span> : null}</span>
-    </button> : null}
-  </NotificationContext.Provider>;
+      </button> : null}
+    </NotificationContext.Provider>
+  </ActiveConversationContext.Provider>;
 }
 
 export function useNotificationCenter() {
   const value = useContext(NotificationContext);
   if (!value) throw new Error("useNotificationCenter must be used inside NotificationCenter");
   return value;
+}
+
+export function useActiveConversation(conversationId: string, live: boolean) {
+  const registry = useContext(ActiveConversationContext);
+  useEffect(() => {
+    if (!registry) return;
+    const release = registry.register(conversationId, live);
+    return () => {
+      release();
+      if (live) window.dispatchEvent(new Event("ggmarket:notifications-changed"));
+    };
+  }, [conversationId, live, registry]);
 }
