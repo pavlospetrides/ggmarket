@@ -7,7 +7,7 @@ export default async function FavoritesPage() {
   const user = await requireUser("/favorites");
   const items = await getFavoriteListings(user.id);
   return (
-    <div className="container-page min-w-0 py-8 md:py-12">
+    <div className="container-page min-w-0 pb-[calc(6.5rem+env(safe-area-inset-bottom))] pt-8 md:py-12">
       <FavoriteListings key={user.id} listings={items} viewerId={user.id} />
     </div>
   );

@@ -88,7 +88,7 @@ test("favorite remains a working form control when hydration never attaches", as
   await context.close();
 });
 
-test("Favorites removes a confirmed item without a route refresh", async ({ page }) => {
+test("Favorites rail shows real listing data, flips into details, and removes without a route refresh", async ({ page }) => {
   let requests = 0;
   let documentRequests = 0;
   page.on("request", (request) => {
@@ -104,16 +104,66 @@ test("Favorites removes a confirmed item without a route refresh", async ({ page
   });
   await page.goto("/test-harness/favorites");
   await page.locator("html[data-gg-hydrated='true']").waitFor();
-  const card = page.locator("article").filter({ hasText: "Test favorite listing" });
-  await expect(card).toBeVisible();
-  const remove = card.getByRole("button", { name: "Remove from favorites" });
+  const rail = page.locator("[data-favorite-lanyard-rail]");
+  await expect(rail).toBeVisible();
+  await expect(page.getByText("Showing 1–1 of 1 saved listing")).toBeVisible();
+  const badge = rail.getByRole("button", { name: /Test favorite listing, €100, item 1 of 1/ });
+  await expect(badge).toBeVisible();
+  await expect(badge.locator("img")).toHaveCount(1);
+
+  await activate(badge);
+  await expect(badge).toHaveAttribute("aria-pressed", "true");
+  const details = page.getByRole("region", { name: "Details for Test favorite listing" });
+  await expect(details).toContainText("A safe browser-only listing used to verify dynamic favorite removal.");
+  await expect(details).toContainText("Test Seller");
+  await expect(details).toContainText("Ships");
+  const listingLink = details.getByRole("link", { name: "View listing" });
+  await expect(listingLink).toHaveAttribute("href", "/listing/77777777-7777-4777-8777-777777777777");
+  await expect(details).toHaveAttribute("data-listing-anchor", "favorites:77777777-7777-4777-8777-777777777777");
+
+  await page.keyboard.press("Escape");
+  await expect(details).toBeHidden();
+  await expect(badge).toHaveAttribute("aria-pressed", "false");
+  await activate(badge);
+  const remove = page.getByRole("region", { name: "Details for Test favorite listing" }).getByRole("button", { name: "Remove from favorites" });
   await activate(remove);
 
-  await expect(card).toBeHidden();
+  await expect(rail).toBeHidden();
   await expect(page.getByText("Nothing saved yet")).toBeVisible();
   await expect.poll(() => requests).toBe(1);
   expect(documentRequests).toBe(1);
 });
+
+test("Favorites restores an optimistically removed rail item when the mutation fails", async ({ page }) => {
+  await page.route("**/api/favorites", (route) => route.fulfill({
+    status: 503,
+    contentType: "application/json",
+    body: JSON.stringify({ error: "Favorite service unavailable." }),
+  }));
+  await page.goto("/test-harness/favorites");
+  await page.locator("html[data-gg-hydrated='true']").waitFor();
+  const rail = page.locator("[data-favorite-lanyard-rail]");
+  const badge = rail.getByRole("button", { name: /Test favorite listing/ });
+
+  await activate(badge);
+  await activate(page.getByRole("region", { name: "Details for Test favorite listing" }).getByRole("button", { name: "Remove from favorites" }));
+
+  await expect(page.getByText("Favorite service unavailable.", { exact: true })).toHaveAttribute("role", "alert");
+  await expect(rail.getByRole("button", { name: /Test favorite listing/ })).toBeVisible();
+  await expect(page.getByText("Showing 1–1 of 1 saved listing")).toBeVisible();
+});
+
+for (const width of [320, 390, 430]) {
+  test(`Favorites rail and expanded details do not overflow at ${width}px`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 844 });
+    await page.goto("/test-harness/favorites?long=1");
+    await page.locator("html[data-gg-hydrated='true']").waitFor();
+    const badge = page.locator("[data-favorite-lanyard-rail]").getByRole("button", { name: /item 1 of/ });
+    await activate(badge);
+    await expect(page.getByRole("region", { name: /Details for/ })).toBeVisible();
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
+  });
+}
 
 test("rapid favorite taps persist the latest intent in request order", async ({ page }) => {
   let release!: () => void;
