@@ -26,8 +26,25 @@ const listing: Listing = {
   isFavorite: true,
 };
 
-export default async function FavoritesInteractionHarnessPage({ searchParams }: { searchParams: Promise<{ accounts?: string }> }) {
+export default async function FavoritesInteractionHarnessPage({ searchParams }: { searchParams: Promise<{ accounts?: string; long?: string; many?: string }> }) {
   if (process.env.NODE_ENV === "production" && process.env.E2E_UI_HARNESS !== "1") notFound();
-  if ((await searchParams).accounts === "1") return <FavoriteAccountHarness />;
-  return <main className="container-page py-8"><FavoriteListings listings={[listing]} viewerId="aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa" /></main>;
+  const query = await searchParams;
+  if (query.accounts === "1") return <FavoriteAccountHarness />;
+  const fixture = query.long === "1" ? {
+    ...listing,
+    title: "Collector edition console bundle with an exceptionally long unbroken accessory reference ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789",
+    description: "A deliberately long synthetic description for responsive verification. It contains enough detail to prove that product copy wraps without forcing the page beyond the viewport.",
+    location: "A very long public marketplace location that must wrap safely on narrow phones",
+    images: [],
+  } : listing;
+  const fixtures = query.many === "1"
+    ? Array.from({ length: 9 }, (_, index) => ({
+      ...listing,
+      id: `77777777-7777-4777-8777-${String(index).padStart(12, "0")}`,
+      title: ["Test console", "Mechanical keyboard", "Collector game", "Gaming headset", "Graphics card", "Arcade stick", "Handheld console", "Racing wheel", "Retro monitor"][index] ?? `Test listing ${index + 1}`,
+      price: 100 + index * 35,
+      images: ["/icon.svg"],
+    }))
+    : [fixture];
+  return <main className="container-page py-8"><FavoriteListings listings={fixtures} viewerId="aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa" /></main>;
 }
