@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  applyNotificationEvent,
   applyRealtimeNotification,
   countUnreadMessages,
   createNotificationState,
@@ -35,6 +36,53 @@ describe("account-scoped notification state", () => {
     expect(first.isNew).toBe(true);
     expect(duplicate.isNew).toBe(false);
     expect(duplicate.state.items).toHaveLength(1);
+  });
+
+  it("keeps an active foreground message out of toast and unread presentation", () => {
+    const result = applyNotificationEvent(
+      createNotificationState("account-a", []),
+      "account-a",
+      newer,
+      { suppressForegroundMessage: true, readAt: "2026-10-20T10:00:00.000Z" },
+    );
+
+    expect(result.toast).toBeNull();
+    expect(result.unreadDelta).toBe(0);
+    expect(result.unreadMessagesDelta).toBe(0);
+    expect(result.state.items[0].read_at).toBe("2026-10-20T10:00:00.000Z");
+  });
+
+  it("presents another conversation once and ignores duplicate delivery", () => {
+    const first = applyNotificationEvent(createNotificationState("account-a", []), "account-a", newer);
+    const duplicate = applyNotificationEvent(first.state, "account-a", newer);
+
+    expect(first.toast?.id).toBe("n2");
+    expect(first.unreadDelta).toBe(1);
+    expect(first.unreadMessagesDelta).toBe(1);
+    expect(duplicate.toast).toBeNull();
+    expect(duplicate.unreadDelta).toBe(0);
+    expect(duplicate.unreadMessagesDelta).toBe(0);
+  });
+
+  it("decrements unread presentation when the server marks a notification read", () => {
+    const initial = createNotificationState("account-a", [newer]);
+    const updated = applyNotificationEvent(initial, "account-a", { ...newer, read_at: "2026-10-20T10:00:00.000Z" });
+
+    expect(updated.toast).toBeNull();
+    expect(updated.unreadDelta).toBe(-1);
+    expect(updated.unreadMessagesDelta).toBe(-1);
+  });
+
+  it("does not resurrect a toast when the first observed event is already read", () => {
+    const result = applyNotificationEvent(
+      createNotificationState("account-a", []),
+      "account-a",
+      { ...newer, read_at: "2026-10-20T10:00:00.000Z" },
+    );
+
+    expect(result.toast).toBeNull();
+    expect(result.unreadDelta).toBe(0);
+    expect(result.unreadMessagesDelta).toBe(0);
   });
 
   it("keeps A → logout → B → logout → A isolated with delayed requests", () => {

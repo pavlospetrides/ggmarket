@@ -60,6 +60,50 @@ export function applyRealtimeNotification(
   };
 }
 
+export function applyNotificationEvent(
+  state: NotificationState,
+  eventUserId: string,
+  item: NotificationItem,
+  options: { suppressForegroundMessage?: boolean; readAt?: string } = {},
+): {
+  state: NotificationState;
+  toast: NotificationItem | null;
+  unreadDelta: number;
+  unreadMessagesDelta: number;
+} {
+  const previous = state.userId === eventUserId
+    ? state.items.find((current) => current.id === item.id)
+    : undefined;
+  const suppress = Boolean(
+    options.suppressForegroundMessage
+    && !previous
+    && item.type === "message"
+    && !item.read_at,
+  );
+  const effectiveItem = suppress
+    ? { ...item, read_at: options.readAt ?? new Date().toISOString() }
+    : item;
+  const result = applyRealtimeNotification(state, eventUserId, effectiveItem);
+
+  if (result.isNew) {
+    const unreadDelta = effectiveItem.read_at ? 0 : 1;
+    return {
+      state: result.state,
+      toast: effectiveItem.type === "message" && !effectiveItem.read_at && !suppress ? effectiveItem : null,
+      unreadDelta,
+      unreadMessagesDelta: effectiveItem.type === "message" ? unreadDelta : 0,
+    };
+  }
+
+  const becameRead = Boolean(previous && !previous.read_at && effectiveItem.read_at);
+  return {
+    state: result.state,
+    toast: null,
+    unreadDelta: becameRead ? -1 : 0,
+    unreadMessagesDelta: becameRead && effectiveItem.type === "message" ? -1 : 0,
+  };
+}
+
 export function countUnreadMessages(items: NotificationItem[]) {
   return items.filter((item) => item.type === "message" && !item.read_at).length;
 }

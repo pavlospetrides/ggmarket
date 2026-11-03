@@ -23,6 +23,7 @@ import type {
 import { useHydrated } from "./use-hydrated";
 import { TradeProposalForm } from "./trade-proposal-form";
 import { Loader2 } from "./ui/loader-2";
+import { useActiveConversation } from "./notification-center";
 
 type Conversation = {
   id: string;
@@ -73,6 +74,7 @@ export function ChatInterface({
   const [connection, setConnection] = useState<"connecting" | "live" | "error">(
     "connecting",
   );
+  useActiveConversation(conversation.id, connection === "live");
   const [busy, setBusy] = useState(false);
   const [pendingActionId, setPendingActionId] = useState<string | null>(null);
   const [error, setError] = useState("");
@@ -189,7 +191,7 @@ export function ChatInterface({
           rememberHistoryPosition();
           setMessages((current) => mergeChatMessages(current, [row]));
           updateConversationPreview(row.body, row.created_at);
-          if (row.sender_id !== currentUserId) void markRead();
+          if (row.sender_id !== currentUserId && isConversationForeground()) void markRead();
         },
       )
       .on(
@@ -257,6 +259,7 @@ export function ChatInterface({
           await reconcileMessages();
           if (scopeRef.current !== effectScope) return;
           setConnection("live");
+          if (isConversationForeground()) await markRead();
           await channel.track({
             userId: currentUserId,
             onlineAt: new Date().toISOString(),
@@ -296,23 +299,36 @@ export function ChatInterface({
       } catch {
         if (!abortController.signal.aborted && scopeRef.current === effectScope) {
           setError("Messages could not be marked as read.");
+          window.dispatchEvent(new Event("ggmarket:notifications-changed"));
         }
       }
     }
 
-    function recoverWhenVisible() {
-      if (document.visibilityState === "visible") void reconcileMessages();
+    function isConversationForeground() {
+      return document.visibilityState === "visible" && document.hasFocus();
     }
 
-    void markRead();
-    const reconciliationTimer = window.setInterval(recoverWhenVisible, 12_000);
-    document.addEventListener("visibilitychange", recoverWhenVisible);
-    window.addEventListener("online", recoverWhenVisible);
+    async function recoverWhenActive() {
+      if (!isConversationForeground()) return;
+      await reconcileMessages();
+      if (scopeRef.current === effectScope) await markRead();
+    }
+
+    function reconcileWhenActive() {
+      if (isConversationForeground()) void reconcileMessages();
+    }
+
+    if (isConversationForeground()) void markRead();
+    const reconciliationTimer = window.setInterval(reconcileWhenActive, 12_000);
+    document.addEventListener("visibilitychange", recoverWhenActive);
+    window.addEventListener("focus", recoverWhenActive);
+    window.addEventListener("online", recoverWhenActive);
     return () => {
       abortController.abort();
       window.clearInterval(reconciliationTimer);
-      document.removeEventListener("visibilitychange", recoverWhenVisible);
-      window.removeEventListener("online", recoverWhenVisible);
+      document.removeEventListener("visibilitychange", recoverWhenActive);
+      window.removeEventListener("focus", recoverWhenActive);
+      window.removeEventListener("online", recoverWhenActive);
       if (typingTimer.current) clearTimeout(typingTimer.current);
       if (channelRef.current === channel) channelRef.current = null;
       void channel.untrack();
