@@ -14,7 +14,7 @@ function secure(response: NextResponse, request: NextRequest) {
   response.headers.set("X-Frame-Options", "DENY");
   response.headers.set(
     "Permissions-Policy",
-    "camera=(), microphone=(self), geolocation=(), payment=(), usb=()",
+    "camera=(), microphone=(), geolocation=(), payment=(), usb=()",
   );
   response.headers.set(
     "Content-Security-Policy",

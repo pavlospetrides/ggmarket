@@ -55,11 +55,11 @@ export async function readUrlEncodedForm(request: Request): Promise<URLSearchPar
   }
 }
 
-export async function readLimitedMultipartForm(request: Request, limit = IMAGE_UPLOAD_BODY_LIMIT_BYTES): Promise<FormData | null> {
+export async function readLimitedMultipartForm(request: Request): Promise<FormData | null> {
   const contentType = request.headers.get("content-type")?.toLowerCase() ?? "";
   if (!contentType.startsWith("multipart/form-data;")) return null;
   const declaredLength = Number(request.headers.get("content-length"));
-  if (Number.isFinite(declaredLength) && declaredLength > limit) return null;
+  if (Number.isFinite(declaredLength) && declaredLength > IMAGE_UPLOAD_BODY_LIMIT_BYTES) return null;
   if (!request.body) return null;
   try {
     const reader = request.body.getReader();
@@ -69,7 +69,7 @@ export async function readLimitedMultipartForm(request: Request, limit = IMAGE_U
       const { done, value } = await reader.read();
       if (done) break;
       bytes += value.byteLength;
-      if (bytes > limit) {
+      if (bytes > IMAGE_UPLOAD_BODY_LIMIT_BYTES) {
         await reader.cancel();
         return null;
       }

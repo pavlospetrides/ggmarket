@@ -15,8 +15,7 @@ Application code uses Supabase Auth's Google provider and the existing SSR/PKCE 
 2. Set **Authentication → URL Configuration → Site URL** to `https://ggmarket.eu`.
 3. Add `https://ggmarket.eu/auth/callback` to Redirect URLs.
 4. Add only intentional preview callbacks. Prefer an explicit preview hostname for review; if a Supabase wildcard is used, scope it to the Vercel preview hostname pattern and remove stale entries.
-5. Apply `202611030001_private_voice_messages.sql` to the intended environment only after migration review and disposable-environment validation.
-6. Keep automatic identity linking enabled. Supabase links a verified matching Google email to the existing user UUID; GGMarket must not merge users or move ownership records itself.
+5. Keep automatic identity linking enabled. Supabase links a verified matching Google email to the existing user UUID; GGMarket must not merge users or move ownership records itself.
 
 ## Vercel
 

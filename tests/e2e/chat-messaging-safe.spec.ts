@@ -8,47 +8,9 @@ type StoredMessage = {
   conversation_id: string;
   sender_id: string;
   body: string;
-  message_type?: "text" | "voice";
-  attachment_path?: string | null;
-  attachment_mime?: string | null;
-  attachment_duration_ms?: number | null;
   client_id: string;
   created_at: string;
 };
-
-async function installVoiceRecorder(page: Page) {
-  await page.addInitScript(() => {
-    const voiceState = { requested: null as MediaStreamConstraints | null, tracksStopped: 0, objectUrlsRevoked: 0 };
-    Object.assign(window, { __voiceState: voiceState });
-    const track = { stop: () => { voiceState.tracksStopped += 1; } };
-    Object.defineProperty(navigator, "mediaDevices", {
-      configurable: true,
-      value: { getUserMedia: async (constraints: MediaStreamConstraints) => {
-        voiceState.requested = constraints;
-        return { getTracks: () => [track] };
-      } },
-    });
-    class FakeMediaRecorder {
-      static isTypeSupported(type: string) { return type === "audio/mp4"; }
-      state: RecordingState = "inactive";
-      mimeType = "audio/mp4";
-      ondataavailable: ((event: BlobEvent) => void) | null = null;
-      onstop: (() => void) | null = null;
-      onerror: (() => void) | null = null;
-      constructor(...args: unknown[]) { void args; }
-      start() { this.state = "recording"; }
-      stop() {
-        if (this.state === "inactive") return;
-        this.state = "inactive";
-        this.ondataavailable?.({ data: new Blob(["synthetic audio"], { type: this.mimeType }) } as BlobEvent);
-        this.onstop?.();
-      }
-    }
-    Object.defineProperty(window, "MediaRecorder", { configurable: true, value: FakeMediaRecorder });
-    const revoke = URL.revokeObjectURL.bind(URL);
-    URL.revokeObjectURL = (url) => { voiceState.objectUrlsRevoked += 1; revoke(url); };
-  });
-}
 
 async function installMessageService(
   page: Page,
@@ -257,85 +219,7 @@ test("WebKit can native-POST a message before hydration", async ({ browser, brow
   await context.close();
 });
 
-test("voice recording requests audio only, uploads once, and restores the composer", async ({ page }) => {
-  const messages: StoredMessage[] = [];
-  let uploads = 0;
-  await page.emulateMedia({ reducedMotion: "reduce" });
-  await installVoiceRecorder(page);
-  await installMessageService(page, messages);
-  await page.route("**/api/conversations/**/voice**", async (route) => {
-    if (route.request().method() === "POST") {
-      uploads += 1;
-      await route.fulfill({ status: 201, contentType: "application/json", body: JSON.stringify({
-        id: "44444444-4444-4444-8444-444444444444",
-        conversation_id: conversationId,
-        sender_id: "account-a",
-        body: "Voice message",
-        message_type: "voice",
-        attachment_path: `${conversationId}/account-a/voice.m4a`,
-        attachment_mime: "audio/mp4",
-        attachment_duration_ms: 1200,
-        client_id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
-        created_at: new Date().toISOString(),
-      }) });
-      return;
-    }
-    await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ url: "/test-voice.m4a" }) });
-  });
-  await page.route("**/test-voice.m4a", (route) => route.fulfill({ status: 200, contentType: "audio/mp4", body: "synthetic audio" }));
-  await page.goto("/test-harness/chat?viewer=account-a");
-  await page.getByRole("button", { name: "Record voice message" }).tap();
-  await expect(page.locator('[data-recording-state="recording"]')).toBeVisible();
-  await expect.poll(() => page.locator('[data-recording-state="recording"] span').first().evaluate((element) => getComputedStyle(element).animationName)).toBe("none");
-  await expect.poll(() => page.evaluate(() => (window as unknown as { __voiceState: { requested: MediaStreamConstraints } }).__voiceState.requested)).toEqual({ audio: true, video: false });
-  await page.getByRole("button", { name: "Stop voice recording" }).tap();
-  await expect(page.getByLabel("Voice recording preview")).toBeVisible();
-  await expect.poll(() => page.evaluate(() => (window as unknown as { __voiceState: { tracksStopped: number } }).__voiceState.tracksStopped)).toBe(1);
-  await page.getByRole("button", { name: "Send voice recording" }).tap();
-  await expect(page.locator("[data-voice-message]")).toBeVisible();
-  await expect(page.getByLabel("Message", { exact: true })).toBeVisible();
-  await expect(page.locator("[data-recording-state]")).toHaveCount(0);
-  expect(uploads).toBe(1);
-  await expect.poll(() => page.evaluate(() => (window as unknown as { __voiceState: { objectUrlsRevoked: number } }).__voiceState.objectUrlsRevoked)).toBeGreaterThanOrEqual(1);
-  if (process.env.CHAT_VOICE_SCREENSHOT) await page.screenshot({ path: process.env.CHAT_VOICE_SCREENSHOT, fullPage: false });
-});
-
-test("voice cancellation releases the microphone without upload or residual UI", async ({ page }) => {
-  let uploads = 0;
-  await installVoiceRecorder(page);
-  await installMessageService(page, []);
-  await page.route("**/api/conversations/**/voice**", async (route) => {
-    uploads += 1;
-    await route.abort();
-  });
-  await page.goto("/test-harness/chat?viewer=account-a");
-  await page.getByRole("button", { name: "Record voice message" }).tap();
-  await page.getByRole("button", { name: "Cancel voice recording" }).tap();
-  await expect(page.locator("[data-recording-state]")).toHaveCount(0);
-  await expect(page.getByLabel("Message", { exact: true })).toBeVisible();
-  await expect.poll(() => page.evaluate(() => (window as unknown as { __voiceState: { tracksStopped: number } }).__voiceState.tracksStopped)).toBe(1);
-  expect(uploads).toBe(0);
-});
-
-test("failed voice upload keeps a retryable preview and the layout contained", async ({ page }) => {
-  await page.setViewportSize({ width: 320, height: 568 });
-  await installVoiceRecorder(page);
-  await installMessageService(page, []);
-  await page.route("**/api/conversations/**/voice**", (route) => route.fulfill({ status: 503, contentType: "application/json", body: JSON.stringify({ error: "Voice upload unavailable." }) }));
-  await page.goto("/test-harness/chat?viewer=account-a");
-  await page.getByRole("button", { name: "Record voice message" }).tap();
-  await page.getByRole("button", { name: "Stop voice recording" }).tap();
-  await page.getByRole("button", { name: "Send voice recording" }).tap();
-  await expect(page.getByRole("alert").filter({ hasText: "Voice upload unavailable" })).toBeVisible();
-  await expect(page.getByLabel("Voice recording preview")).toBeVisible();
-  const bounds = await page.locator("[data-message-composer]").boundingBox();
-  expect(bounds).not.toBeNull();
-  expect(bounds!.x).toBeGreaterThanOrEqual(0);
-  expect(bounds!.x + bounds!.width).toBeLessThanOrEqual(321);
-  expect(bounds!.y + bounds!.height).toBeLessThanOrEqual(569);
-});
-
-test("conversation follows a panned visual viewport during repeated keyboard cycles", async ({ page }) => {
+test("native dictation text survives keyboard viewport changes and sends as an ordinary message", async ({ page }) => {
   await page.addInitScript(() => {
     const metrics = { height: 844, width: 390, offsetTop: 0, offsetLeft: 0 };
     const viewport = new EventTarget();
@@ -358,7 +242,8 @@ test("conversation follows a panned visual viewport during repeated keyboard cyc
     });
   });
   await page.setViewportSize({ width: 390, height: 844 });
-  await installMessageService(page, []);
+  const messages: StoredMessage[] = [];
+  await installMessageService(page, messages);
   await page.goto("/test-harness/chat?viewer=account-a");
   await page.locator('form[data-hydrated="true"]').waitFor();
 
@@ -390,7 +275,18 @@ test("conversation follows a panned visual viewport during repeated keyboard cyc
     };
   });
 
-  await page.getByLabel("Message", { exact: true }).tap();
+  const composer = page.getByLabel("Message", { exact: true });
+  await composer.tap();
+  await composer.evaluate((element) => {
+    element.dispatchEvent(new CompositionEvent("compositionstart", { bubbles: true, data: "" }));
+    const setter = Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, "value")?.set;
+    setter?.call(element, "Dictated with the iPhone keyboard");
+    element.dispatchEvent(new InputEvent("input", { bubbles: true, data: "Dictated with the iPhone keyboard", inputType: "insertText" }));
+    element.dispatchEvent(new CompositionEvent("compositionend", { bubbles: true, data: "Dictated with the iPhone keyboard" }));
+  });
+  await expect(composer).toHaveValue("Dictated with the iPhone keyboard");
+  await expect(composer).toBeFocused();
+  await expect(page.getByRole("button", { name: "Record voice message" })).toHaveCount(0);
   for (const [height, offsetTop] of [[512, 276], [844, 0], [486, 301], [844, 0]] as const) {
     await setViewport(height, offsetTop);
     await expect.poll(readViewportLayout).toMatchObject({
@@ -405,7 +301,15 @@ test("conversation follows a panned visual viewport during repeated keyboard cyc
       header: { top: offsetTop },
       composer: { bottom: offsetTop + height },
     });
+    await expect(composer).toBeFocused();
+    await expect(composer).toHaveValue("Dictated with the iPhone keyboard");
   }
+
+  if (process.env.CHAT_DICTATION_SCREENSHOT) await page.screenshot({ path: process.env.CHAT_DICTATION_SCREENSHOT, fullPage: false });
+  await page.getByRole("button", { name: "Send message" }).tap();
+  await expect(page.getByRole("log", { name: "Messages" }).getByText("Dictated with the iPhone keyboard", { exact: true })).toBeVisible();
+  expect(messages).toHaveLength(1);
+  expect(messages[0]?.body).toBe("Dictated with the iPhone keyboard");
 
   await page.getByRole("link", { name: "Back to conversations" }).click();
   await expect(page.locator("[data-conversation-shell]")).toHaveCount(0);
