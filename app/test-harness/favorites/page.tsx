@@ -26,7 +26,7 @@ const listing: Listing = {
   isFavorite: true,
 };
 
-export default async function FavoritesInteractionHarnessPage({ searchParams }: { searchParams: Promise<{ accounts?: string; long?: string; many?: string }> }) {
+export default async function FavoritesInteractionHarnessPage({ searchParams }: { searchParams: Promise<{ accounts?: string; count?: string; long?: string; many?: string }> }) {
   if (process.env.NODE_ENV === "production" && process.env.E2E_UI_HARNESS !== "1") notFound();
   const query = await searchParams;
   if (query.accounts === "1") return <FavoriteAccountHarness />;
@@ -37,8 +37,12 @@ export default async function FavoritesInteractionHarnessPage({ searchParams }: 
     location: "A very long public marketplace location that must wrap safely on narrow phones",
     images: [],
   } : listing;
-  const fixtures = query.many === "1"
-    ? Array.from({ length: 9 }, (_, index) => ({
+  const requestedCount = Number.parseInt(query.count ?? "", 10);
+  const fixtureCount = Number.isFinite(requestedCount)
+    ? Math.max(0, Math.min(requestedCount, 64))
+    : query.many === "1" ? 9 : 1;
+  const fixtures = query.many === "1" || query.count !== undefined
+    ? Array.from({ length: fixtureCount }, (_, index) => ({
       ...listing,
       id: `77777777-7777-4777-8777-${String(index).padStart(12, "0")}`,
       title: ["Test console", "Mechanical keyboard", "Collector game", "Gaming headset", "Graphics card", "Arcade stick", "Handheld console", "Racing wheel", "Retro monitor"][index] ?? `Test listing ${index + 1}`,

@@ -178,6 +178,184 @@ for (const width of [768, 1024, 1280, 1440]) {
   });
 }
 
+const responsiveRailCases = [
+  { width: 320, count: 5, mode: "carousel", min: 138, max: 138 },
+  { width: 360, count: 5, mode: "carousel", min: 140, max: 142 },
+  { width: 375, count: 5, mode: "carousel", min: 147, max: 149 },
+  { width: 390, count: 5, mode: "carousel", min: 153, max: 155 },
+  { width: 414, count: 5, mode: "carousel", min: 163, max: 165 },
+  { width: 430, count: 5, mode: "carousel", min: 168, max: 168 },
+  { width: 768, count: 5, mode: "carousel", min: 176, max: 176 },
+  { width: 1024, count: 5, mode: "carousel", min: 210, max: 210 },
+  { width: 1280, count: 5, mode: "carousel", min: 230, max: 231 },
+  { width: 1366, count: 5, mode: "rail", min: 210, max: 211 },
+  { width: 1440, count: 5, mode: "carousel", min: 230, max: 231 },
+  { width: 1920, count: 5, mode: "rail", min: 260, max: 260 },
+  { width: 1366, count: 8, mode: "carousel", min: 240, max: 240 },
+] as const;
+
+for (const { width, count, mode, min, max } of responsiveRailCases) {
+  test(`Favorites chooses ${mode} geometry for ${count} cards at ${width}px`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 1000 });
+    await page.goto(`/test-harness/favorites?count=${count}`);
+    await page.locator("html[data-gg-hydrated='true']").waitFor();
+    const rail = page.locator("[data-favorite-lanyard-rail]");
+    await expect(rail).toHaveAttribute("data-mode", mode);
+    const cardWidth = await rail.locator("[data-favorite-badge]").first().evaluate((element) => Number.parseFloat((element as HTMLElement).style.width));
+    expect(cardWidth).toBeGreaterThanOrEqual(min);
+    expect(cardWidth).toBeLessThanOrEqual(max);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
+  });
+}
+
+test("30 Favorites remain reachable through bounded eight-card physics batches", async ({ page }) => {
+  await page.setViewportSize({ width: 1366, height: 1000 });
+  await page.goto("/test-harness/favorites?count=30");
+  await page.locator("html[data-gg-hydrated='true']").waitFor();
+  await expect(page.getByText("Showing 1–8 of 30 saved listings")).toBeVisible();
+  await expect(page.locator("[data-favorite-badge]")).toHaveCount(8);
+  const next = page.getByRole("button", { name: "Next saved listings" });
+  await next.click();
+  await next.click();
+  await next.click();
+  await expect(page.getByText("Showing 25–30 of 30 saved listings")).toBeVisible();
+  await expect(page.locator("[data-favorite-badge]")).toHaveCount(6);
+});
+
+test("quick vertical touch over a Favorite card stays native and never captures the pointer", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/test-harness/favorites?count=5");
+  await page.locator("html[data-gg-hydrated='true']").waitFor();
+  const stage = page.locator("[data-favorite-lanyard-rail] > div").first();
+  const badge = stage.locator("[data-favorite-badge]").first();
+  const box = await badge.boundingBox();
+  expect(box).toBeTruthy();
+  const x = box!.x + box!.width / 2;
+  const y = box!.y + box!.height / 2;
+  await stage.dispatchEvent("pointerdown", { pointerId: 41, pointerType: "touch", button: 0, clientX: x, clientY: y, isPrimary: true });
+  await stage.dispatchEvent("pointermove", { pointerId: 41, pointerType: "touch", button: 0, clientX: x + 2, clientY: y + 48, isPrimary: true });
+  await page.evaluate(() => new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))));
+  const translatedY = await badge.evaluate((element) => {
+    const transform = getComputedStyle(element.parentElement as HTMLElement).transform;
+    return new DOMMatrixReadOnly(transform).m42;
+  });
+  expect(translatedY).toBeLessThanOrEqual(1);
+  await stage.dispatchEvent("pointercancel", { pointerId: 41, pointerType: "touch", button: 0, clientX: x + 2, clientY: y + 48, isPrimary: true });
+});
+
+test("pointer cancellation releases custom lanyard interaction without flipping the card", async ({ page }) => {
+  await page.setViewportSize({ width: 1366, height: 1000 });
+  await page.goto("/test-harness/favorites?count=5");
+  await page.locator("html[data-gg-hydrated='true']").waitFor();
+  const rail = page.locator("[data-favorite-lanyard-rail]");
+  const stage = rail.locator(":scope > div").first();
+  const badge = stage.locator("[data-favorite-badge]").first();
+  const box = await badge.boundingBox();
+  expect(box).toBeTruthy();
+  const x = box!.x + box!.width / 2;
+  const y = box!.y + box!.height / 2;
+  await page.mouse.move(x, y);
+  await page.mouse.down();
+  await page.mouse.move(x, y + 20);
+  expect(await stage.evaluate((element) => element.hasPointerCapture(1))).toBe(true);
+  await stage.dispatchEvent("pointercancel", { pointerId: 1, pointerType: "mouse", button: 0, clientX: x, clientY: y + 20, isPrimary: true });
+  await page.mouse.up();
+  expect(await stage.evaluate((element) => element.hasPointerCapture(1))).toBe(false);
+  await expect(badge).toHaveAttribute("aria-pressed", "false");
+});
+
+test("an invalidated touch pointer fails closed without an uncaught capture error", async ({ page }) => {
+  const pageErrors: string[] = [];
+  page.on("pageerror", (error) => pageErrors.push(error.message));
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/test-harness/favorites?count=3");
+  await page.locator("html[data-gg-hydrated='true']").waitFor();
+  const stage = page.locator("[data-favorite-lanyard-rail] > div").first();
+  const badge = stage.locator("[data-favorite-badge]").first();
+  const box = await badge.boundingBox();
+  expect(box).toBeTruthy();
+  const x = box!.x + box!.width / 2;
+  const y = box!.y + box!.height / 2;
+  await stage.dispatchEvent("pointerdown", { pointerId: 81, pointerType: "touch", button: 0, clientX: x, clientY: y, isPrimary: true });
+  await page.waitForTimeout(200);
+  await stage.dispatchEvent("pointermove", { pointerId: 81, pointerType: "touch", button: 0, clientX: x, clientY: y + 24, isPrimary: true });
+  await stage.dispatchEvent("pointercancel", { pointerId: 81, pointerType: "touch", button: 0, clientX: x, clientY: y + 24, isPrimary: true });
+  expect(pageErrors).toEqual([]);
+});
+
+test("mobile horizontal swipe advances the carousel after a cancelled vertical gesture", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/test-harness/favorites?count=5");
+  await page.locator("html[data-gg-hydrated='true']").waitFor();
+  const rail = page.locator("[data-favorite-lanyard-rail]");
+  const stage = rail.locator(":scope > div").first();
+  // Script-created PointerEvents do not represent an active hardware pointer, so
+  // emulate capture here while the invalid-pointer test above exercises fail-closed behavior.
+  await stage.evaluate((element) => {
+    let capturedPointer = -1;
+    element.setPointerCapture = (pointerId: number) => {
+      capturedPointer = pointerId;
+    };
+    element.hasPointerCapture = (pointerId: number) => capturedPointer === pointerId;
+    element.releasePointerCapture = (pointerId: number) => {
+      if (capturedPointer === pointerId) capturedPointer = -1;
+    };
+  });
+  const badge = stage.locator("[data-favorite-badge]").first();
+  const box = await badge.boundingBox();
+  expect(box).toBeTruthy();
+  const x = box!.x + box!.width / 2;
+  const y = box!.y + box!.height / 2;
+  const initialId = await rail.getAttribute("data-active-id");
+
+  await stage.dispatchEvent("pointerdown", { pointerId: 61, pointerType: "touch", button: 0, clientX: x, clientY: y, isPrimary: true });
+  await stage.dispatchEvent("pointermove", { pointerId: 61, pointerType: "touch", button: 0, clientX: x + 2, clientY: y + 40, isPrimary: true });
+  await stage.dispatchEvent("pointercancel", { pointerId: 61, pointerType: "touch", button: 0, clientX: x + 2, clientY: y + 40, isPrimary: true });
+  await stage.dispatchEvent("pointerdown", { pointerId: 62, pointerType: "touch", button: 0, clientX: x, clientY: y, isPrimary: true });
+  await stage.dispatchEvent("pointermove", { pointerId: 62, pointerType: "touch", button: 0, clientX: x - 70, clientY: y + 2, isPrimary: true });
+  await stage.dispatchEvent("pointerup", { pointerId: 62, pointerType: "touch", button: 0, clientX: x - 70, clientY: y + 2, isPrimary: true });
+
+  await expect(rail).not.toHaveAttribute("data-active-id", initialId ?? "");
+});
+
+test("a deliberate pointer pull still stretches and settles the card", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/test-harness/favorites?count=3");
+  await page.locator("html[data-gg-hydrated='true']").waitFor();
+  const stage = page.locator("[data-favorite-lanyard-rail] > div").first();
+  const badge = stage.locator("[data-favorite-badge]").first();
+  const box = await badge.boundingBox();
+  expect(box).toBeTruthy();
+  const x = box!.x + box!.width / 2;
+  const y = box!.y + box!.height / 2;
+  const restY = await badge.evaluate((element) => new DOMMatrixReadOnly(getComputedStyle(element.parentElement as HTMLElement).transform).m42);
+  await page.mouse.move(x, y);
+  await page.mouse.down();
+  await page.mouse.move(x + 1, y + 36);
+  await expect.poll(() => badge.evaluate((element) => {
+    const transform = getComputedStyle(element.parentElement as HTMLElement).transform;
+    return new DOMMatrixReadOnly(transform).m42;
+  })).toBeGreaterThan(restY + 10);
+  await page.mouse.up();
+  await expect.poll(() => badge.evaluate((element, baseline) => {
+    const transform = getComputedStyle(element.parentElement as HTMLElement).transform;
+    return Math.abs(new DOMMatrixReadOnly(transform).m42 - baseline);
+  }, restY)).toBeLessThan(1);
+});
+
+test("reduced motion keeps selection and flip controls functional", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/test-harness/favorites?count=3");
+  await page.locator("html[data-gg-hydrated='true']").waitFor();
+  const badge = page.locator("[data-favorite-lanyard-rail] [data-favorite-badge]").first();
+  await badge.tap();
+  await expect(badge).toHaveAttribute("aria-pressed", "true");
+  await expect(page.getByRole("region", { name: /Details for/ })).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(badge).toHaveAttribute("aria-pressed", "false");
+});
+
 test("rapid favorite taps persist the latest intent in request order", async ({ page }) => {
   let release!: () => void;
   const gate = new Promise<void>((resolve) => { release = resolve; });

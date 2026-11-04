@@ -134,8 +134,6 @@ export function BrowsingStateRestorer() {
     if (!snapshot) return;
 
     let frame = 0;
-    let attempts = 0;
-    let stableFrames = 0;
     let stopped = false;
     const environment: BrowsingEnvironment = {
       findAnchor: (key) => findDataElement("data-listing-anchor", key),
@@ -145,47 +143,77 @@ export function BrowsingStateRestorer() {
     };
     let resizeObserver: ResizeObserver | null = null;
     let mutationObserver: MutationObserver | null = null;
+    let stopTimer = 0;
+    const imageCleanups = new Map<HTMLImageElement, () => void>();
+
+    const stop = () => {
+      if (stopped) return;
+      stopped = true;
+      if (frame) window.cancelAnimationFrame(frame);
+      frame = 0;
+      if (stopTimer) window.clearTimeout(stopTimer);
+      resizeObserver?.disconnect();
+      mutationObserver?.disconnect();
+      for (const cleanup of imageCleanups.values()) cleanup();
+      imageCleanups.clear();
+      window.removeEventListener("pointerdown", stop, true);
+      window.removeEventListener("touchstart", stop, true);
+      window.removeEventListener("wheel", stop, true);
+      window.removeEventListener("keydown", stopOnScrollKey, true);
+    };
+
+    const stopOnScrollKey = (event: KeyboardEvent) => {
+      if (["ArrowDown", "ArrowUp", "End", "Home", "PageDown", "PageUp", " "].includes(event.key)) stop();
+    };
 
     const schedule = () => {
       if (!stopped && !frame) frame = window.requestAnimationFrame(correct);
     };
     const correct = () => {
       frame = 0;
-      attempts += 1;
-      const result = applyBrowsingSnapshot(snapshot, environment);
-      stableFrames = result.stable ? stableFrames + 1 : 0;
-      const resourcesReady = Array.from(document.images).every((image) => image.complete);
-      if (attempts < 180 && (stableFrames < 4 || !resourcesReady)) schedule();
-      else {
-        stopped = true;
-        resizeObserver?.disconnect();
-        mutationObserver?.disconnect();
+      if (!stopped) applyBrowsingSnapshot(snapshot, environment);
+    };
+
+    const observePendingImages = () => {
+      for (const image of document.images) {
+        if (image.complete || imageCleanups.has(image)) continue;
+        const settled = () => {
+          image.removeEventListener("load", settled);
+          image.removeEventListener("error", settled);
+          imageCleanups.delete(image);
+          schedule();
+        };
+        image.addEventListener("load", settled, { once: true });
+        image.addEventListener("error", settled, { once: true });
+        imageCleanups.set(image, () => {
+          image.removeEventListener("load", settled);
+          image.removeEventListener("error", settled);
+        });
       }
     };
 
     applyBrowsingSnapshot(snapshot, environment);
     resizeObserver = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(() => {
-      stableFrames = 0;
       schedule();
     });
     resizeObserver?.observe(document.body);
     mutationObserver = typeof MutationObserver === "undefined" ? null : new MutationObserver(() => {
-      stableFrames = 0;
+      observePendingImages();
       schedule();
     });
     mutationObserver?.observe(document.body, { childList: true, subtree: true });
     void document.fonts?.ready.then(() => {
-      stableFrames = 0;
       schedule();
     });
+    observePendingImages();
+    window.addEventListener("pointerdown", stop, { capture: true, passive: true });
+    window.addEventListener("touchstart", stop, { capture: true, passive: true });
+    window.addEventListener("wheel", stop, { capture: true, passive: true });
+    window.addEventListener("keydown", stopOnScrollKey, true);
+    stopTimer = window.setTimeout(stop, 2_500);
     schedule();
 
-    return () => {
-      stopped = true;
-      if (frame) window.cancelAnimationFrame(frame);
-      resizeObserver?.disconnect();
-      mutationObserver?.disconnect();
-    };
+    return stop;
   }, [bfcacheId]);
   return null;
 }

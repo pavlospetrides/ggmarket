@@ -121,6 +121,61 @@ test("browser Back and Forward preserve the filtered source and reusable detail 
   await expect(page).toHaveURL(new RegExp(`search\\?${filteredQuery.replaceAll("+", "\\+")}&auth=anonymous$`));
 });
 
+test("user scrolling cancels late Smart Back corrections instead of fighting momentum", async ({ page }) => {
+  let releaseImage!: () => void;
+  const imageGate = new Promise<void>((resolve) => { releaseImage = resolve; });
+  await page.route("**/test-harness/pending-restoration-image.png", async (route) => {
+    await imageGate;
+    await route.abort();
+  });
+
+  try {
+    await page.goto(await sourceUrl("browse"));
+    await waitForSourceLayout(page);
+    const listing = page.getByRole("article", { name: "Listing 42" });
+    await listing.scrollIntoViewIfNeeded();
+    await page.evaluate(() => {
+      const instrumented = window as typeof window & { __ggProgrammaticScrollByCalls?: number };
+      instrumented.__ggProgrammaticScrollByCalls = 0;
+      const originalScrollBy = window.scrollBy.bind(window);
+      window.scrollBy = ((...args: Parameters<typeof window.scrollBy>) => {
+        instrumented.__ggProgrammaticScrollByCalls = (instrumented.__ggProgrammaticScrollByCalls ?? 0) + 1;
+        return originalScrollBy(...args);
+      }) as typeof window.scrollBy;
+      const pendingImage = document.createElement("img");
+      pendingImage.src = "/test-harness/pending-restoration-image.png";
+      pendingImage.alt = "";
+      pendingImage.hidden = true;
+      document.body.append(pendingImage);
+    });
+
+    await listing.getByRole("link", { name: "Open Listing 42" }).click();
+    await page.getByRole("button", { name: "Back to Browse" }).click();
+    await expect(page).toHaveURL(/\/browse\?/);
+    await expect(page.getByTestId("loaded-result-count")).toHaveText("60 loaded results");
+    const callsAtIntent = await page.evaluate(() => (window as typeof window & { __ggProgrammaticScrollByCalls?: number }).__ggProgrammaticScrollByCalls ?? 0);
+    const restoredY = await page.evaluate(() => window.scrollY);
+
+    await page.mouse.wheel(0, 420);
+    await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(restoredY + 100);
+    const callsAfterIntent = await page.evaluate(() => (window as typeof window & { __ggProgrammaticScrollByCalls?: number }).__ggProgrammaticScrollByCalls ?? 0);
+    expect(callsAfterIntent).toBeLessThanOrEqual(callsAtIntent + 1);
+    await page.evaluate(() => new Promise<void>((resolve) => {
+      let frames = 0;
+      const next = () => {
+        frames += 1;
+        if (frames >= 12) resolve();
+        else requestAnimationFrame(next);
+      };
+      requestAnimationFrame(next);
+    }));
+
+    expect(await page.evaluate(() => (window as typeof window & { __ggProgrammaticScrollByCalls?: number }).__ggProgrammaticScrollByCalls ?? 0)).toBe(callsAfterIntent);
+  } finally {
+    releaseImage();
+  }
+});
+
 test("related listing navigation returns to the previous listing detail", async ({ page }) => {
   await page.goto(await sourceUrl("marketplace"));
   await page.getByRole("article", { name: "Listing 42" }).getByRole("link", { name: "Open Listing 42" }).click();
