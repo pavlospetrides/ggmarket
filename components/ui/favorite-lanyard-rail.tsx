@@ -1,21 +1,22 @@
 "use client";
 
 import Image from "next/image";
-import { ImageIcon, MapPin } from "lucide-react";
+import { ChevronLeft, ChevronRight, ImageIcon, MapPin } from "lucide-react";
 import * as React from "react";
 import {
+  classifyFavoriteRailGesture,
   favoriteRailCarouselIndex,
   favoriteRailIdentityChanged,
   favoriteRailLayoutTargets,
   favoriteRailMinGap,
+  favoriteRailResponsiveSize,
   shouldRunFavoriteRailAnimation,
   softenFavoriteRailPull,
   type FavoriteRailItem,
 } from "@/lib/favorite-rail";
 
 const RATIO = 1.5;
-const MAX_CARD_WIDTH = 168;
-const MIN_RAIL_WIDTH = 126;
+const BASE_CARD_WIDTH = 168;
 const MAX_STRETCH = 72;
 const PERSPECTIVE = 1000;
 const REST_Y = [7, -8, 5, -6, 8, -5, 6, -7];
@@ -55,6 +56,7 @@ type PointerState = {
   startY: number;
   lastX: number;
   lastTime: number;
+  startedAt: number;
   velocity: number;
   mode: "" | "none" | "pull" | "drag" | "swipe";
   kind: string;
@@ -85,7 +87,7 @@ function emptySimulation(): Simulation {
 }
 
 function geometry(cardWidth: number, items: FavoriteRailItem[], compact: boolean) {
-  const unit = cardWidth / MAX_CARD_WIDTH;
+  const unit = cardWidth / BASE_CARD_WIDTH;
   const cardHeight = cardWidth * RATIO;
   const railRadius = Math.max(3, 5 * unit);
   const railY = 18 + railRadius;
@@ -158,7 +160,7 @@ const FavoriteBadgeFaces = React.memo(function FavoriteBadgeFaces({
               alt=""
               fill
               loading={eager ? "eager" : "lazy"}
-              sizes="(max-width: 640px) 168px, 180px"
+              sizes="(max-width: 639px) 168px, (max-width: 1439px) 240px, 260px"
               className="pointer-events-none select-none object-contain p-[0.3em]"
               draggable={false}
             />
@@ -221,16 +223,16 @@ export function FavoriteLanyardRail({
   const buttons = React.useRef<Array<HTMLButtonElement | null>>([]);
   const simulation = React.useRef(emptySimulation());
   const stepRef = React.useRef<(now: number) => void>(() => undefined);
-  const pointer = React.useRef<PointerState>({ id: -1, index: -1, startX: 0, startY: 0, lastX: 0, lastTime: 0, velocity: 0, mode: "", kind: "", swipe: 0 });
+  const pointer = React.useRef<PointerState>({ id: -1, index: -1, startX: 0, startY: 0, lastX: 0, lastTime: 0, startedAt: 0, velocity: 0, mode: "", kind: "", swipe: 0 });
   const pendingToggle = React.useRef(-1);
   const identity = React.useRef<string[]>([]);
-  const [size, setSize] = React.useState({ width: 0, cardWidth: MAX_CARD_WIDTH, carousel: false });
+  const [size, setSize] = React.useState({ width: 0, cardWidth: BASE_CARD_WIDTH, carousel: false, compact: false });
   const [focusIndex, setFocusIndex] = React.useState(0);
   const [reduced, setReduced] = React.useState(false);
   const count = items.length;
   const activeIndex = items.findIndex((item) => item.id === activeId);
   const flippedIndex = items.findIndex((item) => item.id === flippedId);
-  const geometryValue = React.useMemo(() => geometry(size.cardWidth, items, size.carousel), [items, size.cardWidth, size.carousel]);
+  const geometryValue = React.useMemo(() => geometry(size.cardWidth, items, size.compact), [items, size.cardWidth, size.compact]);
   const motion = React.useRef({ documentVisible: true, intersecting: true });
   const live = React.useRef({
     items,
@@ -269,13 +271,10 @@ export function FavoriteLanyardRail({
     const stage = stageRef.current;
     if (!stage) return;
     const measure = (width: number) => {
-      const safeCount = Math.max(1, live.current.items.length);
-      const railWidth = Math.min(MAX_CARD_WIDTH, (width - 44) / (safeCount * 1.16 + 0.4));
-      const carousel = width < 640 || railWidth < MIN_RAIL_WIDTH;
-      const cardWidth = Math.round((carousel ? clamp(width * 0.43, 138, 168) : railWidth) * 4) / 4;
-      setSize((current) => Math.abs(current.width - width) < 0.5 && current.carousel === carousel && current.cardWidth === cardWidth
+      const { cardWidth, carousel, compact } = favoriteRailResponsiveSize(width, live.current.items.length);
+      setSize((current) => Math.abs(current.width - width) < 0.5 && current.carousel === carousel && current.compact === compact && current.cardWidth === cardWidth
         ? current
-        : { width, cardWidth, carousel });
+        : { width, cardWidth, carousel, compact });
     };
     measure(stage.clientWidth);
     const observer = new ResizeObserver(([entry]) => {
@@ -556,6 +555,7 @@ export function FavoriteLanyardRail({
       startY: event.clientY,
       lastX: event.clientX,
       lastTime: now,
+      startedAt: now,
       velocity: 0,
       mode: "",
       kind: event.pointerType,
@@ -571,10 +571,24 @@ export function FavoriteLanyardRail({
     if (current.id !== event.pointerId || !stage) return;
     const deltaX = event.clientX - current.startX;
     const deltaY = event.clientY - current.startY;
-    if (!current.mode && Math.hypot(deltaX, deltaY) > 8) {
-      if (Math.abs(deltaY) > Math.abs(deltaX)) current.mode = deltaY > 0 && current.index >= 0 ? "pull" : "none";
-      else current.mode = live.current.size.carousel ? "swipe" : current.index >= 0 && !live.current.reduced ? "drag" : "none";
-      if (current.mode !== "none") stage.setPointerCapture(event.pointerId);
+    if (!current.mode) {
+      const classified = classifyFavoriteRailGesture({
+        deltaX,
+        deltaY,
+        elapsedMs: now - current.startedAt,
+        pointerType: current.kind,
+        index: current.index,
+        carousel: live.current.size.carousel,
+        reduced: live.current.reduced,
+      });
+      if (classified !== "pending") current.mode = classified;
+      if (current.mode && current.mode !== "none") {
+        try {
+          stage.setPointerCapture(event.pointerId);
+        } catch {
+          current.mode = "none";
+        }
+      }
       if (current.mode === "pull") state.pull = current.index;
       if (current.mode === "drag") {
         state.drag = current.index;
@@ -613,6 +627,17 @@ export function FavoriteLanyardRail({
     const stage = stageRef.current;
     if (stage?.hasPointerCapture(event.pointerId)) stage.releasePointerCapture(event.pointerId);
     pointer.current = { ...current, id: -1 };
+    if (cancelled) {
+      pendingToggle.current = -1;
+      state.pull = -1;
+      state.drag = -1;
+      state.freeUntil = 0;
+      if (current.index >= 0) state.vx[current.index] = 0;
+      pointer.current.swipe = 0;
+      retarget();
+      kick();
+      return;
+    }
     if (current.mode === "pull") {
       state.pull = -1;
       kick();
@@ -638,7 +663,7 @@ export function FavoriteLanyardRail({
       else setActiveIndex(next);
       return;
     }
-    if (cancelled || current.mode || current.index < 0) return;
+    if (current.mode || current.index < 0 || Math.hypot(event.clientX - current.startX, event.clientY - current.startY) > 8) return;
     if ((current.kind !== "mouse" || live.current.size.carousel) && live.current.activeIndex !== current.index) setActiveIndex(current.index);
     else pendingToggle.current = current.index;
   };
@@ -678,6 +703,13 @@ export function FavoriteLanyardRail({
   const railGeometry = geometryValue;
   const cardFontSize = railGeometry.cardWidth / 13.8;
   const centerIndex = size.carousel ? (activeIndex >= 0 ? activeIndex : 0) : null;
+  const moveCarousel = (direction: -1 | 1) => {
+    const current = centerIndex ?? 0;
+    const next = live.current.cyclic
+      ? (current + direction + count) % count
+      : clamp(current + direction, 0, count - 1);
+    setActiveIndex(next);
+  };
 
   return (
     <section
@@ -775,6 +807,11 @@ export function FavoriteLanyardRail({
 
       {size.carousel && count > 1 ? (
         <div className="relative z-10 flex min-h-11 items-center justify-center gap-2 px-4 pb-2" role="group" aria-label="Choose saved listing">
+          {!size.compact ? (
+            <button type="button" className="hidden min-h-11 min-w-11 place-items-center rounded-full text-[#aeb7c6] hover:text-white focus-visible:ring-2 focus-visible:ring-[#b9aaff] sm:grid" onClick={() => moveCarousel(-1)} aria-label="Previous saved listing">
+              <ChevronLeft aria-hidden="true" className="size-5" />
+            </button>
+          ) : null}
           {items.map((item, index) => (
             <button
               key={item.id}
@@ -787,6 +824,11 @@ export function FavoriteLanyardRail({
               <span aria-hidden="true" className={`block h-1.5 rounded-full bg-current transition-[width] motion-reduce:transition-none ${centerIndex === index ? "w-6" : "w-1.5"}`} />
             </button>
           ))}
+          {!size.compact ? (
+            <button type="button" className="hidden min-h-11 min-w-11 place-items-center rounded-full text-[#aeb7c6] hover:text-white focus-visible:ring-2 focus-visible:ring-[#b9aaff] sm:grid" onClick={() => moveCarousel(1)} aria-label="Next saved listing">
+              <ChevronRight aria-hidden="true" className="size-5" />
+            </button>
+          ) : null}
         </div>
       ) : null}
 

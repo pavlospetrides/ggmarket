@@ -3,13 +3,81 @@ import type { Listing } from "./types";
 
 export const FAVORITE_RAIL_BATCH_SIZE = 8;
 
-const RAIL_PITCH_MIN = 1.16;
+const RAIL_PITCH_MIN = 1.11;
 const RAIL_PITCH_MAX = 1.62;
 const CAROUSEL_PITCH = 1.2;
 const RAIL_CARD_GAP = 0.07;
 
 function clamp(value: number, min: number, max: number) {
   return Math.max(min, Math.min(max, value));
+}
+
+function roundQuarter(value: number) {
+  return Math.round(value * 4) / 4;
+}
+
+export function favoriteRailResponsiveSize(width: number, count: number) {
+  if (width < 640) {
+    return {
+      cardWidth: roundQuarter(clamp(width * 0.43, 138, 168)),
+      carousel: true,
+      compact: true,
+    };
+  }
+
+  const largeDesktop = width >= 1376;
+  const desktop = width >= 960;
+  const maxCardWidth = largeDesktop
+    ? roundQuarter(clamp((width + 32) * 0.16, 230, 260))
+    : desktop
+      ? roundQuarter(clamp((width + 32) * 0.18, 210, 240))
+      : roundQuarter(clamp((width + 48) * 0.2, 176, 204));
+  const minCardWidth = largeDesktop ? 230 : desktop ? 210 : 168;
+  const safeCount = Math.max(1, count);
+  const fitWidth = (width - 40) / (safeCount * RAIL_PITCH_MIN + 0.6);
+  const carousel = count > 1 && fitWidth < minCardWidth;
+
+  return {
+    cardWidth: carousel ? maxCardWidth : roundQuarter(Math.min(maxCardWidth, fitWidth)),
+    carousel,
+    compact: false,
+  };
+}
+
+export type FavoriteRailGestureMode = "pending" | "none" | "pull" | "drag" | "swipe";
+
+export function classifyFavoriteRailGesture({
+  deltaX,
+  deltaY,
+  elapsedMs,
+  pointerType,
+  index,
+  carousel,
+  reduced,
+}: {
+  deltaX: number;
+  deltaY: number;
+  elapsedMs: number;
+  pointerType: string;
+  index: number;
+  carousel: boolean;
+  reduced: boolean;
+}): FavoriteRailGestureMode {
+  const distance = Math.hypot(deltaX, deltaY);
+  if (distance <= 8) return "pending";
+
+  const horizontal = Math.abs(deltaX);
+  const vertical = Math.abs(deltaY);
+  if (vertical >= horizontal * 1.2) {
+    if (deltaY <= 0 || index < 0) return "none";
+    if (pointerType === "touch" && elapsedMs < 180) return "none";
+    return "pull";
+  }
+  if (horizontal >= vertical * 1.2) {
+    if (carousel) return "swipe";
+    return index >= 0 && !reduced ? "drag" : "none";
+  }
+  return distance >= 18 ? "none" : "pending";
 }
 
 export type FavoriteRailItem = {
