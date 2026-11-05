@@ -44,7 +44,8 @@ describe("password recovery prefetch protection", () => {
     expect(response.headers.get("referrer-policy")).toBe("no-referrer");
     expect(response.headers.get("set-cookie")).toContain(`${PENDING_COOKIE}=${TOKEN_HASH}`);
     expect(response.headers.get("set-cookie")).toContain("HttpOnly");
-    expect(response.headers.get("set-cookie")?.toLowerCase()).toContain("samesite=strict");
+    expect(response.headers.get("set-cookie")?.toLowerCase()).toContain("samesite=lax");
+    expect(response.headers.get("set-cookie")?.toLowerCase()).not.toContain("samesite=none");
   });
 
   it("rejects malformed GET links without storing or verifying them", async () => {

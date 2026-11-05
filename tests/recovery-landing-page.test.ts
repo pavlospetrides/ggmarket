@@ -26,12 +26,12 @@ describe("recovery confirmation landing page", () => {
     expect(html).not.toContain(mocks.cookieValue);
   });
 
-  it("does not offer confirmation without a pending recovery cookie", async () => {
+  it("does not depend on the redirect request exposing a newly staged cookie", async () => {
     const { default: ContinuePasswordRecoveryPage } = await import("../app/auth/recovery/continue/page");
     const html = renderToStaticMarkup(await ContinuePasswordRecoveryPage());
 
-    expect(html).toContain("Reset link unavailable");
-    expect(html).toContain("Request new reset link");
-    expect(html).not.toContain('action="/auth/recovery/confirm"');
+    expect(html).toContain("Continue password reset");
+    expect(html).toContain('action="/auth/recovery/confirm"');
+    expect(html).toContain("Continue to create new password");
   });
 });

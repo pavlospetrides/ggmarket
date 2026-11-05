@@ -3,6 +3,7 @@ import { getPublicRequestOrigin } from "@/lib/request-security";
 import { readJson } from "@/lib/security";
 import { createClient } from "@/lib/supabase/server";
 import { passwordResetRequestSchema } from "@/lib/validation";
+import { buildSignupConfirmationUrl } from "@/lib/auth-redirect";
 
 export async function POST(request: Request) {
   const supabase = await createClient();
@@ -26,13 +27,10 @@ export async function POST(request: Request) {
 
   const requestUrl = new URL(request.url);
   const origin = getPublicRequestOrigin(request.headers, requestUrl.protocol) ?? requestUrl.origin;
-  const callback = new URL("/auth/callback", origin);
-  callback.searchParams.set("next", "/settings/verification");
-
   const { error } = await supabase.auth.resend({
     type: "signup",
     email,
-    options: { emailRedirectTo: callback.toString() },
+    options: { emailRedirectTo: buildSignupConfirmationUrl(origin) },
   });
   if (error) {
     if (error.status === 429) {

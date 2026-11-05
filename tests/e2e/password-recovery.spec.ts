@@ -11,6 +11,28 @@ test("an email-link GET stops at an explicit confirmation page", async ({ page }
   await expect(page.getByRole("button", { name: "Continue to create new password" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Create new password" })).toHaveCount(0);
 });
+
+test("an external email origin reaches an actionable clean recovery landing", async ({ page, context }) => {
+  const tokenHash = "e".repeat(64);
+  await page.goto("http://localhost:3000/login");
+  await page.evaluate((href) => {
+    const link = document.createElement("a");
+    link.href = href;
+    link.textContent = "Open reset email";
+    document.body.append(link);
+  }, `http://127.0.0.1:3000/auth/recovery?token_hash=${tokenHash}&type=recovery`);
+
+  await Promise.all([
+    page.waitForURL(/\/auth\/recovery\/continue$/),
+    page.getByRole("link", { name: "Open reset email" }).click(),
+  ]);
+
+  await expect(page.getByRole("heading", { name: "Continue password reset" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Continue to create new password" })).toBeVisible();
+  expect(page.url()).not.toContain(tokenHash);
+  const pending = (await context.cookies()).find((cookie) => cookie.name === "ggmarket-recovery-pending");
+  expect(pending?.httpOnly).toBe(true);
+});
 test("reset requests target the browser-independent recovery verifier", async ({ page }) => {
   let recoveryRequest = "";
   await page.route("**/auth/v1/recover**", async (route) => {

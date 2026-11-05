@@ -29,13 +29,11 @@ describe("Supabase confirmation callback", () => {
     expect(response.headers.get("location")).toBe("https://ggmarket.test/settings/verification?status=verified");
   });
 
-  it("supports token-hash confirmation links", async () => {
-    auth.verifyOtp.mockResolvedValue({ error: null });
-    auth.getUser.mockResolvedValue({ data: { user: { email_confirmed_at: "2026-10-20T10:00:00Z" } }, error: null });
+  it("bridges legacy signup token links to explicit confirmation without consuming them", async () => {
     const { GET } = await import("../app/auth/callback/route");
     const response = await GET(new Request("https://ggmarket.test/auth/callback?token_hash=token&type=signup&next=%2Fsettings%2Fverification"));
-    expect(auth.verifyOtp).toHaveBeenCalledWith({ token_hash: "token", type: "signup" });
-    expect(response.headers.get("location")).toContain("status=verified");
+    expect(auth.verifyOtp).not.toHaveBeenCalled();
+    expect(response.headers.get("location")).toBe("https://ggmarket.test/auth/confirm-signup?token_hash=token&type=email");
   });
 
   it("reports invalid or expired verification links to an existing session", async () => {
@@ -46,12 +44,11 @@ describe("Supabase confirmation callback", () => {
     expect(response.headers.get("location")).toBe("https://ggmarket.test/verify-email?status=expired_or_used");
   });
 
-  it("adds the one-time welcome marker only to a genuinely successful signup callback", async () => {
-    auth.verifyOtp.mockResolvedValue({ error: null });
-    auth.getUser.mockResolvedValue({ data: { user: { email_confirmed_at: "2026-10-20T10:00:00Z" } }, error: null });
+  it("does not let a signup token GET claim welcome or verification", async () => {
     const { GET } = await import("../app/auth/callback/route");
     const response = await GET(new Request("https://ggmarket.test/auth/callback?token_hash=token&type=email&next=%2Fsettings%2Fverification&welcome=1"));
-    expect(response.headers.get("location")).toBe("https://ggmarket.test/settings/verification?status=verified&welcome=1");
+    expect(auth.verifyOtp).not.toHaveBeenCalled();
+    expect(response.headers.get("location")).toBe("https://ggmarket.test/auth/confirm-signup?token_hash=token&type=email");
   });
 
   it("reports malformed confirmation links without claiming success", async () => {
@@ -61,23 +58,19 @@ describe("Supabase confirmation callback", () => {
     expect(response.headers.get("location")).toBe("https://ggmarket.test/verify-email?status=invalid");
   });
 
-  it("reports an already-confirmed signed-in account accurately for a consumed link", async () => {
-    auth.verifyOtp.mockResolvedValue({ error: { code: "otp_expired", message: "already used" } });
-    auth.getUser.mockResolvedValue({ data: { user: { email_confirmed_at: "2026-10-20T10:00:00Z" } }, error: null });
+  it("bridges legacy recovery token links to the dedicated recovery landing", async () => {
     const { GET } = await import("../app/auth/callback/route");
-    const response = await GET(new Request("https://ggmarket.test/auth/callback?token_hash=used&type=email&next=%2Fsettings%2Fverification"));
-    expect(response.headers.get("location")).toBe("https://ggmarket.test/settings/verification?status=already_verified");
-    expect(response.headers.get("location")).not.toContain("welcome=1");
+    const response = await GET(new Request("https://ggmarket.test/auth/callback?token_hash=recovery-token&type=recovery&next=%2Freset-password"));
+    expect(auth.verifyOtp).not.toHaveBeenCalled();
+    expect(response.headers.get("location")).toBe("https://ggmarket.test/auth/recovery?token_hash=recovery-token&type=recovery");
   });
 
   it("uses the canonical HTTPS origin for production callback redirects", async () => {
     vi.stubEnv("NODE_ENV", "production");
     vi.stubEnv("NEXT_PUBLIC_SITE_URL", "http://localhost:3000");
-    auth.verifyOtp.mockResolvedValue({ error: null });
-    auth.getUser.mockResolvedValue({ data: { user: { email_confirmed_at: "2026-10-20T10:00:00Z" } }, error: null });
     const { GET } = await import("../app/auth/callback/route");
     const response = await GET(new Request("http://localhost:3000/auth/callback?token_hash=valid&type=email&next=%2Fsettings%2Fverification"));
-    expect(response.headers.get("location")).toBe("https://ggmarket.eu/settings/verification?status=verified");
+    expect(response.headers.get("location")).toBe("https://ggmarket.eu/auth/confirm-signup?token_hash=valid&type=email");
   });
 
   it("preserves password recovery redirects without claiming account verification", async () => {

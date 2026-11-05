@@ -12,3 +12,8 @@ export function buildPasswordRecoveryUrl(currentOrigin: string) {
   const origin = getApplicationOrigin(currentOrigin, process.env, true);
   return new URL("/auth/recovery", origin).toString();
 }
+
+export function buildSignupConfirmationUrl(currentOrigin: string) {
+  const origin = getApplicationOrigin(currentOrigin, process.env, true);
+  return new URL("/auth/confirm-signup", origin).toString();
+}

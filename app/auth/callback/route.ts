@@ -6,12 +6,9 @@ import { createClient } from "@/lib/supabase/server";
 import { withPrivateNoStore } from "../../../lib/supabase/cookie-security";
 
 const emailOtpTypes = new Set<EmailOtpType>([
-  "email",
   "email_change",
   "invite",
   "magiclink",
-  "recovery",
-  "signup",
 ]);
 
 type VerificationStatus = "verified" | "already_verified" | "expired_or_used" | "invalid";
@@ -50,6 +47,22 @@ export async function GET(request: Request) {
     target.searchParams.set("error", errorCode);
     target.searchParams.set("next", next);
     return withPrivateNoStore(NextResponse.redirect(target));
+  }
+
+  if (tokenHash && (requestedType === "email" || requestedType === "signup")) {
+    const target = new URL("/auth/confirm-signup", publicOrigin);
+    target.searchParams.set("token_hash", tokenHash);
+    target.searchParams.set("type", "email");
+    return withPrivateNoStore(NextResponse.redirect(target, 303));
+  }
+  if (tokenHash && requestedType === "recovery") {
+    const target = new URL("/auth/recovery", publicOrigin);
+    target.searchParams.set("token_hash", tokenHash);
+    target.searchParams.set("type", "recovery");
+    return withPrivateNoStore(NextResponse.redirect(target, 303));
+  }
+  if (!tokenHash && (requestedType === "email" || requestedType === "signup")) {
+    return verificationRedirect(publicOrigin, "invalid");
   }
   const supabase = await createClient();
   if (!supabase) {
