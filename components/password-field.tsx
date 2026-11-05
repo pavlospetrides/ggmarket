@@ -11,13 +11,14 @@ type PasswordFieldProps = {
   toggleLabel?: string;
   autoComplete: "current-password" | "new-password";
   minLength?: number;
+  maxLength?: number;
   describedBy?: string;
   invalid?: boolean;
   labelAction?: ReactNode;
   inputRef?: RefObject<HTMLInputElement | null>;
 };
 
-export function PasswordField({ id, name, label, toggleLabel = "password", autoComplete, minLength = 8, describedBy, invalid, labelAction, inputRef }: PasswordFieldProps) {
+export function PasswordField({ id, name, label, toggleLabel = "password", autoComplete, minLength = 8, maxLength, describedBy, invalid, labelAction, inputRef }: PasswordFieldProps) {
   const localRef = useRef<HTMLInputElement>(null);
   const [visible, setVisible] = useState(false);
   const hydrated = useHydrated();
@@ -58,6 +59,7 @@ export function PasswordField({ id, name, label, toggleLabel = "password", autoC
         type={visible ? "text" : "password"}
         autoComplete={autoComplete}
         minLength={minLength}
+        maxLength={maxLength}
         aria-invalid={invalid || undefined}
         aria-describedby={describedBy}
         required

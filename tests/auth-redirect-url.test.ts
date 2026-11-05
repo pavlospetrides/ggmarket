@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { buildAuthCallbackUrl } from "../lib/auth-redirect";
+import { buildAuthCallbackUrl, buildPasswordRecoveryUrl } from "../lib/auth-redirect";
 
 describe("auth callback URL generation", () => {
   afterEach(() => vi.unstubAllEnvs());
@@ -36,5 +36,17 @@ describe("auth callback URL generation", () => {
       "https://ggmarket-git-browser-a1b2c3.vercel.app/register",
       "/settings/verification",
     )).toBe("https://ggmarket-git-browser-a1b2c3.vercel.app/auth/callback?next=%2Fsettings%2Fverification");
+  });
+
+  it("uses a dedicated canonical recovery endpoint in production", () => {
+    vi.stubEnv("NODE_ENV", "production");
+    expect(buildPasswordRecoveryUrl("http://localhost:3000"))
+      .toBe("https://ggmarket.eu/auth/recovery");
+  });
+
+  it("keeps local recovery endpoints on the requesting origin", () => {
+    vi.stubEnv("NODE_ENV", "test");
+    expect(buildPasswordRecoveryUrl("http://192.168.2.21:3000/forgot-password"))
+      .toBe("http://192.168.2.21:3000/auth/recovery");
   });
 });

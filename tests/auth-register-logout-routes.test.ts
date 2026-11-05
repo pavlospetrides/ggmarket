@@ -101,7 +101,7 @@ describe("native password-reset fallback", () => {
     const response = await POST(formRequest("auth/forgot-password", { email: "iphone@example.invalid" }, "192.168.2.21:3000"));
 
     expect(auth.resetPasswordForEmail).toHaveBeenCalledWith("iphone@example.invalid", {
-      redirectTo: "https://192.168.2.21:3000/auth/callback?next=/reset-password",
+      redirectTo: "https://192.168.2.21:3000/auth/recovery",
     });
     expect(response.status).toBe(303);
     expect(response.headers.get("location")).toBe("https://192.168.2.21:3000/forgot-password?status=sent");
@@ -115,7 +115,7 @@ describe("native password-reset fallback", () => {
     await POST(formRequest("auth/forgot-password", { email: "iphone@example.invalid" }, "localhost:3000"));
 
     expect(auth.resetPasswordForEmail).toHaveBeenCalledWith("iphone@example.invalid", {
-      redirectTo: "https://ggmarket.eu/auth/callback?next=/reset-password",
+      redirectTo: "https://ggmarket.eu/auth/recovery",
     });
   });
 });

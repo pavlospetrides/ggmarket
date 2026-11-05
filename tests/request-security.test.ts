@@ -114,6 +114,12 @@ describe("mutation origin validation", () => {
     expect(response.status).toBe(403);
   });
 
+  it("prevents recovery credentials from leaking through referrers", async () => {
+    const response = await proxy(new NextRequest("https://ggmarket.example/auth/recovery?token_hash=private"));
+
+    expect(response.headers.get("referrer-policy")).toBe("no-referrer");
+  });
+
   it.each([
     ["https://www.ggmarket.eu/marketplace?q=gpu", "https://ggmarket.eu/marketplace?q=gpu"],
     ["https://ggmarket-sage.vercel.app/listing/abc?ref=old", "https://ggmarket.eu/listing/abc?ref=old"],
