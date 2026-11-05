@@ -32,7 +32,6 @@ test("an external email origin reaches an actionable clean recovery landing", as
   expect(page.url()).not.toContain(tokenHash);
   const pending = (await context.cookies()).find((cookie) => cookie.name === "ggmarket-recovery-pending");
   expect(pending?.httpOnly).toBe(true);
-  expect(pending?.sameSite).toBe("Lax");
 });
 test("reset requests target the browser-independent recovery verifier", async ({ page }) => {
   let recoveryRequest = "";

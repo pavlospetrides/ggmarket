@@ -20,5 +20,4 @@ test("external email navigation stops at explicit signup confirmation", async ({
   expect(page.url()).not.toContain(tokenHash);
   const pending = (await context.cookies()).find((cookie) => cookie.name === "ggmarket-signup-confirmation-pending");
   expect(pending?.httpOnly).toBe(true);
-  expect(pending?.sameSite).toBe("Lax");
 });

@@ -1,6 +1,6 @@
 import { Logo } from "./logo";
 export function AuthShell({ title, subtitle, children }: { title: string; subtitle: string; children: React.ReactNode }) {
-  return <div className="auth-shell container-page grid min-h-svh place-items-center py-6 sm:py-10">
+  return <div data-auth-shell className="auth-shell container-page grid min-h-svh place-items-center py-6 sm:py-10">
     <div className="auth-exchange-grid w-full overflow-hidden">
       <aside className="auth-exchange-rail" aria-label="GGMarket buyer and seller principles">
         <Logo />

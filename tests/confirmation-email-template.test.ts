@@ -17,6 +17,7 @@ describe("Confirm Signup email template", () => {
     const config = await readFile(new URL("../supabase/config.toml", import.meta.url), "utf8");
     const html = await readFile(new URL("../supabase/templates/confirmation.html", import.meta.url), "utf8");
     expect(config).toContain('"http://localhost:3000/auth/confirm-signup"');
+    expect(config).toMatch(/\[auth\.email\][\s\S]*?enable_confirmations = true/);
     expect(config).toContain("[auth.email.template.confirmation]");
     expect(html).toContain("http://localhost:3000/auth/confirm-signup?token_hash={{ .TokenHash }}");
     expect(html).toContain("&amp;type=email");
