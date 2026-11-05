@@ -6,6 +6,10 @@ import { ResendVerificationForm } from "@/components/resend-verification-form";
 export const metadata: Metadata = { title: "Verify email", robots: { index: false } };
 
 const feedback: Record<string, { title: string; message: string }> = {
+  unavailable: {
+    title: "Email verification is temporarily unavailable",
+    message: "Your account was not changed. Try the link again shortly or request a new confirmation email.",
+  },
   expired_or_used: {
     title: "This verification link is no longer valid",
     message: "It has expired or has already been used. If you already confirmed your account, sign in. Otherwise, request a new email below.",
