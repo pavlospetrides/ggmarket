@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getUser } from "@/lib/auth";
-import { normalizeListingImage } from "@/lib/listing-image-security";
+import { buildListingImagePaths, processListingImage } from "@/lib/listing-media";
+import { uploadListingImageArtifacts } from "@/lib/listing-media-storage";
 import { readLimitedMultipartForm } from "@/lib/security";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
@@ -36,25 +37,42 @@ export async function POST(request: Request, { params }: RouteContext) {
 
   let image;
   try {
-    image = await normalizeListingImage(new Uint8Array(await file.arrayBuffer()));
+    image = await processListingImage(new Uint8Array(await file.arrayBuffer()));
   } catch (error) {
     return NextResponse.json({ error: error instanceof Error ? error.message : "Upload a valid image file." }, { status: 400 });
   }
 
-  const path = `${user.id}/${id}/${crypto.randomUUID()}.${image.extension}`;
-  const upload = await admin.storage.from("listing-images").upload(path, image.bytes, {
-    contentType: image.contentType,
-    upsert: false,
-  });
-  if (upload.error) return NextResponse.json({ error: "The image could not be stored." }, { status: 400 });
+  const imageId = crypto.randomUUID();
+  const paths = buildListingImagePaths(user.id, id, imageId);
+  const bucket = admin.storage.from("listing-images");
+  let createdPaths: string[];
+  try {
+    createdPaths = await uploadListingImageArtifacts(bucket, paths, image);
+  } catch {
+    return NextResponse.json({ error: "The image could not be stored." }, { status: 400 });
+  }
 
   const metadata = await supabase
     .from("listing_images")
-    .insert({ listing_id: id, storage_path: path, sort_order: sortOrder, width: image.width, height: image.height })
-    .select("id,storage_path,sort_order,width,height")
+    .insert({
+      id: imageId,
+      listing_id: id,
+      storage_path: paths.original,
+      card_path: paths.card,
+      detail_path: paths.detail,
+      sort_order: sortOrder,
+      width: image.original.width,
+      height: image.original.height,
+      original_bytes: image.original.byteSize,
+      card_bytes: image.card.byteSize,
+      detail_bytes: image.detail.byteSize,
+      mime_type: image.mimeType,
+      media_version: 2,
+    })
+    .select("id,storage_path,card_path,detail_path,sort_order,width,height")
     .single();
   if (metadata.error) {
-    await admin.storage.from("listing-images").remove([path]);
+    await bucket.remove(createdPaths);
     return NextResponse.json({ error: "The image could not be attached." }, { status: 400 });
   }
   return NextResponse.json(metadata.data, { status: 201 });
