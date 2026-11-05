@@ -60,6 +60,14 @@ describe("mutation origin validation", () => {
     }), "https:" )).toBe(false);
   });
 
+  it("rejects an explicit null origin even when fetch metadata says same-origin", () => {
+    expect(isTrustedMutationRequest(headers({
+      origin: "null",
+      host: "ggmarket.example",
+      "sec-fetch-site": "same-origin",
+    }), "https:" )).toBe(false);
+  });
+
   it("uses the configured production origin instead of client-supplied forwarding headers", () => {
     vi.stubEnv("NODE_ENV", "production");
     vi.stubEnv("NEXT_PUBLIC_SITE_URL", "https://ggmarket.eu");
@@ -112,6 +120,34 @@ describe("mutation origin validation", () => {
     }));
 
     expect(response.status).toBe(403);
+  });
+
+  it.each([
+    ["/auth/confirm-signup/verify", "/verify-email?status=invalid"],
+    ["/auth/recovery/confirm", "/reset-password?status=invalid"],
+  ])("returns a browser-friendly rejection for protected verification POST %s", async (path, target) => {
+    const response = await proxy(new NextRequest(`https://ggmarket.example${path}`, {
+      method: "POST",
+      headers: {
+        origin: "https://attacker.example",
+        host: "ggmarket.example",
+        "sec-fetch-site": "cross-site",
+      },
+    }));
+
+    expect(response.status).toBe(303);
+    expect(response.headers.get("location")).toBe(`https://ggmarket.example${target}`);
+    expect(response.headers.get("content-type")).toBeNull();
+    expect(response.headers.get("cache-control")).toContain("private");
+    expect(response.headers.get("cache-control")).toContain("no-store");
+  });
+
+  it.each([
+    "/auth/confirm-signup/continue",
+    "/auth/recovery/continue",
+  ])("allows a clean confirmation page to preserve its same-origin POST origin: %s", async (path) => {
+    const response = await proxy(new NextRequest(`https://ggmarket.example${path}`));
+    expect(response.headers.get("referrer-policy")).toBe("same-origin");
   });
 
   it("prevents recovery credentials from leaking through referrers", async () => {

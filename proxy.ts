@@ -1,6 +1,10 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
-import { buildContentSecurityPolicy, isTrustedMutationRequest } from "@/lib/request-security";
+import {
+  buildContentSecurityPolicy,
+  getPublicRequestOrigin,
+  isTrustedMutationRequest,
+} from "@/lib/request-security";
 import { getCanonicalRedirectUrl } from "./lib/site-url";
 import {
   getSupabaseCookieOptions,
@@ -12,10 +16,13 @@ function secure(response: NextResponse, request: NextRequest) {
   response.headers.set("X-Content-Type-Options", "nosniff");
   response.headers.set(
     "Referrer-Policy",
-    request.nextUrl.pathname.startsWith("/auth/recovery") ||
-      request.nextUrl.pathname.startsWith("/auth/confirm-signup")
-      ? "no-referrer"
-      : "strict-origin-when-cross-origin",
+    request.nextUrl.pathname === "/auth/recovery/continue" ||
+      request.nextUrl.pathname === "/auth/confirm-signup/continue"
+      ? "same-origin"
+      : request.nextUrl.pathname.startsWith("/auth/recovery") ||
+          request.nextUrl.pathname.startsWith("/auth/confirm-signup")
+        ? "no-referrer"
+        : "strict-origin-when-cross-origin",
   );
   response.headers.set("X-Frame-Options", "DENY");
   response.headers.set(
@@ -41,6 +48,19 @@ function secure(response: NextResponse, request: NextRequest) {
   return response;
 }
 
+function rejectedVerificationResponse(request: NextRequest) {
+  const target = request.nextUrl.pathname === "/auth/confirm-signup/verify"
+    ? "/verify-email?status=invalid"
+    : request.nextUrl.pathname === "/auth/recovery/confirm"
+      ? "/reset-password?status=invalid"
+      : null;
+  if (!target) return null;
+
+  const origin = getPublicRequestOrigin(request.headers, request.nextUrl.protocol)
+    ?? request.nextUrl.origin;
+  return withPrivateNoStore(NextResponse.redirect(new URL(target, origin), 303));
+}
+
 export async function proxy(request: NextRequest) {
   const canonicalRedirect = getCanonicalRedirectUrl(request.nextUrl);
   if (canonicalRedirect) {
@@ -53,6 +73,8 @@ export async function proxy(request: NextRequest) {
     !["GET", "HEAD", "OPTIONS"].includes(request.method)
   ) {
     if (!isTrustedMutationRequest(request.headers, request.nextUrl.protocol)) {
+      const verificationResponse = rejectedVerificationResponse(request);
+      if (verificationResponse) return secure(verificationResponse, request);
       return secure(
         NextResponse.json({ error: "Cross-site request denied." }, { status: 403 }),
         request,

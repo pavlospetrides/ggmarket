@@ -6,7 +6,7 @@ import { AuthShell } from "@/components/auth-shell";
 export const metadata: Metadata = {
   title: "Confirm your email",
   robots: { index: false },
-  referrer: "no-referrer",
+  referrer: "same-origin",
 };
 
 export default function SignupConfirmationPage() {

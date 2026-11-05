@@ -16,7 +16,7 @@ describe("recovery confirmation landing page", () => {
 
   it("requires an explicit POST without rendering the recovery token", async () => {
     mocks.cookieValue = "a".repeat(64);
-    const { default: ContinuePasswordRecoveryPage } = await import("../app/auth/recovery/continue/page");
+    const { default: ContinuePasswordRecoveryPage, metadata } = await import("../app/auth/recovery/continue/page");
     const html = renderToStaticMarkup(await ContinuePasswordRecoveryPage());
 
     expect(html).toContain("Continue password reset");
@@ -24,6 +24,7 @@ describe("recovery confirmation landing page", () => {
     expect(html).toContain('method="post"');
     expect(html).toContain("Continue to create new password");
     expect(html).not.toContain(mocks.cookieValue);
+    expect(metadata.referrer).toBe("same-origin");
   });
 
   it("does not depend on the redirect request exposing a newly staged cookie", async () => {
