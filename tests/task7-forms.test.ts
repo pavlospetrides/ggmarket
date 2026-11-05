@@ -58,6 +58,10 @@ describe("Task 7 accessible form contracts", () => {
     expect(sell).toContain('aria-describedby={error("title") ? "title-error" : undefined}');
     expect(sell).toContain('id="title-error"');
     expect(sell).toContain('aria-live="polite"');
+    expect(sell).toContain("onDrop={handlePhotoDrop}");
+    expect(sell).toContain('aria-label={`Move photo ${index + 1} left`}');
+    expect(sell).toContain('aria-label={`Move photo ${index + 1} right`}');
+    expect(sell).toContain("uploadListingPhoto");
     expect(sell).not.toContain("transition-all");
   });
 

@@ -17,9 +17,10 @@ export async function POST(request: Request, { params }: RouteContext) {
     return NextResponse.json({ error: "Invalid listing." }, { status: 400 });
   }
   const form = await readLimitedMultipartForm(request);
+  const uploadId = form?.get("uploadId");
   const file = form?.get("image");
   const sortOrder = Number(form?.get("sortOrder"));
-  if (!(file instanceof File) || file.size === 0 || file.size > 10_485_760 || !Number.isInteger(sortOrder) || sortOrder < 0 || sortOrder > 7) {
+  if (typeof uploadId !== "string" || !/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(uploadId) || !(file instanceof File) || file.size === 0 || file.size > 10_485_760 || !Number.isInteger(sortOrder) || sortOrder < 0 || sortOrder > 7) {
     return NextResponse.json({ error: "Invalid image upload." }, { status: 400 });
   }
 
@@ -35,6 +36,16 @@ export async function POST(request: Request, { params }: RouteContext) {
     .maybeSingle();
   if (!listing) return NextResponse.json({ error: "Listing not found." }, { status: 404 });
 
+  const imageId = uploadId;
+  const { data: existingImage } = await supabase
+    .from("listing_images")
+    .select("id,storage_path,card_path,detail_path,sort_order,width,height")
+    .eq("id", imageId)
+    .eq("listing_id", id)
+    .eq("sort_order", sortOrder)
+    .maybeSingle();
+  if (existingImage) return NextResponse.json(existingImage);
+
   let image;
   try {
     image = await processListingImage(new Uint8Array(await file.arrayBuffer()));
@@ -42,7 +53,6 @@ export async function POST(request: Request, { params }: RouteContext) {
     return NextResponse.json({ error: error instanceof Error ? error.message : "Upload a valid image file." }, { status: 400 });
   }
 
-  const imageId = crypto.randomUUID();
   const paths = buildListingImagePaths(user.id, id, imageId);
   const bucket = admin.storage.from("listing-images");
   let createdPaths: string[];

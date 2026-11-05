@@ -67,7 +67,7 @@ describe("listing media route contracts", () => {
   it("records generated variant metadata only after artifact upload", () => {
     const source = read("app/api/listings/[id]/images/route.ts");
     const upload = source.indexOf("uploadListingImageArtifacts");
-    const insert = source.indexOf('.from("listing_images")');
+    const insert = source.indexOf(".insert({");
 
     expect(source).toContain("processListingImage");
     expect(source).toContain("buildListingImagePaths(user.id, id, imageId)");
@@ -77,6 +77,19 @@ describe("listing media route contracts", () => {
     expect(upload).toBeGreaterThanOrEqual(0);
     expect(insert).toBeGreaterThan(upload);
     expect(source).toContain("await bucket.remove(createdPaths)");
+  });
+
+  it("reuses a validated client upload id before decoding or storing a retry", () => {
+    const source = read("app/api/listings/[id]/images/route.ts");
+    const retryLookup = source.indexOf("existingImage");
+    const processing = source.indexOf("await processListingImage");
+
+    expect(source).toContain('form?.get("uploadId")');
+    expect(source).toContain('.eq("id", imageId)');
+    expect(source).toContain('.eq("listing_id", id)');
+    expect(source).toContain('.eq("sort_order", sortOrder)');
+    expect(retryLookup).toBeGreaterThanOrEqual(0);
+    expect(retryLookup).toBeLessThan(processing);
   });
 
   it("deletes every exact recorded path through the trusted admin boundary", () => {
