@@ -2,7 +2,7 @@
 
 import { useState, type FormEvent } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { buildAuthCallbackUrl } from "@/lib/auth-redirect";
+import { buildPasswordRecoveryUrl } from "@/lib/auth-redirect";
 import { useHydrated } from "./use-hydrated";
 
 export function ForgotPasswordForm({ initialStatus = "" }: { initialStatus?: string }) {
@@ -18,7 +18,7 @@ export function ForgotPasswordForm({ initialStatus = "" }: { initialStatus?: str
       const { error } = await createClient().auth.resetPasswordForEmail(
         String(formData.get("email")),
         {
-          redirectTo: buildAuthCallbackUrl(location.origin, "/reset-password"),
+          redirectTo: buildPasswordRecoveryUrl(location.origin),
         },
       );
       setStatus(
