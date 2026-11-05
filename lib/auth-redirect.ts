@@ -7,3 +7,8 @@ export function buildAuthCallbackUrl(currentOrigin: string, next: string, welcom
   if (welcome) callback.searchParams.set("welcome", "1");
   return callback.toString();
 }
+
+export function buildPasswordRecoveryUrl(currentOrigin: string) {
+  const origin = getApplicationOrigin(currentOrigin, process.env, true);
+  return new URL("/auth/recovery", origin).toString();
+}

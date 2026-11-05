@@ -4,6 +4,7 @@ import { readUrlEncodedForm } from "@/lib/security";
 import { createClient } from "@/lib/supabase/server";
 import { passwordResetRequestSchema } from "@/lib/validation";
 import { withPrivateNoStore } from "../../../lib/supabase/cookie-security";
+import { buildPasswordRecoveryUrl } from "@/lib/auth-redirect";
 
 function resultRedirect(origin: string, status: "sent" | "failed") {
   return withPrivateNoStore(NextResponse.redirect(new URL(`/forgot-password?status=${status}`, origin), 303));
@@ -20,7 +21,7 @@ export async function POST(request: Request) {
   if (!supabase) return resultRedirect(origin, "failed");
   try {
     const { error } = await supabase.auth.resetPasswordForEmail(parsed.data.email, {
-      redirectTo: `${origin}/auth/callback?next=/reset-password`,
+      redirectTo: buildPasswordRecoveryUrl(origin),
     });
     return resultRedirect(origin, error ? "failed" : "sent");
   } catch {

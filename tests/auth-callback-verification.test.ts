@@ -96,6 +96,32 @@ describe("Supabase confirmation callback", () => {
     expect(response.headers.get("location")).toBe("https://ggmarket.test/login?error=oauth_cancelled&next=%2Flisting%2Ftest");
   });
 
+  it("does not present an expired legacy recovery link as cancelled Google sign-in", async () => {
+    const { GET } = await import("../app/auth/callback/route");
+    const response = await GET(new Request("https://ggmarket.test/auth/callback?error=access_denied&error_code=otp_expired&next=%2Freset-password"));
+
+    expect(response.headers.get("location")).toBe("https://ggmarket.test/reset-password?status=expired_or_used");
+    expect(response.headers.get("location")).not.toContain("oauth_cancelled");
+  });
+
+  it("keeps a failed legacy recovery code exchange out of ordinary login", async () => {
+    auth.exchangeCodeForSession.mockResolvedValue({ error: { code: "bad_code_verifier" } });
+    auth.getUser.mockResolvedValue({ data: { user: null }, error: null });
+    const { GET } = await import("../app/auth/callback/route");
+    const response = await GET(new Request("https://ggmarket.test/auth/callback?code=legacy-recovery&next=%2Freset-password"));
+
+    expect(response.headers.get("location")).toBe("https://ggmarket.test/reset-password?status=invalid");
+  });
+
+  it("keeps an inactive legacy recovery account out of ordinary login", async () => {
+    auth.exchangeCodeForSession.mockResolvedValue({ error: null });
+    mocks.rpc.mockResolvedValue({ data: false, error: null });
+    const { GET } = await import("../app/auth/callback/route");
+    const response = await GET(new Request("https://ggmarket.test/auth/callback?code=legacy-recovery&next=%2Freset-password"));
+
+    expect(response.headers.get("location")).toBe("https://ggmarket.test/reset-password?status=unavailable");
+  });
+
   it("rejects unsafe OAuth return destinations", async () => {
     auth.exchangeCodeForSession.mockResolvedValue({ error: null });
     auth.getUser.mockResolvedValue({ data: { user: { email_confirmed_at: "2026-10-20T10:00:00Z" } }, error: null });

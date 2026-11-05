@@ -25,9 +25,10 @@ describe("Task 7 accessible form contracts", () => {
     expect(settings).toContain("submitter?.formAction.endsWith(\"/auth/logout\")");
     expect(forgot).toContain('aria-busy={busy}');
     expect(forgot).toContain('aria-live="polite"');
-    expect(reset).toContain('id="password-confirmation-error"');
-    expect(reset).toContain('invalid={Boolean(error)}');
-    expect(reset).toContain("confirmationRef.current?.focus()");
+    expect(reset).toContain('id="password-recovery-error"');
+    expect(reset).toContain('invalid={errorField === "password"}');
+    expect(reset).toContain('invalid={errorField === "confirmation"}');
+    expect(reset).toContain('(validation.field === "password" ? passwordRef : confirmationRef).current?.focus()');
   });
 
   it("warns only after account or listing forms become dirty", () => {
