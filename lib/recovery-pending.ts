@@ -19,7 +19,7 @@ export function readPendingRecoveryToken(cookieHeader: string | null) {
 export function pendingRecoveryCookieOptions(environment = process.env.NODE_ENV) {
   return {
     httpOnly: true,
-    sameSite: "strict" as const,
+    sameSite: "lax" as const,
     secure: environment === "production",
     path: "/auth/recovery",
     maxAge: 10 * 60,
