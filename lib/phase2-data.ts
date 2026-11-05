@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { DataAccessError } from "@/lib/data";
 import { getListing } from "@/lib/data";
 import type { ChatMessage } from "@/lib/chat-state";
+import { selectListingImagePath } from "@/lib/listing-media";
 
 type Related<T> = T | T[] | null;
 const one = <T,>(value: Related<T>): T | null => Array.isArray(value) ? value[0] ?? null : value;
@@ -19,25 +20,44 @@ export type ChatTrade = { id: string; proposerId: string; recipientId: string; c
 
 export async function getConversations(userId: string): Promise<ConversationSummary[]> {
   const supabase = await createClient(); if (!supabase) throw new DataAccessError("connect to messages");
-  const { data, error } = await supabase.from("conversations").select("id,listing_id,buyer_id,seller_id,last_message_at,listing:listings!conversations_listing_id_fkey(title,price,listing_images(storage_path)),buyer:profiles!conversations_buyer_id_fkey(id,username,display_name),seller:profiles!conversations_seller_id_fkey(id,username,display_name),conversation_members!inner(last_read_at)").eq("conversation_members.user_id", userId).order("last_message_at", { ascending: false });
+  const { data, error } = await supabase.from("conversations").select("id,listing_id,buyer_id,seller_id,last_message_at,listing:listings!conversations_listing_id_fkey(title,price,listing_images(storage_path,card_path,sort_order)),buyer:profiles!conversations_buyer_id_fkey(id,username,display_name),seller:profiles!conversations_seller_id_fkey(id,username,display_name),conversation_members!inner(last_read_at)").eq("conversation_members.user_id", userId).order("last_message_at", { ascending: false });
   if (error) throw new DataAccessError("load conversations");
   const ids = (data ?? []).map((row) => row.id);
   const { data: messageRows, error: messageError } = ids.length ? await supabase.from("messages").select("id,conversation_id,sender_id,body,created_at").in("conversation_id", ids).order("created_at", { ascending: false }).limit(500) : { data: [], error: null };
   if (messageError) throw new DataAccessError("load message previews");
-  const summaries = await Promise.all((data ?? []).map(async (row) => {
-    const listing = one(row.listing as Related<{ title: string; price: number; listing_images: { storage_path: string }[] }>);
+  type ConversationImage = { storage_path: string; card_path: string | null; sort_order: number };
+  const prepared = (data ?? []).map((row) => {
+    const listing = one(row.listing as Related<{ title: string; price: number; listing_images: ConversationImage[] }>);
     const other = one((row.buyer_id === userId ? row.seller : row.buyer) as Related<{ id: string; username: string; display_name: string }>);
     if (!listing || !other) return null;
     const messages = (messageRows ?? []).filter((message) => message.conversation_id === row.id);
     const membership = one(row.conversation_members as Related<{ last_read_at: string | null }>);
     const unread = messages.filter((message) => message.sender_id !== userId && (!membership?.last_read_at || message.created_at > membership.last_read_at)).length;
-    const imagePath = listing.listing_images?.[0]?.storage_path;
-    const signed = imagePath
-      ? await supabase.storage.from("listing-images").createSignedUrl(imagePath, 3600)
-      : null;
-    return { id: row.id, listingId: row.listing_id, listingTitle: listing.title, listingPrice: Number(listing.price), listingImage: signed?.data?.signedUrl, otherUserId: other.id, otherName: other.display_name, otherUsername: other.username, lastMessage: messages[0]?.body, lastMessageAt: row.last_message_at, unread } satisfies ConversationSummary;
+    const firstImage = listing.listing_images?.toSorted((left, right) => left.sort_order - right.sort_order)[0];
+    const imagePath = firstImage ? selectListingImagePath(firstImage, "card") : undefined;
+    return { row, listing, other, messages, unread, imagePath };
+  }).filter((item): item is NonNullable<typeof item> => item !== null);
+  const imagePaths = [...new Set(prepared.flatMap((item) => item.imagePath ? [item.imagePath] : []))];
+  const { data: signedResults, error: imageError } = imagePaths.length
+    ? await supabase.storage.from("listing-images").createSignedUrls(imagePaths, 3600)
+    : { data: [], error: null };
+  if (imageError || !signedResults) throw new DataAccessError("load conversation images");
+  const signedImages = new Map(signedResults.flatMap((result) =>
+    result.path && result.signedUrl && !result.error ? [[result.path, result.signedUrl]] : [],
+  ));
+  return prepared.map(({ row, listing, other, messages, unread, imagePath }) => ({
+    id: row.id,
+    listingId: row.listing_id,
+    listingTitle: listing.title,
+    listingPrice: Number(listing.price),
+    listingImage: imagePath ? signedImages.get(imagePath) : undefined,
+    otherUserId: other.id,
+    otherName: other.display_name,
+    otherUsername: other.username,
+    lastMessage: messages[0]?.body,
+    lastMessageAt: row.last_message_at,
+    unread,
   }));
-  return summaries.filter((item): item is NonNullable<typeof item> => item !== null);
 }
 
 export async function getConversation(userId: string, id: string) {

@@ -12,6 +12,10 @@ export type ListingImagePathRecord = {
   card_path?: string | null;
   detail_path?: string | null;
 };
+export type ListingImageDeliveryRecord = ListingImagePathRecord & {
+  id: string;
+  sort_order: number;
+};
 
 export type ListingImageArtifact = {
   bytes: Uint8Array;
@@ -35,6 +39,18 @@ export function selectListingImagePath(
   if (purpose === "card") return record.card_path || record.storage_path;
   if (purpose === "detail") return record.detail_path || record.storage_path;
   return record.storage_path;
+}
+
+export function selectListingImagesForDelivery<T extends ListingImageDeliveryRecord>(
+  records: T[],
+  purpose: "card" | "detail",
+): Array<{ record: T; path: string }> {
+  const ordered = records.toSorted((left, right) => left.sort_order - right.sort_order);
+  const selected = purpose === "card" ? ordered.slice(0, 1) : ordered;
+  return selected.map((record) => ({
+    record,
+    path: selectListingImagePath(record, purpose),
+  }));
 }
 
 export function buildListingImagePaths(ownerId: string, listingId: string, imageId: string) {
