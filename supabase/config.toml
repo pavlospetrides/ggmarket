@@ -164,8 +164,10 @@ site_url = "http://127.0.0.1:3000"
 additional_redirect_urls = [
   "http://localhost:3000/auth/callback",
   "http://localhost:3000/auth/recovery",
+  "http://localhost:3000/auth/confirm-signup",
   "http://127.0.0.1:3000/auth/callback",
   "http://127.0.0.1:3000/auth/recovery",
+  "http://127.0.0.1:3000/auth/confirm-signup",
 ]
 # How long tokens are valid for, in seconds. Defaults to 3600 (1 hour), maximum 604,800 (1 week).
 jwt_expiry = 3600
@@ -257,6 +259,10 @@ otp_expiry = 3600
 [auth.email.template.recovery]
 subject = "Reset your GGMarket password"
 content_path = "./supabase/templates/recovery.html"
+
+[auth.email.template.confirmation]
+subject = "Verify your GGMarket email"
+content_path = "./supabase/templates/confirmation.html"
 
 # Uncomment to customize notification email template
 # [auth.email.notification.password_changed]

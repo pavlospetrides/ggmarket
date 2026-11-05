@@ -35,7 +35,7 @@ describe("email verification resend API", () => {
     expect(auth.resend).toHaveBeenCalledWith({
       type: "signup",
       email: "member@example.test",
-      options: { emailRedirectTo: "https://ggmarket.test/auth/callback?next=%2Fsettings%2Fverification" },
+      options: { emailRedirectTo: "https://ggmarket.test/auth/confirm-signup" },
     });
     expect(await response.json()).toEqual({ status: "sent" });
   });
@@ -52,7 +52,7 @@ describe("email verification resend API", () => {
       body: JSON.stringify({ email: "member@example.test" }),
     }));
     expect(auth.resend).toHaveBeenCalledWith(expect.objectContaining({
-      options: { emailRedirectTo: "https://ggmarket.eu/auth/callback?next=%2Fsettings%2Fverification" },
+      options: { emailRedirectTo: "https://ggmarket.eu/auth/confirm-signup" },
     }));
   });
 
@@ -92,7 +92,7 @@ describe("email verification resend API", () => {
     expect(auth.resend).toHaveBeenCalledWith({
       type: "signup",
       email: "member@example.test",
-      options: { emailRedirectTo: "http://192.168.2.21:3000/auth/callback?next=%2Fsettings%2Fverification" },
+      options: { emailRedirectTo: "http://192.168.2.21:3000/auth/confirm-signup" },
     });
     expect(await response.json()).toEqual({ status: "sent" });
   });

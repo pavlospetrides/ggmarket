@@ -12,7 +12,8 @@ function secure(response: NextResponse, request: NextRequest) {
   response.headers.set("X-Content-Type-Options", "nosniff");
   response.headers.set(
     "Referrer-Policy",
-    request.nextUrl.pathname.startsWith("/auth/recovery")
+    request.nextUrl.pathname.startsWith("/auth/recovery") ||
+      request.nextUrl.pathname.startsWith("/auth/confirm-signup")
       ? "no-referrer"
       : "strict-origin-when-cross-origin",
   );

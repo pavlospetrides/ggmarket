@@ -43,7 +43,7 @@ describe("native registration fallback", () => {
       password: "not-a-real-password",
       options: {
         data: { username: "iphone_user", display_name: "iphone_user" },
-        emailRedirectTo: "https://192.168.2.21:3000/auth/callback?next=%2Fsettings%2Fverification&welcome=1",
+        emailRedirectTo: "https://192.168.2.21:3000/auth/confirm-signup",
       },
     });
     expect(response.status).toBe(303);
@@ -86,7 +86,7 @@ describe("native registration fallback", () => {
 
     expect(auth.signUp).toHaveBeenCalledWith(expect.objectContaining({
       options: expect.objectContaining({
-        emailRedirectTo: "https://ggmarket.eu/auth/callback?next=%2Fsettings%2Fverification&welcome=1",
+        emailRedirectTo: "https://ggmarket.eu/auth/confirm-signup",
       }),
     }));
   });

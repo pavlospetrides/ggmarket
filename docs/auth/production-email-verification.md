@@ -8,23 +8,24 @@ For password recovery, confirm the hosted Dashboard has these exact effective va
 
 - Site URL: `https://ggmarket.eu`
 - Redirect URL: `https://ggmarket.eu/auth/recovery`
+- Redirect URL: `https://ggmarket.eu/auth/confirm-signup`
 - Redirect URL: `https://ggmarket.eu/auth/callback`
 - Reset password template: the complete contents of `docs/auth/reset-password-email.html`
 
 - **Authentication → URL Configuration → Site URL:** `https://ggmarket.eu`
 - **Authentication → URL Configuration → Redirect URLs:** add `https://ggmarket.eu/**` and `https://www.ggmarket.eu/**`. Retain `https://ggmarket-sage.vercel.app/**` temporarily for previously issued links while the application redirects that hostname to the canonical domain.
-- Keep `http://localhost:3000/auth/callback` only for local development. Do not use localhost as the Site URL in the production Supabase project.
+- Keep localhost callback, recovery, and confirmation URLs only in the disposable local project. Do not use localhost as the Site URL in production.
 - If authentication is enabled on Vercel Preview, use a disposable non-production Supabase project and add either the exact preview callback or a tightly scoped project preview pattern. Do not allow all `*.vercel.app` hosts and do not connect previews to production user data.
 - **Authentication → Providers → Email:** enable email/password and require Confirm email.
-- **Authentication → Email Templates → Confirm signup:** copy the complete HTML from `docs/auth/confirm-signup-email.html`. It creates a real anchor whose `token_hash` is verified by the server callback with `verifyOtp`.
+- **Authentication → Email Templates → Confirm signup:** copy the complete HTML from `docs/auth/confirm-signup-email.html`. It links the token hash to the scanner-safe signup entry point.
 - Disable link tracking in the SMTP/email provider. Link rewriting can break Supabase confirmation URLs.
 - In **Authentication > Email Templates > Reset password**, copy the complete HTML from `docs/auth/reset-password-email.html`. It sends `TokenHash` with exact `type=recovery` to `https://ggmarket.eu/auth/recovery`.
 
-The template intentionally uses `TokenHash` and the canonical callback directly. Do not replace it with plain `{{ .TokenHash }}` text. Do not point `ConfirmationURL` at an application callback: `ConfirmationURL` is a Supabase `/auth/v1/verify` URL and represents a different flow.
+Both templates intentionally use `TokenHash` and distinct canonical application entry points. Do not replace either anchor with `ConfirmationURL`: that Supabase `/auth/v1/verify` URL consumes the token on GET and its PKCE redirect can depend on the browser that initiated the request. Do not use `RedirectTo` as the visible anchor.
 
 The reset template intentionally does not use `ConfirmationURL` or `RedirectTo`. `ConfirmationURL` verifies at Supabase and returns a PKCE authorization code, whose verifier exists only in the browser that requested the email. `RedirectTo` is still supplied as the canonical recovery endpoint and must be allowed in URL Configuration, but the production template pins the visible link to GGMarket and sends `TokenHash` directly so Gmail or another browser can complete recovery.
 
-The email-link GET never calls `verifyOtp`. It validates the token shape, stores it for ten minutes in an HttpOnly, SameSite=Strict, production-Secure cookie scoped to `/auth/recovery`, and redirects to a clean confirmation page. Only the user's explicit same-origin POST from **Continue to create new password** consumes the token. This prevents ordinary email security scanners and GET prefetchers from exhausting the one-time token. Keep Resend click tracking disabled.
+Neither email-link GET calls `verifyOtp`. Each validates its fixed token type, stores the hash for ten minutes in a flow-scoped HttpOnly, SameSite=Lax, production-Secure cookie, and redirects to a clean confirmation page that does not depend on the cookie being included during that cross-site redirect. Only the user's explicit same-origin POST consumes the token. Lax is deliberate: Strict was omitted by Chromium during an external-origin email navigation and immediate redirect; `None` is never used. Origin/Fetch-Metadata checks still reject cross-site mutations. Keep Resend click tracking disabled.
 
 ## Vercel
 
@@ -41,13 +42,14 @@ Set these Production environment variables:
 
 ## Flow contract
 
-Initial signup passes `https://ggmarket.eu/auth/callback?next=%2Fsettings%2Fverification&welcome=1` as `emailRedirectTo`; resend uses the same callback without the welcome marker. The production template links to the initial-signup callback with `token_hash`, `type=email`, the verification destination, and `welcome=1`. The callback calls Supabase `verifyOtp`, checks the returned authenticated user has `email_confirmed_at`, and only then redirects with `status=verified`. A consumed or failed link never receives the welcome state.
+Initial signup and resend pass `https://ggmarket.eu/auth/confirm-signup` as `emailRedirectTo`. The production template links there with `token_hash` and exact `type=email`. GET stages only; **Verify email and continue** POST calls `verifyOtp({ token_hash, type: "email" })`, requires a returned confirmed session and active account, then redirects to the existing `/settings/verification?status=verified&welcome=1` experience. A consumed or failed link never receives the welcome state. `/auth/callback` remains the OAuth/legacy code-exchange endpoint; old token-hash callback links are bridged to the typed staging routes without verification on GET.
 
 ## Domain routing checks
 
 - In Vercel Domains, mark `ggmarket.eu` as the primary production domain and configure `www.ggmarket.eu` to redirect to it.
 - Keep the generated project hostname assigned to the project. The application performs an exact-host permanent redirect from `ggmarket-sage.vercel.app` to `ggmarket.eu` while leaving all other Vercel preview hostnames untouched.
 - Verify `/auth/callback`, `/sitemap.xml`, and `/robots.txt` after the next authorized deployment. Do not test by changing production users or issuing real customer emails.
+- With an isolated new account, inspect the Confirm signup anchor without sharing it: it must start with `https://ggmarket.eu/auth/confirm-signup?token_hash=` and include `type=email`. Opening it must show **Confirm your email** before verification, then reach the existing Welcome panel only after the explicit button is pressed.
 
 ## Password recovery flow contract
 

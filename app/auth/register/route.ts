@@ -4,6 +4,7 @@ import { readUrlEncodedForm } from "@/lib/security";
 import { createClient } from "@/lib/supabase/server";
 import { registerSchema } from "@/lib/validation";
 import { withPrivateNoStore } from "../../../lib/supabase/cookie-security";
+import { buildSignupConfirmationUrl } from "@/lib/auth-redirect";
 
 function registrationRedirect(origin: string, key: "error" | "status", value: string) {
   const target = new URL("/register", origin);
@@ -25,15 +26,12 @@ export async function POST(request: Request) {
   const supabase = await createClient();
   if (!supabase) return registrationRedirect(publicOrigin, "error", "unavailable");
   const { username, email, password } = registration.data;
-  const confirmationCallback = new URL("/auth/callback", publicOrigin);
-  confirmationCallback.searchParams.set("next", "/settings/verification");
-  confirmationCallback.searchParams.set("welcome", "1");
   const { data, error } = await supabase.auth.signUp({
     email,
     password,
     options: {
       data: { username, display_name: username },
-      emailRedirectTo: confirmationCallback.toString(),
+      emailRedirectTo: buildSignupConfirmationUrl(publicOrigin),
     },
   });
   if (error) return registrationRedirect(publicOrigin, "error", "signup_failed");

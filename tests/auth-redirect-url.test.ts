@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { buildAuthCallbackUrl, buildPasswordRecoveryUrl } from "../lib/auth-redirect";
+import { buildAuthCallbackUrl, buildPasswordRecoveryUrl, buildSignupConfirmationUrl } from "../lib/auth-redirect";
 
 describe("auth callback URL generation", () => {
   afterEach(() => vi.unstubAllEnvs());
@@ -48,5 +48,11 @@ describe("auth callback URL generation", () => {
     vi.stubEnv("NODE_ENV", "test");
     expect(buildPasswordRecoveryUrl("http://192.168.2.21:3000/forgot-password"))
       .toBe("http://192.168.2.21:3000/auth/recovery");
+  });
+
+  it("uses a distinct canonical signup confirmation endpoint", () => {
+    vi.stubEnv("NODE_ENV", "production");
+    expect(buildSignupConfirmationUrl("http://localhost:3000"))
+      .toBe("https://ggmarket.eu/auth/confirm-signup");
   });
 });
