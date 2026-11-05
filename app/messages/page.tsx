@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
-import Image from "next/image";
 import Link from "next/link";
 import { MessageCircle } from "lucide-react";
 import { requireUser } from "@/lib/auth";
+import { ListingMediaImage } from "@/components/listing-media-image";
 import { PageMasthead } from "@/components/page-masthead";
 import { formatPrice } from "@/lib/constants";
 import { getConversations } from "@/lib/phase2-data";
@@ -19,7 +19,7 @@ export default async function MessagesPage() {
       <section className="min-w-0 md:border-r md:border-[var(--border)]" aria-label="Conversations">{/* taste-skill-ignore -- functional inbox split */}
         <div className="message-command-center__label"><span>Conversation queue</span><strong>{conversations.length}</strong></div>
         {conversations.length ? <div>{conversations.map((item) => <Link key={item.id} href={`/messages/${item.id}`} className="flex min-h-24 min-w-0 gap-3 border-b border-[var(--border)] p-4 transition hover:bg-[var(--surface-alt)]">{/* taste-skill-ignore -- functional conversation-row separator */}
-          {item.listingImage ? <Image src={item.listingImage} alt="" width={56} height={56} className="size-14 shrink-0 rounded-xl object-cover" /> : <span className="grid size-14 shrink-0 place-items-center rounded-xl bg-[var(--surface-alt)]"><MessageCircle aria-hidden="true" /></span>}
+          {item.listingImage ? <ListingMediaImage src={item.listingImage} alt="" width={56} height={56} className="size-14 shrink-0 rounded-xl object-cover" /> : <span className="grid size-14 shrink-0 place-items-center rounded-xl bg-[var(--surface-alt)]"><MessageCircle aria-hidden="true" /></span>}
           <span className="min-w-0 flex-1"><span className="flex min-w-0 justify-between gap-2"><strong className="truncate">{item.otherName}</strong><small className="shrink-0 text-[var(--muted)]">{new Date(item.lastMessageAt).toLocaleDateString()}</small></span><span className="mt-1 block truncate text-xs text-[#b6a8ff]">{item.listingTitle} · {formatPrice(item.listingPrice)}</span><span className="mt-1 flex min-w-0 items-center gap-2"><span className="min-w-0 flex-1 truncate text-sm text-[var(--muted)]">{item.lastMessage || "Start the conversation"}</span>{item.unread > 0 && <span className="shrink-0 rounded-full bg-[var(--brand)] px-2 py-0.5 text-xs font-bold">{item.unread}</span>}</span></span>
         </Link>)}</div> : <div className="empty-state"><div><span className="empty-state-icon"><MessageCircle aria-hidden="true" /></span><h2 className="mt-4 font-bold">No conversations yet</h2><p className="mt-2 text-sm text-[var(--muted)]">Message a seller from any listing.</p><Link href="/marketplace" className="btn-primary mt-5">Browse listings</Link></div></div>}
       </section>

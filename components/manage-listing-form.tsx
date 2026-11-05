@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { Trash2 } from "lucide-react";
@@ -11,6 +10,7 @@ import { TaxonomyAttributeFields } from "./taxonomy-attribute-fields";
 import { buildListingTaxonomyAttributes, TaxonomySelector, type TaxonomySelection } from "./taxonomy-selector";
 import { useHydrated } from "./use-hydrated";
 import { Loader2 } from "./ui/loader-2";
+import { ListingMediaImage } from "./listing-media-image";
 
 export function ManageListingForm({ listing, categories }: { listing: Listing; categories: Category[] }) {
   const router = useRouter();
@@ -146,7 +146,7 @@ export function ManageListingForm({ listing, categories }: { listing: Listing; c
     <div><label className="label" htmlFor="description">Description</label><textarea className="input min-h-36" id="description" name="description" defaultValue={listing.description} minLength={1} maxLength={5000} required /></div>
     <div className="grid gap-5 sm:grid-cols-2"><div><label className="label" htmlFor="price">Price (€)</label><input className="input" id="price" name="price" type="number" min="1" max="1000000" defaultValue={listing.price} required /></div><div><label className="label" htmlFor="condition">Condition</label><select className="input" id="condition" name="condition" defaultValue={listing.condition}>{conditions.map(([key, label]) => <option value={key} key={key}>{label}</option>)}</select></div><div><label className="label" htmlFor="location">Location</label><input className="input" id="location" name="location" defaultValue={listing.location} maxLength={120} required /></div><div><label className="label" htmlFor="status">Status</label><select className="input" id="status" name="status" defaultValue={listing.status}><option value="active">Active</option><option value="reserved">Reserved</option><option value="sold">Sold</option><option value="removed">Removed</option>{listing.status === "draft" && <option value="draft">Draft</option>}</select></div></div>
     <div className="flex flex-wrap gap-5"><label className="inline-flex items-center gap-2"><input type="checkbox" name="shipping" defaultChecked={listing.shipping} className="size-5 accent-[#7758ff]" /> Shipping</label><label className="inline-flex items-center gap-2"><input type="checkbox" name="meetup" defaultChecked={listing.meetup} className="size-5 accent-[#7758ff]" /> Meetup</label></div>
-    <div><h2 className="font-bold">Photos</h2><div className="mt-3 grid grid-cols-3 gap-3 sm:grid-cols-5">{images.map((image) => <div key={image.id} className="relative aspect-square overflow-hidden rounded-xl"><Image src={image.url} fill alt="Listing photo" className="object-cover" sizes="150px" /><button disabled={busy || images.length <= 1} type="button" onClick={() => removeImage(image.id)} className="absolute right-1 top-1 grid size-9 place-items-center rounded-full bg-black/75 disabled:opacity-40" aria-label="Delete photo" title={images.length <= 1 ? "An active listing must keep one photo" : "Delete photo"}><Trash2 className="size-4" /></button></div>)}</div></div>
+    <div><h2 className="font-bold">Photos</h2><div className="mt-3 grid grid-cols-3 gap-3 sm:grid-cols-5">{images.map((image) => <div key={image.id} className="relative aspect-square overflow-hidden rounded-xl"><ListingMediaImage src={image.url} fill alt="Listing photo" className="object-cover" sizes="150px" /><button disabled={busy || images.length <= 1} type="button" onClick={() => removeImage(image.id)} className="absolute right-1 top-1 grid size-9 place-items-center rounded-full bg-black/75 disabled:opacity-40" aria-label="Delete photo" title={images.length <= 1 ? "An active listing must keep one photo" : "Delete photo"}><Trash2 className="size-4" /></button></div>)}</div></div>
     {error && <p ref={errorRef} tabIndex={-1} className="rounded-xl bg-[#29151a] p-3 text-sm text-[#ff9ca6]" role="alert">{error}</p>}{status && <p className="text-sm text-[var(--success)]" role="status" aria-live="polite">{status}</p>}
     <div className="flex flex-col gap-3 border-t border-[var(--border)] pt-5 sm:flex-row"><button type="submit" disabled={busy} className="btn-primary w-full sm:w-auto">{busy ? <Loader2 size="compact" delayed decorative /> : null}{busy ? "Saving…" : "Save changes"}</button><button disabled={busy} type="button" onClick={removeListing} className="btn-danger w-full sm:ml-auto sm:w-auto"><Trash2 className="size-4" /> Delete listing</button></div>
     </fieldset>
