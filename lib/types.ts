@@ -2,6 +2,13 @@ export type ListingCondition = "new" | "like_new" | "good" | "fair" | "parts";
 export type ListingStatus = "draft" | "active" | "reserved" | "sold" | "removed";
 export type AttributeValue = string | number | boolean | string[];
 export type ListingAttributes = Record<string, AttributeValue>;
+export type ListingImageRecord = {
+  id: string;
+  path: string;
+  url: string;
+  cardPath?: string;
+  detailPath?: string;
+};
 
 export type Category = { id: string; name: string; slug: string; icon: string };
 export type Seller = {
@@ -16,7 +23,7 @@ export type Listing = {
   views: number; shipping: boolean; meetup: boolean; featured?: boolean;
   belowMarket?: boolean; attributes: ListingAttributes;
   favoriteCount?: number; isFavorite?: boolean;
-  imageRecords?: { id: string; path: string; url: string }[];
+  imageRecords?: ListingImageRecord[];
 };
 
 export type Review = { id: string; rating: number; comment?: string; createdAt: string; reviewerName: string; reviewerId?: string };
