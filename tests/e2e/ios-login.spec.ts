@@ -142,7 +142,7 @@ test.describe("iOS registration delivery", () => {
 
 test("reset-password visibility toggles preserve value and focus without submitting", async ({ page, browserName }) => {
   await page.goto("/test-harness/password");
-  const password = page.getByRole("textbox", { name: "New password" });
+  const password = page.getByRole("textbox", { name: "New password", exact: true });
   await password.fill("keep-this-secret");
   await password.focus();
 

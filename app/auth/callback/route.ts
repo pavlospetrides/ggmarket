@@ -36,9 +36,15 @@ export async function GET(request: Request) {
   const requestedType = url.searchParams.get("type");
   const next = safeRedirectPath(url.searchParams.get("next"));
   const verificationFlow = next === "/settings/verification";
+  const recoveryFlow = next === "/reset-password" || requestedType === "recovery";
   const welcome = url.searchParams.get("welcome") === "1";
   const publicOrigin = getPublicRequestOrigin(request.headers, url.protocol) ?? url.origin;
   if (providerError) {
+    if (recoveryFlow) {
+      const target = new URL("/reset-password", publicOrigin);
+      target.searchParams.set("status", url.searchParams.get("error_code") === "otp_expired" ? "expired_or_used" : "invalid");
+      return withPrivateNoStore(NextResponse.redirect(target));
+    }
     const errorCode = providerError === "access_denied" ? "oauth_cancelled" : "oauth_failed";
     const target = new URL("/login", publicOrigin);
     target.searchParams.set("error", errorCode);
@@ -47,7 +53,10 @@ export async function GET(request: Request) {
   }
   const supabase = await createClient();
   if (!supabase) {
-    return withPrivateNoStore(NextResponse.redirect(new URL("/login?error=invalid_callback", publicOrigin)));
+    return withPrivateNoStore(NextResponse.redirect(new URL(
+      recoveryFlow ? "/reset-password?status=unavailable" : "/login?error=invalid_callback",
+      publicOrigin,
+    )));
   }
 
   let error: unknown = { message: "Missing confirmation token" };
@@ -68,6 +77,11 @@ export async function GET(request: Request) {
     const { data: active, error: activeError } = await supabase.rpc("is_active_user");
     if (activeError || active !== true) {
       await supabase.auth.signOut();
+      if (recoveryFlow) {
+        return withPrivateNoStore(NextResponse.redirect(
+          new URL("/reset-password?status=unavailable", publicOrigin),
+        ));
+      }
       const target = new URL("/login", publicOrigin);
       target.searchParams.set("error", active === false ? "account_suspended" : "oauth_failed");
       target.searchParams.set("next", next);
@@ -82,6 +96,12 @@ export async function GET(request: Request) {
     }
     if (user?.email_confirmed_at) return verificationRedirect(publicOrigin, "already_verified");
     return verificationRedirect(publicOrigin, isExpiredOrUsed(error) ? "expired_or_used" : "invalid");
+  }
+
+  if (recoveryFlow && error) {
+    const target = new URL("/reset-password", publicOrigin);
+    target.searchParams.set("status", isExpiredOrUsed(error) ? "expired_or_used" : "invalid");
+    return withPrivateNoStore(NextResponse.redirect(target));
   }
 
   return withPrivateNoStore(NextResponse.redirect(
