@@ -6,7 +6,7 @@ import { AuthShell } from "@/components/auth-shell";
 export const metadata: Metadata = {
   title: "Continue password reset",
   robots: { index: false },
-  referrer: "no-referrer",
+  referrer: "same-origin",
 };
 
 export default function ContinuePasswordRecoveryPage() {

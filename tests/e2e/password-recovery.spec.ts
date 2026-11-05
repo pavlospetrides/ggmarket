@@ -33,6 +33,35 @@ test("an external email origin reaches an actionable clean recovery landing", as
   const pending = (await context.cookies()).find((cookie) => cookie.name === "ggmarket-recovery-pending");
   expect(pending?.httpOnly).toBe(true);
 });
+
+test("native recovery confirmation POST preserves its trusted origin", async ({ browser }) => {
+  const context = await browser.newContext({
+    baseURL: "http://localhost:3000",
+    viewport: { width: 390, height: 844 },
+    isMobile: true,
+    hasTouch: true,
+  });
+  const page = await context.newPage();
+  let submittedOrigin: string | undefined;
+  page.on("request", (request) => {
+    if (new URL(request.url()).pathname === "/auth/recovery/confirm") {
+      submittedOrigin = request.headers().origin;
+    }
+  });
+
+  await page.goto(`/auth/recovery?token_hash=${"r".repeat(64)}&type=recovery`);
+  const [confirmationResponse] = await Promise.all([
+    page.waitForResponse((response) => new URL(response.url()).pathname === "/auth/recovery/confirm"),
+    page.getByRole("button", { name: "Continue to create new password" }).click(),
+  ]);
+
+  expect(confirmationResponse.status()).toBe(303);
+  expect(submittedOrigin).toBe("http://localhost:3000");
+  const redirect = new URL(confirmationResponse.headers().location);
+  expect(`${redirect.pathname}${redirect.search}`).toMatch(/^\/reset-password\?status=/);
+  expect(confirmationResponse.headers()["content-type"]).toBeUndefined();
+  await context.close();
+});
 test("reset requests target the browser-independent recovery verifier", async ({ page }) => {
   let recoveryRequest = "";
   await page.route("**/auth/v1/recover**", async (route) => {
