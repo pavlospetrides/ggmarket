@@ -254,8 +254,8 @@ export function SellWizard({ categories }: { categories: Category[] }) {
           : "Listing could not be published.",
       );
     } finally {
-      setUploadController(null);
       setPublishing(false);
+      setUploadController(null);
     }
   }
   return (

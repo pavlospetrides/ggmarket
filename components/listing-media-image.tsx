@@ -5,6 +5,6 @@ import Image, { type ImageProps } from "next/image";
  * transformation service. The source remains a private Supabase signed URL;
  * Next Image still supplies dimensions, lazy loading, and layout stability.
  */
-export function ListingMediaImage(props: ImageProps) {
-  return <Image {...props} unoptimized />;
+export function ListingMediaImage({ alt, ...props }: ImageProps) {
+  return <Image {...props} alt={alt} unoptimized />;
 }

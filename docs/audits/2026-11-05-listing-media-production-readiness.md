@@ -12,12 +12,12 @@ Deployment status: not deployed; no production mutation, migration, or backfill 
 
 GGMarket should use private upload-time variants with centralized signed delivery. This removes the exhausted Vercel optimizer from the listing-media hot path, bounds browser bytes, preserves draft/moderation revocation controls, and avoids per-view transformations. The emergency bypass is isolated in commit `05466b2`; the rest of the branch adds backward-compatible variant metadata, processing, upload reliability, bounded signing, and guarded operations.
 
-Current gates before final verification:
+Acceptance gates after local verification:
 
 | Gate | Decision | Reason |
 | --- | --- | --- |
-| Emergency image restoration | GO for preview/deployment review; not yet live | Independent commit, no migration dependency; live restoration remains unverified until deployment |
-| Full scalable media rollout | NO-GO | Final full-suite/build/review and disposable migration/RLS evidence are pending |
+| Emergency image restoration | GO for an explicitly approved independent deployment; not yet live | Independent commit, no migration dependency, local tests green, and fresh desktop/mobile production checks confirm active 402 failures |
+| Full scalable media rollout | NO-GO | Unit/type/lint/browser gates are green, but a configured production build and disposable-target migration/RLS run remain unavailable |
 | Production database migration | NO-GO | Additive SQL is prepared but has not been applied or verified on the production target |
 | Legacy image backfill | NO-GO | Requires deployed variant-aware code, verified migration, dry-run review, monitoring window, and explicit approval |
 
@@ -26,6 +26,8 @@ Current gates before final verification:
 On 2026-11-05, anonymous Chromium diagnostics reproduced HTTP 402 responses from Vercel `/_next/image` with `OPTIMIZED_IMAGE_REQUEST_PAYMENT_REQUIRED`. The embedded private Supabase signed sources returned HTTP 200 with valid JPEG/PNG/WebP bodies, including multi-megabyte originals. Listing metadata rendered normally. This isolated the confirmed incident to exhausted Vercel Hobby Image Optimization allowance rather than missing objects or invalid Storage signatures.
 
 A later read-only check on 2026-11-05 observed optimizer responses returning HTTP 200 again while the same large signed originals remained valid. That does not invalidate the incident: Vercel documents that Hobby over-limit new transformations return 402 and previously cached images can continue working. Production is still vulnerable until the bypass is deployed.
+
+On 2026-11-06, a fresh anonymous headless-Chromium check returned HTTP 200 for the public homepage but HTTP 402 for every requested listing image observed through `/_next/image`: four desktop requests and eight mobile requests. Rendered listing images had zero natural width. The diagnostic recorded only host/path/status/content type/length and stripped every query string. This branch was not deployed, so the live result is expected evidence of the unresolved incident rather than a branch regression.
 
 No evidence showed missing originals in the sampled requests. Production-wide object completeness, every listing state, and current quota telemetry were not exhaustively verified.
 
@@ -133,7 +135,7 @@ The reproducible model uses five photos/listing and three objects/photo:
 | 50,000 | 250,000 | 750,000 | 222.5 GB | 221 GB |
 | 100,000 | 500,000 | 1,500,000 | 445 GB | 442 GB |
 
-Query scale is bounded by existing pagination, one primary image per collection listing, deterministic ordering, and one signing request per result batch. No 50k/100k database fixture was created because no verified disposable Supabase target was available. This is a capacity model, not a measured database load result. Final local performance/build/browser evidence will be added after Task 8.
+Query scale is bounded by existing pagination, one primary image per collection listing, deterministic ordering, and one signing request per result batch. No 50k/100k database fixture was created because no verified disposable Supabase target was available. This is a capacity model, not a measured database load result.
 
 ## 18. Cost estimate
 
@@ -149,18 +151,24 @@ This excludes database compute upgrades, VAT/tax, uncached egress categories, lo
 
 ## 19–20. Browser, unit, and security results
 
-Completed before Task 7:
+Fresh Task 8 evidence on 2026-11-06:
 
-- Tasks 1–5 focused suites: 22/22, 18/18, 9/9, 28/28, and 35/35 respectively, with TypeScript gates where recorded.
-- Task 6: 34/34 focused unit/security tests; typecheck and targeted ESLint passed; complete Chromium safe Sell harness 5/5; focused WebKit cover-order and cancellation 2/2.
-- A later complete WebKit harness run hit runner heap/hydration instability; it is not reported as green.
-
-Task 8 will replace this section with fresh whole-branch evidence. State-changing Supabase/RLS and real upload E2E remain blocked unless a disposable target is verified.
+- `npm test`: 84 files and 594 tests passed, including migration/RLS/storage source-contract tests, legacy fallback, private-path authorization, suspended-user checks, route ownership, signed-delivery, upload, and backfill guards.
+- `npm run typecheck`: passed.
+- `npm run lint`: passed with zero warnings after making the listing-media wrapper's required `alt` prop explicit.
+- Task 7 focused media/backfill gate: 32/32 passed; credential-free `--help` and the 10k/50k/100k capacity command passed.
+- Safe mocked Playwright harness: Chromium 5/5; focused WebKit cover-order and cancellation 2/2. It did not connect to Supabase or mutate external state. A prior full WebKit run hit runner heap/hydration instability, so the complete five-test WebKit suite is not claimed green.
+- Production read-only Chromium diagnostics: desktop and mobile homepage HTTP 200; observed listing `/_next/image` requests HTTP 402 with broken rendered dimensions. No query strings or signed tokens were logged.
+- `npm audit --omit=dev --audit-level=high`: zero production vulnerabilities.
+- Full branch secret-pattern scan and `git diff --check`: no credential material or whitespace errors found.
+- `npm run build`: application compilation and TypeScript completed, then homepage prerender stopped because this isolated worktree intentionally has no `NEXT_PUBLIC_SUPABASE_URL` or anon key. No production-like credentials were copied from another worktree. A fully configured production build remains unverified.
+- `security-audit.mjs`, `phase2-security-audit.mjs`, and `image-upload-audit.mjs` each failed closed before connecting because `E2E_ALLOW_MUTATION=1` and an approved local disposable Supabase target were absent. Stateful RLS/Storage behavior and real upload E2E are therefore unavailable, not passed.
 
 ## 21. Known limitations
 
-- The branch is not deployed; current live restoration is unverified.
+- The branch is not deployed; production still exhibited listing-image HTTP 402 on desktop and mobile on 2026-11-06.
 - Production migration history/schema and Storage policy state were not mutated or exhaustively revalidated.
+- A configured production build and state-changing disposable Supabase security run were unavailable.
 - No isolated 100k-row database load test was run.
 - Private signed media has lower shared-cache efficiency than a public bucket by design.
 - Signed URL/CDN/browser revocation is not instantaneous.
@@ -177,7 +185,12 @@ Pending Task 8 push and PR creation.
 
 ## 25. GO/NO-GO acceptance decisions
 
-Final decisions will be updated after full verification. No decision authorizes merge, deployment, migration, or backfill; each external action still requires explicit approval.
+- **Emergency image restoration: GO** for a separately reviewed, explicitly approved deployment of commit `05466b2`. It is migration-independent and addresses a currently reproduced 402 incident. After deployment, require desktop/mobile confirmation that listing media no longer uses `/_next/image`. This is a recommendation, not deployment approval.
+- **Full scalable media rollout: NO-GO.** Local unit/type/lint and safe browser coverage are green, but require a configured clean production build plus disposable-target migration/RLS/upload evidence and reviewer acceptance first.
+- **Production database migration: NO-GO.** Require explicit approval, verified linked project ref and migration history, reviewed `supabase db push --dry-run`, backup/rollback readiness, and post-migration private-bucket/RLS verification.
+- **Legacy image backfill: NO-GO.** Require the approved migration and application rollout to be live and stable, an operator-reviewed production dry run, monitoring and backup readiness, exact project-ref confirmation, and separate explicit approval.
+
+No decision authorizes merge, deployment, migration, or backfill. None of those actions was performed.
 
 ## Official pricing and behavior sources
 
