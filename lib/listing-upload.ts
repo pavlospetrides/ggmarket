@@ -1,3 +1,5 @@
+import { createClientUuid } from "@/lib/client-id";
+
 const MAX_PHOTO_BYTES = 10_485_760;
 const MAX_PHOTOS = 8;
 const ALLOWED_PHOTO_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
@@ -139,5 +141,3 @@ export function uploadListingPhoto(
     { signal },
   );
 }
-import { createClientUuid } from "@/lib/client-id";
-
