@@ -184,7 +184,7 @@ See `docs/operations/listing-media-runbook.md` for commit-isolated emergency rol
 
 ## 24. Pull request
 
-Pending Task 8 push and PR creation.
+Opened against `main`: https://github.com/pavlospetrides/ggmarket/pull/32
 
 ## 25. GO/NO-GO acceptance decisions
 
