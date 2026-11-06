@@ -27,3 +27,5 @@ Application code uses Supabase Auth's Google provider and the existing SSR/PKCE 
 ## Manual acceptance
 
 Use an isolated account and verify new Google signup, existing verified-email linking, cancellation, logout, refresh, account switching, and return to a protected action. Confirm the user UUID and existing listings/favorites/conversations remain unchanged. Test a suspended synthetic account and confirm it is signed out with visible feedback. Never perform identity-linking experiments against valuable production accounts.
+
+Repository configuration cannot prove the hosted Google Auth Platform brand, audience, authorized domain, OAuth client redirect list, or Supabase provider values. An authorized operator must verify those dashboard values manually and record only redacted evidence. The ordered owner checklist and rollback are in `docs/operations/lootriva-cutover-runbook.md`.

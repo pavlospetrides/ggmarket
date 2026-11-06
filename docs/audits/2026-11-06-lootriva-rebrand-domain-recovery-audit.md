@@ -60,6 +60,10 @@ The attempted local Playwright run was stopped because the clean worktree has no
 
 ## Active references to change
 
+Implementation update (branch `feat/lootriva-rebrand-recovery`): Tasks 1–6 replaced the active public identity, canonical URL output, hosted-template sources, customer copy, metadata/assets, PWA names, and active tooling. Exact retired hosts remain only for secret-safe compatibility behavior/tests; bounded `ggmarket-*` browser keys remain only as one-release read/delete aliases. Immutable database/API identifiers such as `gg_card` are intentionally unchanged.
+
+Public state was rechecked read-only at 2026-11-06 18:02 Europe/Athens: apex still returns 308 to `www`; `www` returns 200 from Vercel; both retired GGMarket hosts return Vercel `404 DEPLOYMENT_NOT_FOUND`. Papaki remains authoritative for `lootriva.com`. Private dashboard state remains unknown. The exact owner cutover, manual gates, and rollback are documented in `docs/operations/lootriva-cutover-runbook.md`.
+
 ### Application and component source
 
 `app/api/conversations/[id]/messages/route.ts`, `app/api/conversations/route.ts`, `app/api/favorites/route.ts`, `app/api/reviews/route.ts`, `app/auth/confirm-signup/continue/page.tsx`, `app/browse/page.tsx`, `app/cookies/page.tsx`, `app/layout.tsx`, `app/manifest.ts`, `app/page.tsx`, `app/privacy/page.tsx`, `app/profile/[username]/page.tsx`, `app/register/page.tsx`, `app/reset-password/page.tsx`, `app/settings/verification/page.tsx`, `app/test-harness/loading/preview/page.tsx`, `app/verify-email/page.tsx`.
