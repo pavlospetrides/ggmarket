@@ -8,6 +8,7 @@ import { normalizeListingPage } from "./pagination";
 import { resolveTaxonomyQuery } from "./gaming-taxonomy";
 import type { Category, Listing, ListingQuery, PaginatedListings, Review, Seller } from "./types";
 import { mapGGCardRow, type GGCardConfig, type GGCardRow } from "./gg-card";
+import { selectListingImagesForDelivery } from "./listing-media";
 
 export class DataAccessError extends Error {
   constructor(public operation: string) {
@@ -42,7 +43,13 @@ type ListingRow = {
     bio: string | null;
     created_at: string;
   }>;
-  images: { id: string; storage_path: string; sort_order: number }[];
+  images: {
+    id: string;
+    storage_path: string;
+    card_path: string | null;
+    detail_path: string | null;
+    sort_order: number;
+  }[];
 };
 
 type ProfileRow = {
@@ -55,7 +62,7 @@ type ProfileRow = {
   created_at: string;
 };
 const listingSelect =
-  "id,title,description,price,currency,location,condition,status,attributes,view_count,shipping_available,meetup_available,created_at,published_at,category:categories!listings_category_id_fkey!inner(id,name,slug,icon),seller:profiles!listings_seller_id_fkey!inner(id,username,display_name,avatar_path,location,bio,created_at),images:listing_images!listing_images_listing_id_fkey(id,storage_path,sort_order)";
+  "id,title,description,price,currency,location,condition,status,attributes,view_count,shipping_available,meetup_available,created_at,published_at,category:categories!listings_category_id_fkey!inner(id,name,slug,icon),seller:profiles!listings_seller_id_fkey!inner(id,username,display_name,avatar_path,location,bio,created_at),images:listing_images!listing_images_listing_id_fkey(id,storage_path,card_path,detail_path,sort_order)";
 const one = <T>(value: Related<T>): T | null =>
   Array.isArray(value) ? (value[0] ?? null) : value;
 
@@ -71,6 +78,7 @@ function publicClient(): SupabaseClient {
 async function enrichRows(
   supabase: SupabaseClient,
   rows: ListingRow[],
+  imagePurpose: "card" | "detail" = "card",
 ): Promise<Listing[]> {
   const sellerIds = [
     ...new Set(
@@ -100,7 +108,12 @@ async function enrichRows(
   ]);
   if (reviewsError || verificationError)
     throw new DataAccessError("load seller details");
-  const imagePaths = [...new Set(rows.flatMap((row) => row.images.map((image) => image.storage_path)))];
+  const selectedImages = new Map(
+    rows.map((row) => [row.id, selectListingImagesForDelivery(row.images, imagePurpose)]),
+  );
+  const imagePaths = [...new Set(
+    [...selectedImages.values()].flatMap((images) => images.map((image) => image.path)),
+  )];
   const signedImages = new Map<string, string>();
   if (imagePaths.length) {
     const { data: signedResults, error: signedImagesError } = await supabase.storage
@@ -139,12 +152,13 @@ async function enrichRows(
       verified: verified.has(profile.id),
       memberSince: profile.created_at,
     };
-    const imageRecords = row.images
-      .toSorted((a, b) => a.sort_order - b.sort_order)
-      .map((image) => ({
-        id: image.id,
-        path: image.storage_path,
-        url: signedImages.get(image.storage_path)!,
+    const imageRecords = (selectedImages.get(row.id) ?? [])
+      .map(({ record, path }) => ({
+        id: record.id,
+        path: record.storage_path,
+        cardPath: record.card_path ?? undefined,
+        detailPath: record.detail_path ?? undefined,
+        url: signedImages.get(path)!,
       }));
     const images = imageRecords.map((image) => image.url);
     return [
@@ -407,7 +421,7 @@ export const getListing = cache(async function getListing(
   if (error) throw new DataAccessError("load listing");
   if (!data) return null;
   return (
-    (await enrichRows(supabase, [data as unknown as ListingRow]))[0] ?? null
+    (await enrichRows(supabase, [data as unknown as ListingRow], "detail"))[0] ?? null
   );
 });
 

@@ -11,13 +11,13 @@ import {
   Upload,
   X,
 } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type DragEvent } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
 import { conditions, formatPrice } from "@/lib/constants";
 import type { Category } from "@/lib/types";
-import { isAllowedImageFile } from "@/lib/security";
 import { createClientUuid } from "@/lib/client-id";
+import { aggregateUploadProgress, moveOrderedItem, selectListingPhotoFiles, uploadListingPhoto } from "@/lib/listing-upload";
 import { formatTaxonomyAttribute, getTaxonomyFields } from "@/lib/gaming-taxonomy";
 import type { ListingAttributes } from "@/lib/types";
 import { TaxonomyAttributeFields } from "./taxonomy-attribute-fields";
@@ -64,6 +64,8 @@ export function SellWizard({ categories }: { categories: Category[] }) {
   const [message, setMessage] = useState("");
   const [photoError, setPhotoError] = useState("");
   const [publishing, setPublishing] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [uploadController, setUploadController] = useState<AbortController | null>(null);
   const [taxonomySelection, setTaxonomySelection] = useState<TaxonomySelection>({ categorySlug: "" });
   const [taxonomyAttributes, setTaxonomyAttributes] = useState<ListingAttributes>({});
   const [taxonomyError, setTaxonomyError] = useState("");
@@ -116,21 +118,26 @@ export function SellWizard({ categories }: { categories: Category[] }) {
     };
   }, [hasUnsavedChanges, publishing]);
 
-  function addPhotos(files: FileList | null) {
+  function addPhotos(files: FileList | File[] | null) {
     if (!files) return;
     setPhotoError("");
-    const candidates = Array.from(files);
-    const valid = candidates.filter(isAllowedImageFile);
-    if (valid.length !== candidates.length) {
+    const { accepted, rejected } = selectListingPhotoFiles(photos.length, Array.from(files));
+    if (rejected.length) {
       setPhotoError(
         "Some files were skipped. Use JPG, PNG, or WebP files up to 10 MB.",
       );
       photoInputRef.current?.focus();
     }
-    const next = valid
-      .slice(0, 8 - photos.length)
+    const next = accepted
       .map((file) => ({ file, url: URL.createObjectURL(file) }));
     setPhotos((old) => [...old, ...next]);
+  }
+  function handlePhotoDrop(event: DragEvent<HTMLLabelElement>) {
+    event.preventDefault();
+    addPhotos(Array.from(event.dataTransfer.files));
+  }
+  function movePhoto(from: number, to: number) {
+    setPhotos((current) => moveOrderedItem(current, from, to));
   }
   function removePhoto(index: number) {
     setPhotos((current) => {
@@ -212,18 +219,15 @@ export function SellWizard({ categories }: { categories: Category[] }) {
         return;
       }
       setMessage("Uploading photos…");
+      setUploadProgress(0);
+      const uploadController = new AbortController();
+      setUploadController(uploadController);
+      const perPhotoProgress = photos.map(() => 0);
       for (const [index, photo] of photos.entries()) {
-        const form = new FormData();
-        form.set("image", photo.file);
-        form.set("sortOrder", String(index));
-        const uploadResponse = await fetch(`/api/listings/${listingId}/images`, {
-          method: "POST",
-          body: form,
-        });
-        if (!uploadResponse.ok) {
-          const uploadResult = await uploadResponse.json().catch(() => null);
-          throw new Error(uploadResult?.error || `Photo ${index + 1} could not be uploaded.`);
-        }
+        await uploadListingPhoto(listingId, photo.file, index, (percentage) => {
+          perPhotoProgress[index] = percentage;
+          setUploadProgress(aggregateUploadProgress(perPhotoProgress));
+        }, uploadController.signal);
       }
       setMessage("Publishing…");
       const publishResponse = await fetch(`/api/listings/${listingId}`, {
@@ -243,12 +247,15 @@ export function SellWizard({ categories }: { categories: Category[] }) {
       if (listingId)
         await fetch(`/api/listings/${listingId}`, { method: "DELETE" }).catch(() => undefined);
       setMessage(
-        reason instanceof Error
+        reason instanceof DOMException && reason.name === "AbortError"
+          ? "Upload cancelled. The draft and uploaded photos are being removed."
+          : reason instanceof Error
           ? reason.message
           : "Listing could not be published.",
       );
     } finally {
       setPublishing(false);
+      setUploadController(null);
     }
   }
   return (
@@ -362,7 +369,7 @@ export function SellWizard({ categories }: { categories: Category[] }) {
               <p className="mt-2 text-sm text-[var(--muted)]">
                 Add up to 8 clear photos. At least one is required.
               </p>
-              <label htmlFor="listing-photos" className="mt-6 grid min-h-48 cursor-pointer place-items-center rounded-[var(--radius-lg)] border-2 border-dashed border-[#3b4356] bg-[#0a0e15] text-center transition focus-within:ring-2 focus-within:ring-[var(--focus)] focus-within:ring-offset-2 focus-within:ring-offset-[var(--background)] hover:border-[#7965cb] hover:bg-[#0d111b]">
+              <label htmlFor="listing-photos" onDrop={handlePhotoDrop} onDragOver={(event) => event.preventDefault()} className="mt-6 grid min-h-48 cursor-pointer place-items-center rounded-[var(--radius-lg)] border-2 border-dashed border-[#3b4356] bg-[#0a0e15] text-center transition focus-within:ring-2 focus-within:ring-[var(--focus)] focus-within:ring-offset-2 focus-within:ring-offset-[var(--background)] hover:border-[#7965cb] hover:bg-[#0d111b]">
                 <input
                   id="listing-photos"
                   ref={photoInputRef}
@@ -403,6 +410,7 @@ export function SellWizard({ categories }: { categories: Category[] }) {
                         className="object-cover"
                         unoptimized
                       />
+                      {index === 0 ? <span className="absolute left-1 top-1 rounded-full bg-black/75 px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-white">Cover photo</span> : null}
                       <button
                         type="button"
                         className="absolute right-1 top-1 grid size-8 place-items-center rounded-full bg-black/70"
@@ -411,6 +419,10 @@ export function SellWizard({ categories }: { categories: Category[] }) {
                       >
                         <X className="size-4" />
                       </button>
+                      <span className="absolute bottom-1 left-1 flex gap-1">
+                        <button type="button" disabled={index === 0} onClick={() => movePhoto(index, index - 1)} className="grid size-8 place-items-center rounded-full bg-black/70 disabled:opacity-35" aria-label={`Move photo ${index + 1} left`}><ArrowLeft className="size-3.5" /></button>
+                        <button type="button" disabled={index === photos.length - 1} onClick={() => movePhoto(index, index + 1)} className="grid size-8 place-items-center rounded-full bg-black/70 disabled:opacity-35" aria-label={`Move photo ${index + 1} right`}><ArrowRight className="size-3.5" /></button>
+                      </span>
                     </div>
                   ))}
                 </div>
@@ -636,6 +648,11 @@ export function SellWizard({ categories }: { categories: Category[] }) {
           )}
         </div>
         </fieldset>
+        {publishing && uploadController ? <div className="mt-4 rounded-xl border border-[var(--border)] bg-[var(--surface-alt)] p-4" role="status" aria-live="polite">
+          <div className="flex items-center justify-between gap-3 text-sm"><span>Uploading photos</span><strong>{uploadProgress}%</strong></div>
+          <progress className="mt-2 h-2 w-full accent-[var(--primary)]" max={100} value={uploadProgress}>{uploadProgress}%</progress>
+          <button type="button" className="btn-secondary mt-3" onClick={() => uploadController.abort()}>Cancel upload</button>
+        </div> : null}
       </form>
     </div>
   );

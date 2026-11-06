@@ -1,9 +1,9 @@
-import Image from "next/image";
 import { BadgeCheck, ImageIcon, MapPin, Star } from "lucide-react";
 import { formatPrice, labelCondition } from "@/lib/constants";
 import { listingAnchorKey } from "@/lib/listing-navigation";
 import type { Listing } from "@/lib/types";
 import { FavoriteButton } from "./favorite-button";
+import { ListingMediaImage } from "./listing-media-image";
 import { ListingNavigationLink } from "./listing-navigation";
 
 export function ListingCard({
@@ -39,7 +39,7 @@ export function ListingCard({
         >
           <div className="relative aspect-[4/3] overflow-hidden bg-[var(--surface-alt)]">
             {listing.images[0] ? (
-              <Image
+              <ListingMediaImage
                 src={listing.images[0]}
                 alt={listing.title}
                 fill

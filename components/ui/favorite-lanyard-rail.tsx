@@ -1,8 +1,8 @@
 "use client";
 
-import Image from "next/image";
 import { ChevronLeft, ChevronRight, ImageIcon, MapPin } from "lucide-react";
 import * as React from "react";
+import { ListingMediaImage } from "../listing-media-image";
 import {
   classifyFavoriteRailGesture,
   favoriteRailCarouselIndex,
@@ -155,7 +155,7 @@ const FavoriteBadgeFaces = React.memo(function FavoriteBadgeFaces({
         <span aria-hidden="true" className="absolute inset-x-0 top-0 h-[0.55em] bg-[#7658ec]" />
         <span className="relative mx-[0.7em] mt-[0.8em] block aspect-[4/3] shrink-0 overflow-hidden rounded-[0.45em] bg-[#0a0e15]">
           {item.image ? (
-            <Image
+            <ListingMediaImage
               src={item.image}
               alt=""
               fill

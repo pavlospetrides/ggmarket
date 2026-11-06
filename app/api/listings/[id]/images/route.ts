@@ -1,6 +1,11 @@
 import { NextResponse } from "next/server";
 import { getUser } from "@/lib/auth";
-import { normalizeListingImage } from "@/lib/listing-image-security";
+import { buildListingImagePaths, processListingImage } from "@/lib/listing-media";
+import {
+  ListingMediaStorageError,
+  reconcileListingImageMetadataFailure,
+  uploadListingImageArtifacts,
+} from "@/lib/listing-media-storage";
 import { readLimitedMultipartForm } from "@/lib/security";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
@@ -16,9 +21,10 @@ export async function POST(request: Request, { params }: RouteContext) {
     return NextResponse.json({ error: "Invalid listing." }, { status: 400 });
   }
   const form = await readLimitedMultipartForm(request);
+  const uploadId = form?.get("uploadId");
   const file = form?.get("image");
   const sortOrder = Number(form?.get("sortOrder"));
-  if (!(file instanceof File) || file.size === 0 || file.size > 10_485_760 || !Number.isInteger(sortOrder) || sortOrder < 0 || sortOrder > 7) {
+  if (typeof uploadId !== "string" || !/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(uploadId) || !(file instanceof File) || file.size === 0 || file.size > 10_485_760 || !Number.isInteger(sortOrder) || sortOrder < 0 || sortOrder > 7) {
     return NextResponse.json({ error: "Invalid image upload." }, { status: 400 });
   }
 
@@ -34,28 +40,94 @@ export async function POST(request: Request, { params }: RouteContext) {
     .maybeSingle();
   if (!listing) return NextResponse.json({ error: "Listing not found." }, { status: 404 });
 
+  const imageId = uploadId;
+  const imageSelect = "id,listing_id,storage_path,card_path,detail_path,sort_order,width,height";
+  const { data: existingImage } = await supabase
+    .from("listing_images")
+    .select(imageSelect)
+    .eq("id", imageId)
+    .maybeSingle();
+  if (existingImage) {
+    if (existingImage.listing_id === id && existingImage.sort_order === sortOrder) {
+      return NextResponse.json(existingImage);
+    }
+    return NextResponse.json({ error: "Upload identifier conflict." }, { status: 409 });
+  }
+
   let image;
   try {
-    image = await normalizeListingImage(new Uint8Array(await file.arrayBuffer()));
+    image = await processListingImage(new Uint8Array(await file.arrayBuffer()));
   } catch (error) {
     return NextResponse.json({ error: error instanceof Error ? error.message : "Upload a valid image file." }, { status: 400 });
   }
 
-  const path = `${user.id}/${id}/${crypto.randomUUID()}.${image.extension}`;
-  const upload = await admin.storage.from("listing-images").upload(path, image.bytes, {
-    contentType: image.contentType,
-    upsert: false,
-  });
-  if (upload.error) return NextResponse.json({ error: "The image could not be stored." }, { status: 400 });
+  const paths = buildListingImagePaths(user.id, id, imageId);
+  const bucket = admin.storage.from("listing-images");
+  let createdPaths: string[];
+  try {
+    createdPaths = await uploadListingImageArtifacts(bucket, paths, image);
+  } catch (error) {
+    const cleanupPending = error instanceof ListingMediaStorageError && error.cleanupPending;
+    if (cleanupPending) {
+      console.error("Listing image upload cleanup pending", { listingId: id, imageId, objectCount: 3 });
+    }
+    return NextResponse.json(
+      { error: "The image could not be stored." },
+      { status: cleanupPending ? 503 : 400 },
+    );
+  }
 
   const metadata = await supabase
     .from("listing_images")
-    .insert({ listing_id: id, storage_path: path, sort_order: sortOrder, width: image.width, height: image.height })
-    .select("id,storage_path,sort_order,width,height")
+    .insert({
+      id: imageId,
+      listing_id: id,
+      storage_path: paths.original,
+      card_path: paths.card,
+      detail_path: paths.detail,
+      sort_order: sortOrder,
+      width: image.original.width,
+      height: image.original.height,
+      original_bytes: image.original.byteSize,
+      card_bytes: image.card.byteSize,
+      detail_bytes: image.detail.byteSize,
+      mime_type: image.mimeType,
+      media_version: 2,
+    })
+    .select(imageSelect)
     .single();
   if (metadata.error) {
-    await admin.storage.from("listing-images").remove([path]);
-    return NextResponse.json({ error: "The image could not be attached." }, { status: 400 });
+    // A concurrent request with the same stable upload ID may have completed
+    // after the initial lookup. Never remove artifacts backing its row.
+    const raceLookup = await supabase
+      .from("listing_images")
+      .select(imageSelect)
+      .eq("id", imageId)
+      .maybeSingle();
+    const reconciliation = await reconcileListingImageMetadataFailure(
+      bucket,
+      createdPaths,
+      raceLookup,
+      id,
+      sortOrder,
+    );
+    if (reconciliation.status === "existing") {
+      return NextResponse.json(reconciliation.image);
+    }
+    if (reconciliation.status === "conflict") {
+      return NextResponse.json({ error: "Upload identifier conflict." }, { status: 409 });
+    }
+    if (reconciliation.status === "pending" || reconciliation.cleanupPending) {
+      console.error("Listing image upload cleanup pending", {
+        listingId: id,
+        imageId,
+        objectCount: createdPaths.length,
+      });
+    }
+    return NextResponse.json(
+      { error: "The image could not be attached." },
+      { status: reconciliation.status === "pending" || reconciliation.cleanupPending ? 503 : 400 },
+    );
   }
   return NextResponse.json(metadata.data, { status: 201 });
 }

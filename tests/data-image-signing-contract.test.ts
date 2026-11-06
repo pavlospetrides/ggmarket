@@ -7,6 +7,7 @@ describe("listing image signing", () => {
 
     expect(source).toContain(".createSignedUrls(imagePaths, 3600)");
     expect(source).not.toContain("imagePaths.map(async (path)");
+    expect(source).toContain("selectListingImagesForDelivery(row.images, imagePurpose)");
   });
 });
 

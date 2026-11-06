@@ -5,6 +5,7 @@ import { listingUpdateSchema } from "@/lib/validation";
 import { readJson } from "@/lib/security";
 import { mergeListingAttributes, sanitizeTaxonomyAttributesForWrite, validateTaxonomyAttributes } from "@/lib/gaming-taxonomy";
 import type { ListingAttributes } from "@/lib/types";
+import { listingImageObjectPaths } from "@/lib/listing-media-storage";
 
 type AttributeRule = { type?: "string" | "number" | "boolean" };
 function validAttributes(attributes: ListingAttributes, schema: unknown) {
@@ -68,8 +69,30 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
 }
 
 export async function DELETE(_request: Request, { params }: { params: Promise<{ id: string }> }) {
-  const user = await getUser(); if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 }); const { id } = await params; const supabase = await createClient();
-  const { data: listing } = await supabase!.from("listings").select("id,status,listing_images(storage_path)").eq("id", id).eq("seller_id", user.id).maybeSingle(); if (!listing) return NextResponse.json({ error: "Listing not found." }, { status: 404 });
-  const paths = (listing.listing_images ?? []).map((image: { storage_path: string }) => image.storage_path); if (paths.length) { const { error } = await supabase!.storage.from("listing-images").remove(paths); if (error) return NextResponse.json({ error: "Listing images could not be removed." }, { status: 400 }); }
-  const { error } = await supabase!.from("listings").delete().eq("id", id).eq("seller_id", user.id); if (error) return NextResponse.json({ error: "Listing could not be deleted." }, { status: 400 }); return NextResponse.json({ ok: true });
+  const user = await getUser();
+  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const { id } = await params;
+  const supabase = await createClient();
+  const { createAdminClient } = await import("@/lib/supabase/admin");
+  const admin = createAdminClient();
+  if (!supabase || !admin) return NextResponse.json({ error: "Listing deletion is unavailable." }, { status: 503 });
+  const { data: listing } = await supabase
+    .from("listings")
+    .select("id,status,listing_images(storage_path,card_path,detail_path)")
+    .eq("id", id)
+    .eq("seller_id", user.id)
+    .maybeSingle();
+  if (!listing) return NextResponse.json({ error: "Listing not found." }, { status: 404 });
+  const paths = (listing.listing_images ?? []).flatMap(listingImageObjectPaths);
+
+  const { error } = await supabase.from("listings").delete().eq("id", id).eq("seller_id", user.id);
+  if (error) return NextResponse.json({ error: "Listing could not be deleted." }, { status: 400 });
+  if (paths.length) {
+    const { error: storageError } = await admin.storage.from("listing-images").remove(paths);
+    if (storageError) {
+      console.error("Listing media cleanup pending", { listingId: id, objectCount: paths.length });
+      return NextResponse.json({ ok: true, cleanupPending: true }, { status: 202 });
+    }
+  }
+  return NextResponse.json({ ok: true });
 }

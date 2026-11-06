@@ -54,10 +54,13 @@ test("Sell wizard accepts touch through every step and recovers from a mocked pu
   await expect(page.getByLabel("Product or model")).toHaveValue("PlayStation 5 Slim");
   await next.tap();
 
-  await page.locator('input[type="file"]').setInputFiles([
-    { name: "one.png", mimeType: "image/png", buffer: png },
-    { name: "two.png", mimeType: "image/png", buffer: png },
-  ]);
+  await page.locator('label[for="listing-photos"]').evaluate((dropZone, base64) => {
+    const bytes = Uint8Array.from(atob(base64), (character) => character.charCodeAt(0));
+    const transfer = new DataTransfer();
+    transfer.items.add(new File([bytes], "one.png", { type: "image/png" }));
+    transfer.items.add(new File([bytes], "two.png", { type: "image/png" }));
+    dropZone.dispatchEvent(new DragEvent("drop", { bubbles: true, dataTransfer: transfer }));
+  }, png.toString("base64"));
   await expect(page.getByRole("button", { name: /Remove photo/ })).toHaveCount(2);
   await page.getByRole("button", { name: "Remove photo 1" }).tap();
   await expect(page.getByRole("button", { name: /Remove photo/ })).toHaveCount(1);
@@ -93,6 +96,91 @@ test("Sell wizard accepts touch through every step and recovers from a mocked pu
   await expect(page.locator("p:not(.sr-only)", { hasText: "Test publish unavailable" })).toBeVisible();
   await expect(publish).toBeEnabled();
   await expect(page.locator('[data-loader-size="compact"]')).toHaveCount(0);
+});
+
+test("Sell wizard marks the cover photo and reorders it on touch", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/test-harness/sell", { waitUntil: "domcontentloaded" });
+  await expect(page.locator('form[data-hydrated="true"]')).toBeVisible();
+
+  await page.getByRole("button", { name: "Games", exact: true }).tap();
+  await page.getByLabel("Platform family").selectOption("playstation");
+  await page.getByLabel("Console / Platform").selectOption("ps5");
+  const next = page.getByRole("button", { name: "Next", exact: true });
+  await next.tap();
+  await page.getByLabel("Product or model").fill("Cover order fixture");
+  await next.tap();
+
+  await page.locator('input[type="file"]').setInputFiles([
+    { name: "one.png", mimeType: "image/png", buffer: png },
+    { name: "two.png", mimeType: "image/png", buffer: png },
+  ]);
+  const previews = page.locator('img[alt^="Upload preview"]');
+  const secondSource = await previews.nth(1).getAttribute("src");
+  expect(secondSource).toBeTruthy();
+  await expect(page.getByText("Cover photo", { exact: true })).toHaveCount(1);
+
+  await page.getByRole("button", { name: "Move photo 2 left" }).tap();
+  await expect(previews.first()).toHaveAttribute("src", secondSource!);
+  await expect(page.getByText("Cover photo", { exact: true })).toHaveCount(1);
+});
+
+test("Sell wizard cancels an in-flight photo upload and removes its mocked draft", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  const listingId = "55555555-5555-4555-8555-555555555555";
+  let cleanupRequested = false;
+  let observedUploadId: string | undefined;
+  let releaseUpload!: () => void;
+  const uploadGate = new Promise<void>((resolve) => { releaseUpload = resolve; });
+  await page.route("**/api/listings", (route) => route.fulfill({
+    status: 201,
+    contentType: "application/json",
+    body: JSON.stringify({ id: listingId, status: "draft" }),
+  }));
+  await page.route("**/api/listings/**", async (route) => {
+    const request = route.request();
+    const pathname = new URL(request.url()).pathname;
+    if (pathname === `/api/listings/${listingId}/images`) {
+      observedUploadId = request.postData()?.match(/name="uploadId"\r?\n\r?\n([^\r\n]+)/)?.[1];
+      await uploadGate;
+      await route.fulfill({ status: 201, contentType: "application/json", body: "{}" }).catch(() => undefined);
+      return;
+    }
+    if (pathname === `/api/listings/${listingId}` && request.method() === "DELETE") {
+      cleanupRequested = true;
+      await route.fulfill({ status: 204, body: "" });
+      return;
+    }
+    await route.abort("blockedbyclient");
+  });
+  await page.goto("/test-harness/sell", { waitUntil: "domcontentloaded" });
+  await expect(page.locator('form[data-hydrated="true"]')).toBeVisible();
+
+  await page.getByRole("button", { name: "Games", exact: true }).tap();
+  await page.getByLabel("Platform family").selectOption("playstation");
+  await page.getByLabel("Console / Platform").selectOption("ps5");
+  const next = page.getByRole("button", { name: "Next", exact: true });
+  await next.tap();
+  await page.getByLabel("Product or model").fill("Cancellation fixture");
+  await next.tap();
+  await page.locator('input[type="file"]').setInputFiles({ name: "one.png", mimeType: "image/png", buffer: png });
+  await next.tap();
+  await page.getByLabel("Listing title").fill("Cancelled upload fixture");
+  await page.getByLabel("Description").fill("Safe mocked upload cancellation coverage.");
+  await next.tap();
+  await page.getByLabel(/^Price/).fill("100");
+  await page.getByLabel("Location").fill("Test City");
+  await next.tap();
+
+  await page.getByRole("button", { name: "Publish", exact: true }).tap();
+  const cancel = page.getByRole("button", { name: "Cancel upload" });
+  await expect(cancel).toBeVisible();
+  await cancel.tap();
+  releaseUpload();
+  await expect(page.locator("p:not(.sr-only)", { hasText: "Upload cancelled. The draft and uploaded photos are being removed." })).toBeVisible();
+  await expect.poll(() => cleanupRequested).toBe(true);
+  expect(observedUploadId).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i);
+  await expect(page.getByRole("button", { name: "Publish", exact: true })).toBeEnabled();
 });
 
 test("Sell PC Hardware dependent selectors reset incompatible values on touch", async ({ page }) => {

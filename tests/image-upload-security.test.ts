@@ -26,8 +26,10 @@ describe("trusted listing image uploads", () => {
 
   it("routes uploads through the trusted server boundary", () => {
     const wizard = read("components/sell-wizard.tsx");
+    const upload = read("lib/listing-upload.ts");
     const migration = read("supabase/migrations/202610280001_trusted_listing_image_uploads.sql");
-    expect(wizard).toContain("`/api/listings/${listingId}/images`");
+    expect(wizard).toContain("uploadListingPhoto");
+    expect(upload).toContain("`/api/listings/${listingId}/images`");
     expect(wizard).not.toContain('.storage\n          .from("listing-images")\n          .upload');
     expect(migration).toContain('drop policy if exists "listing images storage own insert"');
     expect(migration).toContain('drop policy if exists "listing images storage own update"');
