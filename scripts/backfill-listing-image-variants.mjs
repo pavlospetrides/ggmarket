@@ -110,6 +110,16 @@ export function formatBackfillLog(status, plan, details = {}) {
   });
 }
 
+export function summarizeBackfillBatch(candidates, plans) {
+  return {
+    inspected: candidates.length,
+    planned: plans.length,
+    applied: 0,
+    failed: 0,
+    nextCursor: candidates.at(-1)?.id ?? null,
+  };
+}
+
 async function loadCandidates(client, options) {
   let query = client
     .from("listing_images")
@@ -176,8 +186,9 @@ export async function runBackfill(options, environment = process.env, output = c
   const client = supabaseModule.createClient(config.url, config.key, {
     auth: { persistSession: false, autoRefreshToken: false },
   });
-  const plans = buildBackfillPlan(await loadCandidates(client, options));
-  const result = { inspected: plans.length, planned: plans.length, applied: 0, failed: 0 };
+  const candidates = await loadCandidates(client, options);
+  const plans = buildBackfillPlan(candidates);
+  const result = summarizeBackfillBatch(candidates, plans);
   const bucket = client.storage.from("listing-images");
   for (const plan of plans) {
     if (!options.apply) {

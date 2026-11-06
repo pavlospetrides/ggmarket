@@ -5,6 +5,7 @@ import {
   buildBackfillPlan,
   formatBackfillLog,
   parseBackfillArgs,
+  summarizeBackfillBatch,
 // @ts-expect-error The production backfill is intentionally a directly executable ESM CLI.
 } from "../scripts/backfill-listing-image-variants.mjs";
 // @ts-expect-error The capacity model is an executable ESM operations script.
@@ -57,6 +58,18 @@ describe("legacy media backfill guards", () => {
     expect(output).toContain(plan.paths.card);
     expect(output).toContain(plan.paths.detail);
     expect(output).not.toMatch(/token=|service.role|secret|supabase\.co\/storage\/v1\/object\/sign/i);
+  });
+
+  it("counts every inspected candidate and exposes the exact resume cursor", () => {
+    const complete = { ...row, card_path: "card.webp", detail_path: "detail.webp" };
+
+    expect(summarizeBackfillBatch([complete], [])).toEqual({
+      inspected: 1,
+      planned: 0,
+      applied: 0,
+      failed: 0,
+      nextCursor: row.id,
+    });
   });
 
   it("offers credential-free help without contacting Supabase", () => {

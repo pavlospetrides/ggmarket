@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getUser } from "@/lib/auth";
 import { buildListingImagePaths, processListingImage } from "@/lib/listing-media";
-import { uploadListingImageArtifacts } from "@/lib/listing-media-storage";
+import { ListingMediaStorageError, uploadListingImageArtifacts } from "@/lib/listing-media-storage";
 import { readLimitedMultipartForm } from "@/lib/security";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
@@ -37,14 +37,18 @@ export async function POST(request: Request, { params }: RouteContext) {
   if (!listing) return NextResponse.json({ error: "Listing not found." }, { status: 404 });
 
   const imageId = uploadId;
+  const imageSelect = "id,listing_id,storage_path,card_path,detail_path,sort_order,width,height";
   const { data: existingImage } = await supabase
     .from("listing_images")
-    .select("id,storage_path,card_path,detail_path,sort_order,width,height")
+    .select(imageSelect)
     .eq("id", imageId)
-    .eq("listing_id", id)
-    .eq("sort_order", sortOrder)
     .maybeSingle();
-  if (existingImage) return NextResponse.json(existingImage);
+  if (existingImage) {
+    if (existingImage.listing_id === id && existingImage.sort_order === sortOrder) {
+      return NextResponse.json(existingImage);
+    }
+    return NextResponse.json({ error: "Upload identifier conflict." }, { status: 409 });
+  }
 
   let image;
   try {
@@ -58,8 +62,15 @@ export async function POST(request: Request, { params }: RouteContext) {
   let createdPaths: string[];
   try {
     createdPaths = await uploadListingImageArtifacts(bucket, paths, image);
-  } catch {
-    return NextResponse.json({ error: "The image could not be stored." }, { status: 400 });
+  } catch (error) {
+    const cleanupPending = error instanceof ListingMediaStorageError && error.cleanupPending;
+    if (cleanupPending) {
+      console.error("Listing image upload cleanup pending", { listingId: id, imageId, objectCount: 3 });
+    }
+    return NextResponse.json(
+      { error: "The image could not be stored." },
+      { status: cleanupPending ? 503 : 400 },
+    );
   }
 
   const metadata = await supabase
@@ -79,11 +90,31 @@ export async function POST(request: Request, { params }: RouteContext) {
       mime_type: image.mimeType,
       media_version: 2,
     })
-    .select("id,storage_path,card_path,detail_path,sort_order,width,height")
+    .select(imageSelect)
     .single();
   if (metadata.error) {
-    await bucket.remove(createdPaths);
-    return NextResponse.json({ error: "The image could not be attached." }, { status: 400 });
+    // A concurrent request with the same stable upload ID may have completed
+    // after the initial lookup. Never remove artifacts backing its row.
+    const { data: racedImage } = await supabase
+      .from("listing_images")
+      .select(imageSelect)
+      .eq("id", imageId)
+      .maybeSingle();
+    if (racedImage?.listing_id === id && racedImage.sort_order === sortOrder) {
+      return NextResponse.json(racedImage);
+    }
+    const cleanup = await bucket.remove(createdPaths);
+    if (cleanup.error) {
+      console.error("Listing image upload cleanup pending", {
+        listingId: id,
+        imageId,
+        objectCount: createdPaths.length,
+      });
+    }
+    return NextResponse.json(
+      { error: "The image could not be attached." },
+      { status: cleanup.error ? 503 : 400 },
+    );
   }
   return NextResponse.json(metadata.data, { status: 201 });
 }

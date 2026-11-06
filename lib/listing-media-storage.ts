@@ -1,11 +1,18 @@
 import type { ProcessedListingImage } from "./listing-media";
 
 type StorageResult = PromiseLike<{ error: unknown | null }>;
+export class ListingMediaStorageError extends Error {
+  constructor(public cleanupPending: boolean) {
+    super("The image variants could not be stored.");
+    this.name = "ListingMediaStorageError";
+  }
+}
+
 export type ListingMediaBucket = {
   upload(
     path: string,
     bytes: Uint8Array,
-    options: { contentType: "image/webp"; cacheControl: string; upsert: false },
+    options: { contentType: "image/webp"; cacheControl: string; upsert: true },
   ): StorageResult;
   remove(paths: string[]): StorageResult;
 };
@@ -37,11 +44,13 @@ export async function uploadListingImageArtifacts(
     const result = await bucket.upload(path, artifact.bytes, {
       contentType: image.mimeType,
       cacheControl: "300",
-      upsert: false,
+      // A stable, owner-scoped upload UUID makes overwriting these exact paths
+      // safe and lets an HTTP retry repair a prior partial upload.
+      upsert: true,
     });
     if (result.error) {
-      if (createdPaths.length) await bucket.remove(createdPaths);
-      throw new Error("The image variants could not be stored.");
+      const cleanup = createdPaths.length ? await bucket.remove(createdPaths) : null;
+      throw new ListingMediaStorageError(Boolean(cleanup?.error));
     }
     createdPaths.push(path);
   }

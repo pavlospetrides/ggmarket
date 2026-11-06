@@ -9,6 +9,41 @@ alter table public.listing_images
   add column if not exists mime_type text check (mime_type is null or mime_type = 'image/webp'),
   add column if not exists media_version smallint not null default 1 check (media_version between 1 and 32767);
 
+-- The owner-write table policy permits sellers to update their own rows. Bind
+-- every recorded object path to the authoritative listing owner, listing row,
+-- and image row before Storage SELECT or privileged cleanup trusts it.
+create or replace function public.validate_listing_image()
+returns trigger language plpgsql security invoker set search_path = '' as $$
+declare
+  image_count integer;
+  image_owner uuid;
+  expected_prefix text;
+begin
+  select seller_id into image_owner from public.listings where id = new.listing_id;
+  if image_owner is null
+    or split_part(new.storage_path, '/', 1) <> image_owner::text
+    or split_part(new.storage_path, '/', 2) <> new.listing_id::text
+  then
+    raise exception 'invalid image ownership path' using errcode = '42501';
+  end if;
+
+  expected_prefix := image_owner::text || '/' || new.listing_id::text || '/' || new.id::text;
+  if (new.card_path is not null and new.card_path <> expected_prefix || '/card.webp')
+    or (new.detail_path is not null and new.detail_path <> expected_prefix || '/detail.webp')
+  then
+    raise exception 'invalid image variant ownership path' using errcode = '42501';
+  end if;
+
+  select count(*) into image_count
+  from public.listing_images
+  where listing_id = new.listing_id and id <> new.id;
+  if image_count >= 8 then
+    raise exception 'a listing can have at most 8 images' using errcode = '23514';
+  end if;
+  return new;
+end; $$;
+revoke all on function public.validate_listing_image() from public, anon, authenticated;
+
 create unique index if not exists listing_images_card_path_uidx
   on public.listing_images(card_path)
   where card_path is not null;

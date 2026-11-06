@@ -106,6 +106,7 @@ Server validation does not trust filename or browser MIME. Sharp must decode an 
 - Bucket remains private; no public derivative bucket.
 - Browser never receives admin credentials and cannot choose Storage paths.
 - Upload route authenticates, validates listing UUID, verifies caller ownership and allowed listing status, derives paths from authenticated user/listing/image IDs, and inserts through the RLS client.
+- The database validation trigger binds every non-null variant to `<authoritative seller>/<listing>/<image row>/card.webp` or `detail.webp`; owner-write RLS cannot authorize or delete a foreign recorded path.
 - Backfill is a separate server-only operator tool with exact project-ref confirmation and no user-controlled paths.
 - Existing rows authorize exact recorded `storage_path`, `card_path`, or `detail_path`; no arbitrary prefix read was added.
 - Signed URLs are generated in one server batch for 3,600 seconds and never persisted or logged.
@@ -153,7 +154,7 @@ This excludes database compute upgrades, VAT/tax, uncached egress categories, lo
 
 Fresh Task 8 evidence on 2026-11-06:
 
-- `npm test`: 84 files and 594 tests passed, including migration/RLS/storage source-contract tests, legacy fallback, private-path authorization, suspended-user checks, route ownership, signed-delivery, upload, and backfill guards.
+- `npm test`: 84 files and 597 tests passed, including migration/RLS/storage source-contract tests, deterministic variant ownership paths, legacy fallback, private-path authorization, suspended-user checks, route ownership, signed-delivery, retry cleanup, upload, and backfill guards.
 - `npm run typecheck`: passed.
 - `npm run lint`: passed with zero warnings after making the listing-media wrapper's required `alt` prop explicit.
 - Task 7 focused media/backfill gate: 32/32 passed; credential-free `--help` and the 10k/50k/100k capacity command passed.
@@ -163,6 +164,7 @@ Fresh Task 8 evidence on 2026-11-06:
 - Full branch secret-pattern scan and `git diff --check`: no credential material or whitespace errors found.
 - `npm run build`: application compilation and TypeScript completed, then homepage prerender stopped because this isolated worktree intentionally has no `NEXT_PUBLIC_SUPABASE_URL` or anon key. No production-like credentials were copied from another worktree. A fully configured production build remains unverified.
 - `security-audit.mjs`, `phase2-security-audit.mjs`, and `image-upload-audit.mjs` each failed closed before connecting because `E2E_ALLOW_MUTATION=1` and an approved local disposable Supabase target were absent. Stateful RLS/Storage behavior and real upload E2E are therefore unavailable, not passed.
+- Fresh code review found one critical path-confusion issue, one important partial-upload cleanup issue, and one minor backfill-count issue. All three were fixed with regression coverage before delivery: exact database-bound variant paths, deterministic retry repair plus sanitized cleanup-pending logs, and candidate-based inspected/resume reporting.
 
 ## 21. Known limitations
 

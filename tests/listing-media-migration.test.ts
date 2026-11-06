@@ -29,6 +29,17 @@ describe("listing image variant migration", () => {
     expect(sql).not.toMatch(/bucket_id\s*=\s*'listing-images'\s*\)\s*;?\s*$/im);
   });
 
+  it("rejects variant metadata that is not the row owner's exact deterministic path", () => {
+    const sql = readFileSync(migrationPath, "utf8");
+
+    expect(sql).toMatch(/create or replace function public\.validate_listing_image\(\)/i);
+    expect(sql).toMatch(/select seller_id into image_owner from public\.listings where id = new\.listing_id/i);
+    expect(sql).toMatch(/expected_prefix := image_owner::text \|\| '\/' \|\| new\.listing_id::text \|\| '\/' \|\| new\.id::text/i);
+    expect(sql).toMatch(/new\.card_path is not null and new\.card_path <> expected_prefix \|\| '\/card\.webp'/i);
+    expect(sql).toMatch(/new\.detail_path is not null and new\.detail_path <> expected_prefix \|\| '\/detail\.webp'/i);
+    expect(sql).toMatch(/raise exception 'invalid image variant ownership path'/i);
+  });
+
   it("does not weaken table RLS or grant broad privileges", () => {
     const sql = readFileSync(migrationPath, "utf8");
 

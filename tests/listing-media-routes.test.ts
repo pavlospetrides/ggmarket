@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it, vi } from "vitest";
 import type { ProcessedListingImage } from "../lib/listing-media";
 import {
+  ListingMediaStorageError,
   listingImageObjectPaths,
   uploadListingImageArtifacts,
 } from "../lib/listing-media-storage";
@@ -35,7 +36,7 @@ describe("trusted listing media storage", () => {
     expect(upload).toHaveBeenNthCalledWith(1, paths.original, processed.original.bytes, {
       contentType: "image/webp",
       cacheControl: "300",
-      upsert: false,
+      upsert: true,
     });
   });
 
@@ -47,6 +48,18 @@ describe("trusted listing media storage", () => {
 
     await expect(uploadListingImageArtifacts({ upload, remove }, paths, processed)).rejects.toThrow("could not be stored");
     expect(remove).toHaveBeenCalledWith([paths.original]);
+  });
+
+  it("surfaces cleanup-pending state so deterministic retry repair is observable", async () => {
+    const upload = vi.fn()
+      .mockResolvedValueOnce({ error: null })
+      .mockResolvedValueOnce({ error: { message: "temporary storage failure" } });
+    const remove = vi.fn(async () => ({ error: { message: "cleanup unavailable" } }));
+
+    const error = await uploadListingImageArtifacts({ upload, remove }, paths, processed).catch((reason) => reason);
+
+    expect(error).toBeInstanceOf(ListingMediaStorageError);
+    expect(error.cleanupPending).toBe(true);
   });
 
   it("deduplicates only database-recorded original and variant paths", () => {
@@ -77,6 +90,7 @@ describe("listing media route contracts", () => {
     expect(upload).toBeGreaterThanOrEqual(0);
     expect(insert).toBeGreaterThan(upload);
     expect(source).toContain("await bucket.remove(createdPaths)");
+    expect(source).toContain("Listing image upload cleanup pending");
   });
 
   it("reuses a validated client upload id before decoding or storing a retry", () => {
@@ -86,8 +100,9 @@ describe("listing media route contracts", () => {
 
     expect(source).toContain('form?.get("uploadId")');
     expect(source).toContain('.eq("id", imageId)');
-    expect(source).toContain('.eq("listing_id", id)');
-    expect(source).toContain('.eq("sort_order", sortOrder)');
+    expect(source).toContain("existingImage.listing_id === id && existingImage.sort_order === sortOrder");
+    expect(source).toContain("Upload identifier conflict.");
+    expect(source).toContain("racedImage");
     expect(retryLookup).toBeGreaterThanOrEqual(0);
     expect(retryLookup).toBeLessThan(processing);
   });
