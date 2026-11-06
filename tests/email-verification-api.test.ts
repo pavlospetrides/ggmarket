@@ -52,7 +52,7 @@ describe("email verification resend API", () => {
       body: JSON.stringify({ email: "member@example.test" }),
     }));
     expect(auth.resend).toHaveBeenCalledWith(expect.objectContaining({
-      options: { emailRedirectTo: "https://ggmarket.eu/auth/confirm-signup" },
+      options: { emailRedirectTo: "https://lootriva.com/auth/confirm-signup" },
     }));
   });
 

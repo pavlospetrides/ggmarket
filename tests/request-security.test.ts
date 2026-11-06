@@ -70,14 +70,14 @@ describe("mutation origin validation", () => {
 
   it("uses the configured production origin instead of client-supplied forwarding headers", () => {
     vi.stubEnv("NODE_ENV", "production");
-    vi.stubEnv("NEXT_PUBLIC_SITE_URL", "https://ggmarket.eu");
+    vi.stubEnv("NEXT_PUBLIC_SITE_URL", "https://lootriva.com");
     const requestHeaders = headers({
       host: "internal:3000",
       "x-forwarded-host": "attacker.vercel.app",
       "x-forwarded-proto": "https",
     });
 
-    expect(getPublicRequestOrigin(requestHeaders, "http:")).toBe("https://ggmarket.eu");
+    expect(getPublicRequestOrigin(requestHeaders, "http:")).toBe("https://lootriva.com");
     expect(isTrustedMutationRequest(new Headers({
       ...Object.fromEntries(requestHeaders.entries()),
       origin: "https://attacker.vercel.app",
@@ -93,14 +93,14 @@ describe("mutation origin validation", () => {
       host: "localhost:3000",
       "x-forwarded-host": "attacker.example",
       "x-forwarded-proto": "http",
-    }), "http:")).toBe("https://ggmarket.eu");
+    }), "http:")).toBe("https://lootriva.com");
   });
 
   it("uses the trusted Vercel deployment origin for preview authentication", () => {
     vi.stubEnv("NODE_ENV", "production");
     vi.stubEnv("VERCEL_ENV", "preview");
     vi.stubEnv("VERCEL_URL", "ggmarket-git-auth-a1b2c3.vercel.app");
-    vi.stubEnv("NEXT_PUBLIC_SITE_URL", "https://ggmarket.eu");
+    vi.stubEnv("NEXT_PUBLIC_SITE_URL", "https://lootriva.com");
 
     expect(getPublicRequestOrigin(headers({
       host: "internal:3000",
@@ -162,12 +162,25 @@ describe("mutation origin validation", () => {
   });
 
   it.each([
-    ["https://www.ggmarket.eu/marketplace?q=gpu", "https://ggmarket.eu/marketplace?q=gpu"],
-    ["https://ggmarket-sage.vercel.app/listing/abc?ref=old", "https://ggmarket.eu/listing/abc?ref=old"],
+    ["https://www.lootriva.com/marketplace?q=gpu", "https://lootriva.com/marketplace?q=gpu"],
+    ["https://ggmarket.eu/marketplace?q=gpu", "https://lootriva.com/marketplace?q=gpu"],
+    ["https://www.ggmarket.eu/profile/player", "https://lootriva.com/profile/player"],
+    ["https://ggmarket-sage.vercel.app/listing/abc?ref=old", "https://lootriva.com/listing/abc?ref=old"],
   ])("redirects legacy public host %s to the canonical host", async (source, expected) => {
     const response = await proxy(new NextRequest(source));
     expect(response.status).toBe(308);
     expect(response.headers.get("location")).toBe(expected);
+  });
+
+  it.each([
+    ["https://ggmarket.eu/auth/recovery?token_hash=private&type=recovery", "https://lootriva.com/forgot-password?status=legacy_link"],
+    ["https://www.ggmarket.eu/auth/confirm-signup?token_hash=private&type=email", "https://lootriva.com/verify-email?status=legacy_link"],
+    ["https://www.lootriva.com/auth/callback?code=private", "https://lootriva.com/login?error=legacy_link"],
+  ])("redirects legacy authentication links without forwarding credentials: %s", async (source, expected) => {
+    const response = await proxy(new NextRequest(source));
+    expect(response.status).toBe(308);
+    expect(response.headers.get("location")).toBe(expected);
+    expect(response.headers.get("location")).not.toContain("private");
   });
 });
 

@@ -70,7 +70,7 @@ describe("Supabase confirmation callback", () => {
     vi.stubEnv("NEXT_PUBLIC_SITE_URL", "http://localhost:3000");
     const { GET } = await import("../app/auth/callback/route");
     const response = await GET(new Request("http://localhost:3000/auth/callback?token_hash=valid&type=email&next=%2Fsettings%2Fverification"));
-    expect(response.headers.get("location")).toBe("https://ggmarket.eu/auth/confirm-signup?token_hash=valid&type=email");
+    expect(response.headers.get("location")).toBe("https://lootriva.com/auth/confirm-signup?token_hash=valid&type=email");
   });
 
   it("preserves password recovery redirects without claiming account verification", async () => {

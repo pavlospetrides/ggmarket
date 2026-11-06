@@ -7,7 +7,7 @@ describe("auth callback URL generation", () => {
   it("pins browser-generated production links to canonical HTTPS", () => {
     vi.stubEnv("NODE_ENV", "production");
     expect(buildAuthCallbackUrl("http://localhost:3000", "/settings/verification"))
-      .toBe("https://ggmarket.eu/auth/callback?next=%2Fsettings%2Fverification");
+      .toBe("https://lootriva.com/auth/callback?next=%2Fsettings%2Fverification");
   });
 
   it("keeps local and LAN callbacks available outside production", () => {
@@ -19,7 +19,7 @@ describe("auth callback URL generation", () => {
   it("marks only initial signup callbacks for the welcome experience", () => {
     vi.stubEnv("NODE_ENV", "production");
     expect(buildAuthCallbackUrl("http://localhost:3000", "/settings/verification", true))
-      .toBe("https://ggmarket.eu/auth/callback?next=%2Fsettings%2Fverification&welcome=1");
+      .toBe("https://lootriva.com/auth/callback?next=%2Fsettings%2Fverification&welcome=1");
   });
 
   it("uses the trusted deployment origin for Vercel previews", () => {
@@ -41,7 +41,7 @@ describe("auth callback URL generation", () => {
   it("uses a dedicated canonical recovery endpoint in production", () => {
     vi.stubEnv("NODE_ENV", "production");
     expect(buildPasswordRecoveryUrl("http://localhost:3000"))
-      .toBe("https://ggmarket.eu/auth/recovery");
+      .toBe("https://lootriva.com/auth/recovery");
   });
 
   it("keeps local recovery endpoints on the requesting origin", () => {
@@ -53,6 +53,6 @@ describe("auth callback URL generation", () => {
   it("uses a distinct canonical signup confirmation endpoint", () => {
     vi.stubEnv("NODE_ENV", "production");
     expect(buildSignupConfirmationUrl("http://localhost:3000"))
-      .toBe("https://ggmarket.eu/auth/confirm-signup");
+      .toBe("https://lootriva.com/auth/confirm-signup");
   });
 });

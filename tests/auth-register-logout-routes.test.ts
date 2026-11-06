@@ -86,7 +86,7 @@ describe("native registration fallback", () => {
 
     expect(auth.signUp).toHaveBeenCalledWith(expect.objectContaining({
       options: expect.objectContaining({
-        emailRedirectTo: "https://ggmarket.eu/auth/confirm-signup",
+        emailRedirectTo: "https://lootriva.com/auth/confirm-signup",
       }),
     }));
   });
@@ -115,7 +115,7 @@ describe("native password-reset fallback", () => {
     await POST(formRequest("auth/forgot-password", { email: "iphone@example.invalid" }, "localhost:3000"));
 
     expect(auth.resetPasswordForEmail).toHaveBeenCalledWith("iphone@example.invalid", {
-      redirectTo: "https://ggmarket.eu/auth/recovery",
+      redirectTo: "https://lootriva.com/auth/recovery",
     });
   });
 });

@@ -1,9 +1,23 @@
-export const CANONICAL_SITE_ORIGIN = "https://ggmarket.eu";
+export const CANONICAL_SITE_ORIGIN = "https://lootriva.com";
 export const LOCAL_SITE_ORIGIN = "http://localhost:3000";
 
 const LEGACY_PUBLIC_HOSTS = new Set([
+  "www.lootriva.com",
+  "ggmarket.eu",
   "www.ggmarket.eu",
   "ggmarket-sage.vercel.app",
+]);
+
+const SENSITIVE_QUERY_KEYS = new Set([
+  "access_token",
+  "authorization_code",
+  "code",
+  "confirmation_token",
+  "provider_refresh_token",
+  "provider_token",
+  "refresh_token",
+  "token",
+  "token_hash",
 ]);
 
 type SiteEnvironment = Readonly<Record<string, string | undefined>>;
@@ -58,5 +72,20 @@ export function buildCanonicalUrl(pathname: string) {
 
 export function getCanonicalRedirectUrl(requestUrl: URL) {
   if (!LEGACY_PUBLIC_HOSTS.has(requestUrl.hostname.toLowerCase())) return null;
-  return new URL(`${requestUrl.pathname}${requestUrl.search}${requestUrl.hash}`, `${CANONICAL_SITE_ORIGIN}/`);
+
+  if (requestUrl.pathname.startsWith("/auth/recovery")) {
+    return new URL("/forgot-password?status=legacy_link", CANONICAL_SITE_ORIGIN);
+  }
+  if (requestUrl.pathname.startsWith("/auth/confirm-signup")) {
+    return new URL("/verify-email?status=legacy_link", CANONICAL_SITE_ORIGIN);
+  }
+  if (
+    requestUrl.pathname.startsWith("/auth/")
+    || requestUrl.hash
+    || [...requestUrl.searchParams.keys()].some((key) => SENSITIVE_QUERY_KEYS.has(key.toLowerCase()))
+  ) {
+    return new URL("/login?error=legacy_link", CANONICAL_SITE_ORIGIN);
+  }
+
+  return new URL(`${requestUrl.pathname}${requestUrl.search}`, `${CANONICAL_SITE_ORIGIN}/`);
 }

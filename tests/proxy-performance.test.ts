@@ -27,7 +27,7 @@ describe("proxy authentication performance", () => {
   });
 
   it("does not contact Supabase Auth for an anonymous public request", async () => {
-    const response = await proxy(new NextRequest("https://ggmarket.eu/marketplace"));
+    const response = await proxy(new NextRequest("https://lootriva.com/marketplace"));
 
     expect(response.status).toBe(200);
     expect(auth.createServerClient).not.toHaveBeenCalled();
@@ -36,7 +36,7 @@ describe("proxy authentication performance", () => {
   });
 
   it("validates an authenticated cookie with claims instead of a user network lookup", async () => {
-    const request = new NextRequest("https://ggmarket.eu/profile", {
+    const request = new NextRequest("https://lootriva.com/profile", {
       headers: { cookie: "sb-project-ref-auth-token=synthetic-session" },
     });
     const response = await proxy(request);
