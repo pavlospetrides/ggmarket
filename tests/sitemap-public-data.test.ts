@@ -101,18 +101,18 @@ describe("category canonical metadata", () => {
   it("resolves complete canonical, Open Graph, and Twitter metadata", () => {
     expect(buildMarketplaceMetadata({ name: "PC Components", slug: "pc-components" })).toMatchObject({
       title: "PC Components marketplace",
-      description: "Browse PC Components listings, trades, and wanted posts on GGMarket.",
+      description: "Browse PC Components listings, trades, and wanted posts on Lootriva.",
       alternates: { canonical: "https://lootriva.com/marketplace?category=pc-components" },
       openGraph: {
         title: "PC Components marketplace",
         url: "https://lootriva.com/marketplace?category=pc-components",
-        siteName: "GGMarket",
-        images: [{ url: "https://lootriva.com/brand/ggmarket-open-graph.png" }],
+        siteName: "Lootriva",
+        images: [{ url: "https://lootriva.com/brand/lootriva-open-graph.png" }],
       },
       twitter: {
         card: "summary_large_image",
         title: "PC Components marketplace",
-        images: ["https://lootriva.com/brand/ggmarket-open-graph.png"],
+        images: ["https://lootriva.com/brand/lootriva-open-graph.png"],
       },
     });
   });

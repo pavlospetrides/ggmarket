@@ -2,10 +2,10 @@ import type { Metadata } from "next";
 import { buildCanonicalUrl } from "./site-url";
 
 export const DEFAULT_SOCIAL_IMAGE = {
-  url: buildCanonicalUrl("/brand/ggmarket-open-graph.png"),
+  url: buildCanonicalUrl("/brand/lootriva-open-graph.png"),
   width: 1200,
   height: 630,
-  alt: "GGMarket — Buy. Sell. Trade. Upgrade.",
+  alt: "Lootriva — Buy. Sell. Trade. Upgrade.",
 };
 
 type SocialMetadataOptions = {
@@ -32,7 +32,7 @@ export function buildSocialMetadata({
     title,
     description,
     url: canonicalUrl,
-    siteName: "GGMarket",
+    siteName: "Lootriva",
     images: openGraphImages,
   };
 
@@ -52,28 +52,28 @@ export function buildSocialMetadata({
 
 export const PUBLIC_PAGE_SOCIAL_METADATA = {
   home: buildSocialMetadata({
-    title: "GGMarket",
+    title: "Lootriva",
     description: "Buy. Sell. Trade. Upgrade.",
     path: "/",
   }),
   browse: buildSocialMetadata({
     title: "Browse gaming gear",
-    description: "Discover fresh gaming gear, popular listings, retro finds, trades, and wanted posts on GGMarket.",
+    description: "Discover fresh gaming gear, popular listings, retro finds, trades, and wanted posts on Lootriva.",
     path: "/browse",
   }),
   marketplace: buildSocialMetadata({
     title: "Gaming marketplace",
-    description: "Browse gaming hardware, consoles, games, accessories, trades, and wanted listings on GGMarket.",
+    description: "Browse gaming hardware, consoles, games, accessories, trades, and wanted listings on Lootriva.",
     path: "/marketplace",
   }),
   privacy: buildSocialMetadata({
     title: "Privacy policy",
-    description: "How GGMarket handles account, marketplace, and session information.",
+    description: "How Lootriva handles account, marketplace, and session information.",
     path: "/privacy",
   }),
   cookies: buildSocialMetadata({
     title: "Cookie policy",
-    description: "How GGMarket uses essential authentication cookies and browser storage.",
+    description: "How Lootriva uses essential authentication cookies and browser storage.",
     path: "/cookies",
   }),
 } satisfies Record<string, Metadata>;
@@ -82,12 +82,12 @@ export function buildMarketplaceMetadata(category: { name: string; slug: string 
   if (!category) {
     return {
       title: "Gaming marketplace",
-      description: "Browse gaming hardware, consoles, games, accessories, trades, and wanted listings on GGMarket.",
+      description: "Browse gaming hardware, consoles, games, accessories, trades, and wanted listings on Lootriva.",
       ...PUBLIC_PAGE_SOCIAL_METADATA.marketplace,
     };
   }
   const title = `${category.name} marketplace`;
-  const description = `Browse ${category.name} listings, trades, and wanted posts on GGMarket.`;
+  const description = `Browse ${category.name} listings, trades, and wanted posts on Lootriva.`;
   return {
     title,
     description,

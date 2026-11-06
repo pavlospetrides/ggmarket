@@ -11,10 +11,10 @@ const identity = { displayName: "Ada Player", username: "ada" };
 const card = { slogan: "Ready player", themeId: "gg-purple" as const, isPublic: false };
 const render = (props: Parameters<typeof GGCardSection>[0]) => renderToStaticMarkup(createElement(GGCardSection, props));
 
-describe("GG Card profile section", () => {
+describe("Lootriva Card profile section", () => {
   it("renders owner view and customization controls with the product description", () => {
     const html = render({ own: true, identity, card });
-    expect(html).toContain("My GG Card");
+    expect(html).toContain("My Lootriva Card");
     expect(html).toContain("Your gaming identity, your style.");
     expect(html).toContain("View My Card");
     expect(html).toContain("Customize Card");
@@ -26,8 +26,8 @@ describe("GG Card profile section", () => {
 
   it("offers a read-only viewer for a public card without owner controls", () => {
     const html = render({ own: false, identity, card: { ...card, isPublic: true } });
-    expect(html).toContain("GG Card");
-    expect(html).toContain("View GG Card");
+    expect(html).toContain("Lootriva Card");
+    expect(html).toContain("View Lootriva Card");
     expect(html).not.toContain("Customize Card");
   });
 

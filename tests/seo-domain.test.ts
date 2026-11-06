@@ -14,11 +14,11 @@ const read = (path: string) => readFileSync(new URL(`../${path}`, import.meta.ur
 
 describe("canonical SEO URLs", () => {
   const publicRoutes = [
-    ["home", "app/page.tsx", "/", "GGMarket", "Buy. Sell. Trade. Upgrade."],
-    ["browse", "app/browse/page.tsx", "/browse", "Browse gaming gear", "Discover fresh gaming gear, popular listings, retro finds, trades, and wanted posts on GGMarket."],
-    ["marketplace", "app/marketplace/page.tsx", "/marketplace", "Gaming marketplace", "Browse gaming hardware, consoles, games, accessories, trades, and wanted listings on GGMarket."],
-    ["privacy", "app/privacy/page.tsx", "/privacy", "Privacy policy", "How GGMarket handles account, marketplace, and session information."],
-    ["cookies", "app/cookies/page.tsx", "/cookies", "Cookie policy", "How GGMarket uses essential authentication cookies and browser storage."],
+    ["home", "app/page.tsx", "/", "Lootriva", "Buy. Sell. Trade. Upgrade."],
+    ["browse", "app/browse/page.tsx", "/browse", "Browse gaming gear", "Discover fresh gaming gear, popular listings, retro finds, trades, and wanted posts on Lootriva."],
+    ["marketplace", "app/marketplace/page.tsx", "/marketplace", "Gaming marketplace", "Browse gaming hardware, consoles, games, accessories, trades, and wanted listings on Lootriva."],
+    ["privacy", "app/privacy/page.tsx", "/privacy", "Privacy policy", "How Lootriva handles account, marketplace, and session information."],
+    ["cookies", "app/cookies/page.tsx", "/cookies", "Cookie policy", "How Lootriva uses essential authentication cookies and browser storage."],
   ] as const;
 
   it.each(publicRoutes)("resolves complete %s canonical and social metadata", (key, file, route, title, description) => {
@@ -30,7 +30,7 @@ describe("canonical SEO URLs", () => {
         description,
         type: "website",
         url: canonicalUrl,
-        siteName: "GGMarket",
+        siteName: "Lootriva",
         images: [DEFAULT_SOCIAL_IMAGE],
       },
       twitter: {
@@ -99,7 +99,7 @@ describe("canonical SEO URLs", () => {
         description: "A synthetic listing description.",
         type: "website",
         url: "https://lootriva.com/listing/listing-id",
-        siteName: "GGMarket",
+        siteName: "Lootriva",
         images: ["https://images.example/listing.webp"],
       },
       twitter: {
@@ -117,7 +117,7 @@ describe("canonical SEO URLs", () => {
       type: "profile",
     }).openGraph).toMatchObject({
       type: "profile",
-      siteName: "GGMarket",
+      siteName: "Lootriva",
       images: ["https://images.example/avatar.webp"],
     });
     expect(read("app/listing/[id]/page.tsx")).toContain("buildSocialMetadata");
