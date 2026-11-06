@@ -154,7 +154,7 @@ This excludes database compute upgrades, VAT/tax, uncached egress categories, lo
 
 Fresh Task 8 evidence on 2026-11-06:
 
-- `npm test`: 84 files and 597 tests passed, including migration/RLS/storage source-contract tests, deterministic variant ownership paths, legacy fallback, private-path authorization, suspended-user checks, route ownership, signed-delivery, retry cleanup, upload, and backfill guards.
+- `npm test`: 84 files and 599 tests passed, including migration/RLS/storage source-contract tests, deterministic variant ownership paths, legacy fallback, private-path authorization, suspended-user checks, route ownership, signed-delivery, fail-closed retry reconciliation, upload, and backfill guards.
 - `npm run typecheck`: passed.
 - `npm run lint`: passed with zero warnings after making the listing-media wrapper's required `alt` prop explicit.
 - Task 7 focused media/backfill gate: 32/32 passed; credential-free `--help` and the 10k/50k/100k capacity command passed.
@@ -165,6 +165,7 @@ Fresh Task 8 evidence on 2026-11-06:
 - `npm run build`: application compilation and TypeScript completed, then homepage prerender stopped because this isolated worktree intentionally has no `NEXT_PUBLIC_SUPABASE_URL` or anon key. No production-like credentials were copied from another worktree. A fully configured production build remains unverified.
 - `security-audit.mjs`, `phase2-security-audit.mjs`, and `image-upload-audit.mjs` each failed closed before connecting because `E2E_ALLOW_MUTATION=1` and an approved local disposable Supabase target were absent. Stateful RLS/Storage behavior and real upload E2E are therefore unavailable, not passed.
 - Fresh code review found one critical path-confusion issue, one important partial-upload cleanup issue, and one minor backfill-count issue. Re-review also caught a same-ID cleanup race. All were fixed with regression coverage before delivery: exact database-bound variant paths, deterministic retry repair without ambiguous deletion, concurrent-winner protection plus sanitized reconciliation logs, and candidate-based inspected/resume reporting.
+- Final independent re-review approved commit `a69e65d` with no remaining Critical, Important, or Minor findings.
 
 ## 21. Known limitations
 
