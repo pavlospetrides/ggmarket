@@ -25,12 +25,10 @@ export async function getPublicSitemapCounts() {
     supabase
       .from("listings")
       .select("id,seller:profiles!listings_seller_id_fkey!inner(id)", { count: "exact", head: true })
-      .eq("status", "active")
-      .is("seller.suspended_at", null),
+      .eq("status", "active"),
     supabase
       .from("profiles")
       .select("id,listings:listings!listings_seller_id_fkey!inner(id)", { count: "exact", head: true })
-      .is("suspended_at", null)
       .eq("listings.status", "active"),
   ]);
   if (listings.error || profiles.error) throw new SitemapDataError("count public sitemap records");
@@ -59,9 +57,8 @@ export async function getPublicListingSitemapRows(page: number): Promise<Listing
   const { start, end } = pageRange(page);
   const { data, error } = await publicClient()
     .from("listings")
-    .select("id,status,published_at,updated_at,seller:profiles!listings_seller_id_fkey!inner(suspended_at)")
+    .select("id,status,published_at,updated_at,seller:profiles!listings_seller_id_fkey!inner(id)")
     .eq("status", "active")
-    .is("seller.suspended_at", null)
     .order("id")
     .range(start, end);
   if (error) throw new SitemapDataError("load public listing sitemap records");
@@ -72,8 +69,7 @@ export async function getPublicProfileSitemapRows(page: number): Promise<Profile
   const { start, end } = pageRange(page);
   const { data, error } = await publicClient()
     .from("profiles")
-    .select("username,suspended_at,updated_at,listings:listings!listings_seller_id_fkey!inner(status,updated_at)")
-    .is("suspended_at", null)
+    .select("username,updated_at,listings:listings!listings_seller_id_fkey!inner(status,updated_at)")
     .eq("listings.status", "active")
     .order("username")
     .range(start, end);

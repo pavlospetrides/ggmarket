@@ -6,7 +6,7 @@ export const SITEMAP_PAGE_SIZE = 1000;
 const STATIC_PUBLIC_ROUTES = ["/", "/browse", "/marketplace", "/privacy", "/cookies"] as const;
 
 export type CategoryRow = { name: string; slug: string; active: boolean };
-type SellerVisibility = { suspended_at: string | null };
+type SellerVisibility = { id: string };
 export type ListingRow = {
   id: string;
   status: string;
@@ -17,7 +17,6 @@ export type ListingRow = {
 type ProfileListingRow = { status: string; updated_at: string };
 export type ProfileRow = {
   username: string;
-  suspended_at: string | null;
   updated_at: string;
   listings: ProfileListingRow[] | ProfileListingRow | null;
 };
@@ -52,7 +51,7 @@ export function buildStaticPublicEntries(): MetadataRoute.Sitemap {
 export function buildPublicListingEntries(rows: ListingRow[]): MetadataRoute.Sitemap {
   return rows.flatMap((row) => {
     const seller = first(row.seller);
-    if (row.status !== "active" || !seller || seller.suspended_at) return [];
+    if (row.status !== "active" || !seller) return [];
     return [{
       url: buildCanonicalUrl(`/listing/${encodeURIComponent(row.id)}`),
       lastModified: new Date(row.updated_at || row.published_at || 0),
@@ -65,7 +64,7 @@ export function buildPublicListingEntries(rows: ListingRow[]): MetadataRoute.Sit
 export function buildPublicProfileEntries(rows: ProfileRow[]): MetadataRoute.Sitemap {
   return rows.flatMap((row) => {
     const activeListings = asArray(row.listings).filter((listing) => listing.status === "active");
-    if (row.suspended_at || !activeListings.length) return [];
+    if (!activeListings.length) return [];
     const lastModified = activeListings.reduce(
       (latest, listing) => listing.updated_at > latest ? listing.updated_at : latest,
       row.updated_at,

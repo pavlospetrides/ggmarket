@@ -25,12 +25,12 @@ describe("public sitemap data", () => {
     }]);
   });
 
-  it("includes only active listings owned by unsuspended sellers", () => {
+  it("includes only active listings with an RLS-visible seller relationship", () => {
     expect(buildPublicListingEntries([
-      { id: "active", status: "active", published_at: "2026-10-01T00:00:00Z", updated_at: "2026-10-03T00:00:00Z", seller: { suspended_at: null } },
-      { id: "draft", status: "draft", published_at: null, updated_at: "2026-10-03T00:00:00Z", seller: { suspended_at: null } },
-      { id: "removed", status: "removed", published_at: "2026-10-01T00:00:00Z", updated_at: "2026-10-03T00:00:00Z", seller: { suspended_at: null } },
-      { id: "suspended", status: "active", published_at: "2026-10-01T00:00:00Z", updated_at: "2026-10-03T00:00:00Z", seller: { suspended_at: "2026-10-02T00:00:00Z" } },
+      { id: "active", status: "active", published_at: "2026-10-01T00:00:00Z", updated_at: "2026-10-03T00:00:00Z", seller: { id: "seller-id" } },
+      { id: "draft", status: "draft", published_at: null, updated_at: "2026-10-03T00:00:00Z", seller: { id: "seller-id" } },
+      { id: "removed", status: "removed", published_at: "2026-10-01T00:00:00Z", updated_at: "2026-10-03T00:00:00Z", seller: { id: "seller-id" } },
+      { id: "hidden-seller", status: "active", published_at: "2026-10-01T00:00:00Z", updated_at: "2026-10-03T00:00:00Z", seller: null },
     ])).toEqual([{
       url: "https://ggmarket.eu/listing/active",
       lastModified: new Date("2026-10-03T00:00:00Z"),
@@ -39,11 +39,10 @@ describe("public sitemap data", () => {
     }]);
   });
 
-  it("includes only unsuspended sellers who have an active listing", () => {
+  it("includes only RLS-visible sellers who have an active listing", () => {
     expect(buildPublicProfileEntries([
-      { username: "public-seller", suspended_at: null, updated_at: "2026-10-02T00:00:00Z", listings: [{ status: "active", updated_at: "2026-10-04T00:00:00Z" }] },
-      { username: "no-public-listings", suspended_at: null, updated_at: "2026-10-02T00:00:00Z", listings: [{ status: "draft", updated_at: "2026-10-04T00:00:00Z" }] },
-      { username: "suspended-seller", suspended_at: "2026-10-03T00:00:00Z", updated_at: "2026-10-02T00:00:00Z", listings: [{ status: "active", updated_at: "2026-10-04T00:00:00Z" }] },
+      { username: "public-seller", updated_at: "2026-10-02T00:00:00Z", listings: [{ status: "active", updated_at: "2026-10-04T00:00:00Z" }] },
+      { username: "no-public-listings", updated_at: "2026-10-02T00:00:00Z", listings: [{ status: "draft", updated_at: "2026-10-04T00:00:00Z" }] },
     ])).toEqual([{
       url: "https://ggmarket.eu/profile/public-seller",
       lastModified: new Date("2026-10-04T00:00:00Z"),
@@ -89,7 +88,7 @@ describe("public sitemap data", () => {
 
   it("renders a valid URL set without leaking fields beyond sitemap metadata", () => {
     const xml = renderUrlSet(buildPublicListingEntries([
-      { id: "listing-id", status: "active", published_at: "2026-10-01T00:00:00Z", updated_at: "2026-10-03T00:00:00Z", seller: { suspended_at: null } },
+      { id: "listing-id", status: "active", published_at: "2026-10-01T00:00:00Z", updated_at: "2026-10-03T00:00:00Z", seller: { id: "seller-id" } },
     ]));
     expect(xml).toContain("<urlset");
     expect(xml).toContain("<loc>https://ggmarket.eu/listing/listing-id</loc>");

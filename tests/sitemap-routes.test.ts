@@ -33,8 +33,8 @@ describe("sitemap routes", () => {
 
   it("serves only public listing URLs and returns 404 for invalid pages", async () => {
     sitemapData.getPublicListingSitemapRows.mockResolvedValueOnce([
-      { id: "public-listing", status: "active", published_at: "2026-10-01T00:00:00Z", updated_at: "2026-10-03T00:00:00Z", seller: { suspended_at: null } },
-      { id: "draft-listing", status: "draft", published_at: null, updated_at: "2026-10-03T00:00:00Z", seller: { suspended_at: null } },
+      { id: "public-listing", status: "active", published_at: "2026-10-01T00:00:00Z", updated_at: "2026-10-03T00:00:00Z", seller: { id: "seller-id" } },
+      { id: "draft-listing", status: "draft", published_at: null, updated_at: "2026-10-03T00:00:00Z", seller: { id: "seller-id" } },
     ]);
     const { GET } = await import("../app/sitemaps/listings/[page]/route");
     const response = await GET(new Request("https://ggmarket.eu/sitemaps/listings/1.xml"), {
@@ -53,8 +53,8 @@ describe("sitemap routes", () => {
 
   it("serves only public seller profile URLs", async () => {
     sitemapData.getPublicProfileSitemapRows.mockResolvedValueOnce([
-      { username: "public-seller", suspended_at: null, updated_at: "2026-10-02T00:00:00Z", listings: [{ status: "active", updated_at: "2026-10-04T00:00:00Z" }] },
-      { username: "private-account", suspended_at: null, updated_at: "2026-10-02T00:00:00Z", listings: [] },
+      { username: "public-seller", updated_at: "2026-10-02T00:00:00Z", listings: [{ status: "active", updated_at: "2026-10-04T00:00:00Z" }] },
+      { username: "private-account", updated_at: "2026-10-02T00:00:00Z", listings: [] },
     ]);
     const { GET } = await import("../app/sitemaps/profiles/[page]/route");
     const response = await GET(new Request("https://ggmarket.eu/sitemaps/profiles/1.xml"), {
