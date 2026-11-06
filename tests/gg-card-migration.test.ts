@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 
 const readMigration = () => readFileSync("supabase/migrations/202610300001_my_gg_card.sql", "utf8");
 
-describe("My GG Card migration security contract", () => {
+describe("Lootriva Card migration security contract", () => {
   it("constrains stored presentation data and enables RLS", () => {
     const sql = readMigration();
     expect(sql).toMatch(/create table public\.gg_cards/i);

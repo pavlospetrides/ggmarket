@@ -570,13 +570,13 @@ export const getProfileByUsername = cache(async function getProfileByUsername(
 
 export async function getOwnGGCard(userId: string): Promise<GGCardConfig> {
   const supabase = await createServerClient();
-  if (!supabase) throw new DataAccessError("load your GG Card");
+  if (!supabase) throw new DataAccessError("load your Lootriva Card");
   const { data, error } = await supabase
     .from("gg_cards")
     .select("slogan,theme_id,is_public")
     .eq("user_id", userId)
     .maybeSingle();
-  if (error) throw new DataAccessError("load your GG Card");
+  if (error) throw new DataAccessError("load your Lootriva Card");
   return mapGGCardRow(data as GGCardRow | null, true)!;
 }
 
