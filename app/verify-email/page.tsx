@@ -16,7 +16,7 @@ const feedback: Record<string, { title: string; message: string }> = {
   },
   invalid: {
     title: "This verification link is invalid",
-    message: "The link is incomplete or does not match a GGMarket confirmation request. Request a new email below.",
+    message: "The link is incomplete or does not match a Lootriva confirmation request. Request a new email below.",
   },
 };
 

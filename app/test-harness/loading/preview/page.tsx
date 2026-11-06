@@ -6,7 +6,7 @@ export default function LoadingPreviewHarnessPage() {
 
   return (
     <section className="container-page min-h-[55svh] py-12" data-ui>
-      <h1 className="text-3xl font-bold">GGMarket loading system</h1>
+      <h1 className="text-3xl font-bold">Lootriva loading system</h1>
       <div className="mt-8 grid gap-4 sm:grid-cols-2">
         <div className="surface-panel flex min-h-48 items-center justify-center p-6">
           <Loader2 label="Standard loader preview" />

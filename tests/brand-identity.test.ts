@@ -61,4 +61,34 @@ describe("Lootriva brand identity", () => {
     expect(read("components/gg-card-experience.tsx")).toContain('title="Lootriva"');
     expect(read("components/gg-card-section.tsx")).toContain("Lootriva Card");
   });
+
+  it("uses Lootriva throughout active customer-facing source and fallback HTML", () => {
+    for (const path of [
+      "app/layout.tsx",
+      "app/page.tsx",
+      "app/browse/page.tsx",
+      "app/privacy/page.tsx",
+      "app/cookies/page.tsx",
+      "app/register/page.tsx",
+      "app/reset-password/page.tsx",
+      "app/verify-email/page.tsx",
+      "app/profile/[username]/page.tsx",
+      "app/settings/verification/page.tsx",
+      "app/api/favorites/route.ts",
+      "app/api/conversations/route.ts",
+      "app/api/conversations/[id]/messages/route.ts",
+      "components/auth-form.tsx",
+      "components/settings-form.tsx",
+      "components/signup-welcome.tsx",
+      "public/dev-diagnostics.js",
+    ]) {
+      expect(read(path), path).not.toMatch(/GGMarket|GG Market/);
+    }
+  });
+
+  it("uses the Lootriva editorial hero path and keeps the source asset available", () => {
+    expect(read("components/art-directed-hero-image.tsx")).toContain("/images/brand/lootriva-hero-desktop.webp");
+    expect(read("app/page.tsx")).toContain("/images/brand/lootriva-hero-desktop.webp");
+    expect(existsSync(new URL("../public/images/brand/lootriva-hero-desktop.webp", import.meta.url))).toBe(true);
+  });
 });

@@ -92,7 +92,7 @@ export async function POST(request: Request) {
       rating: Number(savedResult.data.rating),
       comment: savedResult.data.comment ?? undefined,
       createdAt: savedResult.data.created_at,
-      reviewerName: reviewer?.display_name ?? "GGMarket member",
+      reviewerName: reviewer?.display_name ?? "Lootriva member",
     },
   });
 }

@@ -54,7 +54,7 @@ export default async function HomePage() {
     {viewed.length > 0 && <section className="container-page py-16 md:py-24"><div className="section-heading-row"><div><h2 className="section-title">Recently viewed</h2></div></div><ListingGrid listings={viewed} viewerId={user?.id ?? null} favoriteIds={favoriteIds} navigationContext="home:recently-viewed" /></section>}
 
     <section className="container-page py-16 md:py-24" aria-labelledby="direct-heading">
-      <div className="direct-intro"><h2 id="direct-heading" className="section-title">A clearer way to deal</h2><p>GGMarket keeps the useful signals close and the conversation between players.</p></div>
+      <div className="direct-intro"><h2 id="direct-heading" className="section-title">A clearer way to deal</h2><p>Lootriva keeps the useful signals close and the conversation between players.</p></div>
       <div className="direct-steps">
         <article className="direct-step direct-step-small"><SearchCheck /><h3>Find the right gear</h3><p>Search real listings by category, condition, location, and price.</p></article>
         <article className="direct-step direct-step-medium"><BadgeCheck /><h3>Know the seller</h3><p>Review profiles, item details, delivery options, and available verification.</p></article>
@@ -64,7 +64,7 @@ export default async function HomePage() {
     </section>
 
     <section className="sell-campaign">
-      <Image src="/images/brand/ggmarket-hero-desktop.webp" alt="" fill sizes="100vw" className="sell-campaign-image" />
+      <Image src="/images/brand/lootriva-hero-desktop.webp" alt="" fill sizes="100vw" className="sell-campaign-image" />
       <span className="sell-campaign-shade" aria-hidden="true" />
       <div className="container-page sell-campaign-inner"><h2>Ready for its next setup</h2><p>The next player is looking. Create a clear listing, choose your delivery options, and connect with interested gamers.</p><Link href="/sell" prefetch={false} className="btn-primary">Sell your gear <ArrowRight className="size-4" /></Link></div>
     </section>

@@ -34,7 +34,7 @@ export default async function ResetPasswordPage({ searchParams }: { searchParams
   const status = typeof params.status === "string" ? params.status : "";
   const reason = typeof params.reason === "string" ? params.reason : "";
   if (status === "success") {
-    return <AuthShell title="Password updated" subtitle="Your GGMarket account is secure again."><RecoveryMessage success /></AuthShell>;
+    return <AuthShell title="Password updated" subtitle="Your Lootriva account is secure again."><RecoveryMessage success /></AuthShell>;
   }
   if (["expired_or_used", "invalid", "unavailable"].includes(status)) {
     return <AuthShell title="Reset link unavailable" subtitle="Start again with a fresh one-time link."><RecoveryMessage /></AuthShell>;

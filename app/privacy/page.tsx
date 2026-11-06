@@ -4,7 +4,7 @@ import { PUBLIC_PAGE_SOCIAL_METADATA } from "@/lib/site-metadata";
 
 export const metadata: Metadata = {
   title: "Privacy policy",
-  description: "How GGMarket handles account, marketplace, and session information.",
+  description: "How Lootriva handles account, marketplace, and session information.",
   ...PUBLIC_PAGE_SOCIAL_METADATA.privacy,
 };
 
@@ -12,8 +12,8 @@ export default function PrivacyPolicyPage() {
   return <div className="policy-page container-page">
     <header className="policy-hero">
       <h1>Privacy policy</h1>
-      <p className="policy-status">Privacy at GGMarket</p>
-      <p>This draft describes processing visible in the current GGMarket application. It deliberately leaves legal and business facts unresolved where the repository cannot prove them.</p>
+      <p className="policy-status">Privacy at Lootriva</p>
+      <p>This draft describes processing visible in the current Lootriva application. It deliberately leaves legal and business facts unresolved where the repository cannot prove them.</p>
       <p className="policy-updated">Last updated: 20 October 2026</p>
     </header>
 
@@ -25,8 +25,8 @@ export default function PrivacyPolicyPage() {
       <article className="policy-copy">
         <section>
           <h2>Information used</h2>
-          <p>Depending on the features you choose, GGMarket processes account and profile details, email-verification state, listings and images, favorites and saved searches, recently viewed listings, conversations and messages, offers, trades, notifications, ratings, reports, and verification records.</p>
-          <p>Authentication sessions include encoded access and refresh credentials and related user/session metadata. GGMarket does not intentionally place those credentials in localStorage or IndexedDB.</p>
+          <p>Depending on the features you choose, Lootriva processes account and profile details, email-verification state, listings and images, favorites and saved searches, recently viewed listings, conversations and messages, offers, trades, notifications, ratings, reports, and verification records.</p>
+          <p>Authentication sessions include encoded access and refresh credentials and related user/session metadata. Lootriva does not intentionally place those credentials in localStorage or IndexedDB.</p>
         </section>
 
         <section>
@@ -37,7 +37,7 @@ export default function PrivacyPolicyPage() {
 
         <section>
           <h2>Authentication and storage</h2>
-          <p>GGMarket uses essential first-party Supabase SSR cookies for sign-in persistence, refresh-token rotation, logout, email confirmation, and password recovery. Private authenticated responses are marked not to be stored in shared caches. The service worker caches only the offline page and site icon.</p>
+          <p>Lootriva uses essential first-party Supabase SSR cookies for sign-in persistence, refresh-token rotation, logout, email confirmation, and password recovery. Private authenticated responses are marked not to be stored in shared caches. The service worker caches only the offline page and site icon.</p>
           <p>Read the <Link href="/cookies">Cookie policy</Link> for the exact keys, browser-storage mechanisms, attributes, and technical maximum durations.</p>
         </section>
 
@@ -50,7 +50,7 @@ export default function PrivacyPolicyPage() {
         <section>
           <h2>Retention and security</h2>
           <p>The auth cookie has a technical maximum age of 400 days, but server expiry, rotation, logout, or revocation can end the session sooner. That browser limit is not a business retention schedule for account or marketplace records.</p>
-          <p>GGMarket uses server-side session validation, Supabase row-level security, origin checks for state-changing requests, private response caching rules, and production HTTPS cookie restrictions. No online service can promise absolute security.</p>
+          <p>Lootriva uses server-side session validation, Supabase row-level security, origin checks for state-changing requests, private response caching rules, and production HTTPS cookie restrictions. No online service can promise absolute security.</p>
         </section>
 
         <section>

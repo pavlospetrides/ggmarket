@@ -540,7 +540,7 @@ export const getProfileByUsername = cache(async function getProfileByUsername(
     createdAt: review.created_at,
     reviewerName:
       one(review.reviewer as Related<{ display_name: string }>)?.display_name ??
-      "GGMarket member",
+      "Lootriva member",
     reviewerId: review.reviewer_id,
   }));
   const rawStats =

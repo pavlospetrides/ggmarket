@@ -18,7 +18,7 @@ const geist = Geist({
 
 export const metadata: Metadata = {
   metadataBase: new URL(CANONICAL_SITE_ORIGIN),
-  title: { default: "GGMarket — The marketplace for gamers", template: "%s | GGMarket" },
+  title: { default: "Lootriva — The marketplace for gamers", template: "%s | Lootriva" },
   description: "Buy and sell gaming hardware, games, and gear with gamers near you.",
   openGraph: PUBLIC_PAGE_SOCIAL_METADATA.home.openGraph,
   twitter: PUBLIC_PAGE_SOCIAL_METADATA.home.twitter,

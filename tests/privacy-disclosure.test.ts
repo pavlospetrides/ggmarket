@@ -28,5 +28,8 @@ describe("essential storage disclosure", () => {
     expect(privacy).toContain("legal identity");
     expect(privacy).toContain("retention schedule");
     expect(privacy).toContain("Supabase");
+    expect(privacy).toContain("Lootriva");
+    expect(privacy).not.toContain("GGMarket");
+    expect(read("app/cookies/page.tsx")).not.toContain("GGMarket");
   });
 });

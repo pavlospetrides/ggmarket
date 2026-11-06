@@ -116,7 +116,7 @@ export function SettingsForm({
       <form onSubmit={save} onChange={() => setDirty(true)} id="profile" className="surface-panel p-6 sm:p-8" aria-busy={saving}>
         <h2 className="text-xl font-bold">Profile information</h2>
         <p className="mt-1 text-sm text-[var(--muted)]">
-          How other gamers see you on GGMarket.
+          How other gamers see you on Lootriva.
         </p>
         <div className="mt-6 grid gap-5 sm:grid-cols-2">
           <div>

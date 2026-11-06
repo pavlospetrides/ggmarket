@@ -205,7 +205,7 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
             : "Create account"}
       </button>
       <p className="text-center text-sm text-[var(--muted)]">
-        {mode === "login" ? "New to GGMarket?" : "Already have an account?"}{" "}
+        {mode === "login" ? "New to Lootriva?" : "Already have an account?"}{" "}
         <Link
           className="font-bold text-[#aa98ff]"
           href={alternateAuthHref}
