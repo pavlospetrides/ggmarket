@@ -1,7 +1,11 @@
 import { NextResponse } from "next/server";
 import { getUser } from "@/lib/auth";
 import { buildListingImagePaths, processListingImage } from "@/lib/listing-media";
-import { ListingMediaStorageError, uploadListingImageArtifacts } from "@/lib/listing-media-storage";
+import {
+  ListingMediaStorageError,
+  reconcileListingImageMetadataFailure,
+  uploadListingImageArtifacts,
+} from "@/lib/listing-media-storage";
 import { readLimitedMultipartForm } from "@/lib/security";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
@@ -95,16 +99,22 @@ export async function POST(request: Request, { params }: RouteContext) {
   if (metadata.error) {
     // A concurrent request with the same stable upload ID may have completed
     // after the initial lookup. Never remove artifacts backing its row.
-    const { data: racedImage } = await supabase
+    const raceLookup = await supabase
       .from("listing_images")
       .select(imageSelect)
       .eq("id", imageId)
       .maybeSingle();
-    if (racedImage?.listing_id === id && racedImage.sort_order === sortOrder) {
-      return NextResponse.json(racedImage);
+    const reconciliation = await reconcileListingImageMetadataFailure(
+      bucket,
+      createdPaths,
+      raceLookup,
+      id,
+      sortOrder,
+    );
+    if (reconciliation.status === "existing") {
+      return NextResponse.json(reconciliation.image);
     }
-    const cleanup = await bucket.remove(createdPaths);
-    if (cleanup.error) {
+    if (reconciliation.status === "pending" || reconciliation.cleanupPending) {
       console.error("Listing image upload cleanup pending", {
         listingId: id,
         imageId,
@@ -113,7 +123,7 @@ export async function POST(request: Request, { params }: RouteContext) {
     }
     return NextResponse.json(
       { error: "The image could not be attached." },
-      { status: cleanup.error ? 503 : 400 },
+      { status: reconciliation.status === "pending" || reconciliation.cleanupPending ? 503 : 400 },
     );
   }
   return NextResponse.json(metadata.data, { status: 201 });

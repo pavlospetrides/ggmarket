@@ -29,6 +29,27 @@ export function listingImageObjectPaths(row: ImagePathRow): string[] {
   ))];
 }
 
+export async function reconcileListingImageMetadataFailure<
+  T extends { listing_id: string; sort_order: number },
+>(
+  bucket: ListingMediaBucket,
+  paths: string[],
+  lookup: { data: T | null; error: unknown | null },
+  listingId: string,
+  sortOrder: number,
+): Promise<
+  | { status: "pending" }
+  | { status: "existing"; image: T }
+  | { status: "removed"; cleanupPending: boolean }
+> {
+  if (lookup.error) return { status: "pending" };
+  if (lookup.data?.listing_id === listingId && lookup.data.sort_order === sortOrder) {
+    return { status: "existing", image: lookup.data };
+  }
+  const cleanup = await bucket.remove(paths);
+  return { status: "removed", cleanupPending: Boolean(cleanup.error) };
+}
+
 export async function uploadListingImageArtifacts(
   bucket: ListingMediaBucket,
   paths: { original: string; detail: string; card: string },

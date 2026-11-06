@@ -141,6 +141,7 @@ Stop the CLI. The application already falls back to `storage_path`. Leave popula
 - Storage succeeds but metadata fails: the route removes only paths created by that attempt.
 - A stable owner/listing/image upload UUID permits server-side upsert only at those deterministic derivative paths, so an explicit 5xx retry can repair a partial attempt without choosing arbitrary objects.
 - If any artifact upload result is ambiguous, the route does not delete deterministic paths that a concurrent same-ID request may own. It returns 503 and logs only listing/image IDs plus object count; the stable retry repairs those private paths. Use the IDs to reconstruct and reconcile them if retries are exhausted.
+- If metadata insertion fails, cleanup runs only after a successful same-ID lookup conclusively finds no concurrent winner. A lookup error fails closed with 503 and leaves deterministic private paths for retry/reconciliation.
 - Metadata deletion succeeds but Storage cleanup fails: the API returns 202 and leaves an inaccessible orphan for later exact-path cleanup.
 
 ### Signed URL or revocation issue

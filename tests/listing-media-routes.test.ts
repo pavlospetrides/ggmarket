@@ -4,6 +4,7 @@ import type { ProcessedListingImage } from "../lib/listing-media";
 import {
   ListingMediaStorageError,
   listingImageObjectPaths,
+  reconcileListingImageMetadataFailure,
   uploadListingImageArtifacts,
 } from "../lib/listing-media-storage";
 
@@ -64,6 +65,21 @@ describe("trusted listing media storage", () => {
     expect(remove).not.toHaveBeenCalled();
   });
 
+  it("never removes artifacts when the concurrent-winner lookup is unavailable", async () => {
+    const remove = vi.fn(async () => ({ error: null }));
+
+    const result = await reconcileListingImageMetadataFailure(
+      { upload: vi.fn(), remove },
+      Object.values(paths),
+      { data: null, error: { message: "lookup unavailable" } },
+      "listing-id",
+      0,
+    );
+
+    expect(result).toEqual({ status: "pending" });
+    expect(remove).not.toHaveBeenCalled();
+  });
+
   it("deduplicates only database-recorded original and variant paths", () => {
     expect(listingImageObjectPaths({
       storage_path: "a/original.webp",
@@ -91,7 +107,7 @@ describe("listing media route contracts", () => {
     expect(source).toContain("media_version: 2");
     expect(upload).toBeGreaterThanOrEqual(0);
     expect(insert).toBeGreaterThan(upload);
-    expect(source).toContain("await bucket.remove(createdPaths)");
+    expect(source).toContain("reconcileListingImageMetadataFailure(");
     expect(source).toContain("Listing image upload cleanup pending");
   });
 
@@ -104,7 +120,7 @@ describe("listing media route contracts", () => {
     expect(source).toContain('.eq("id", imageId)');
     expect(source).toContain("existingImage.listing_id === id && existingImage.sort_order === sortOrder");
     expect(source).toContain("Upload identifier conflict.");
-    expect(source).toContain("racedImage");
+    expect(source).toContain("raceLookup");
     expect(retryLookup).toBeGreaterThanOrEqual(0);
     expect(retryLookup).toBeLessThan(processing);
   });
