@@ -6,11 +6,12 @@ describe("Confirm Signup email template", () => {
     const html = await readFile(new URL("../docs/auth/confirm-signup-email.html", import.meta.url), "utf8");
 
     expect(html).toMatch(/<a\s[^>]*href=/i);
-    expect(html).toContain("https://ggmarket.eu/auth/confirm-signup?token_hash={{ .TokenHash }}");
+    expect(html).toContain("https://lootriva.com/auth/confirm-signup?token_hash={{ .TokenHash }}");
     expect(html).toContain("&amp;type=email");
     expect(html).not.toContain("ConfirmationURL");
     expect(html).not.toContain("RedirectTo");
     expect(html).not.toContain("localhost");
+    expect(html).toContain("Verify your Lootriva email");
   });
 
   it("keeps the disposable local Supabase template aligned", async () => {
@@ -19,7 +20,9 @@ describe("Confirm Signup email template", () => {
     expect(config).toContain('"http://localhost:3000/auth/confirm-signup"');
     expect(config).toMatch(/\[auth\.email\][\s\S]*?enable_confirmations = true/);
     expect(config).toContain("[auth.email.template.confirmation]");
+    expect(config).toContain('subject = "Verify your Lootriva email"');
     expect(html).toContain("http://localhost:3000/auth/confirm-signup?token_hash={{ .TokenHash }}");
     expect(html).toContain("&amp;type=email");
+    expect(html).toContain("Lootriva");
   });
 });

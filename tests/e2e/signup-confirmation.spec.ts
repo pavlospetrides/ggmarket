@@ -18,7 +18,7 @@ test("external email navigation stops at explicit signup confirmation", async ({
   await expect(page.getByRole("heading", { name: "Confirm your email" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Verify email and continue" })).toBeVisible();
   expect(page.url()).not.toContain(tokenHash);
-  const pending = (await context.cookies()).find((cookie) => cookie.name === "ggmarket-signup-confirmation-pending");
+  const pending = (await context.cookies()).find((cookie) => cookie.name === "lootriva-signup-confirmation-pending");
   expect(pending?.httpOnly).toBe(true);
 });
 

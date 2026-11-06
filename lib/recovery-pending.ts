@@ -1,4 +1,4 @@
-export const PENDING_RECOVERY_COOKIE = "ggmarket-recovery-pending";
+export const PENDING_RECOVERY_COOKIE = "lootriva-recovery-pending";
 
 export function isValidRecoveryTokenHash(value: string | null | undefined): value is string {
   return Boolean(value && /^[A-Za-z0-9_-]{32,512}$/.test(value));

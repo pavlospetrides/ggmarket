@@ -30,7 +30,7 @@ test("an external email origin reaches an actionable clean recovery landing", as
   await expect(page.getByRole("heading", { name: "Continue password reset" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Continue to create new password" })).toBeVisible();
   expect(page.url()).not.toContain(tokenHash);
-  const pending = (await context.cookies()).find((cookie) => cookie.name === "ggmarket-recovery-pending");
+  const pending = (await context.cookies()).find((cookie) => cookie.name === "lootriva-recovery-pending");
   expect(pending?.httpOnly).toBe(true);
 });
 

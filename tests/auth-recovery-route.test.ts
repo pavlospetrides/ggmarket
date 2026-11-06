@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const TOKEN_HASH = "a".repeat(64);
-const PENDING_COOKIE = "ggmarket-recovery-pending";
+const PENDING_COOKIE = "lootriva-recovery-pending";
 
 const mocks = vi.hoisted(() => ({
   auth: { verifyOtp: vi.fn(), signOut: vi.fn() },
