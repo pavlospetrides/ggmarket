@@ -49,8 +49,10 @@ export async function uploadListingImageArtifacts(
       upsert: true,
     });
     if (result.error) {
-      const cleanup = createdPaths.length ? await bucket.remove(createdPaths) : null;
-      throw new ListingMediaStorageError(Boolean(cleanup?.error));
+      // Storage error outcomes are ambiguous and another same-ID request may
+      // already own an upserted path. Never delete here; the stable retry can
+      // safely repair these private deterministic objects.
+      throw new ListingMediaStorageError(true);
     }
     createdPaths.push(path);
   }

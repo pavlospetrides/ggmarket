@@ -40,26 +40,28 @@ describe("trusted listing media storage", () => {
     });
   });
 
-  it("removes only artifacts created by the failed upload attempt", async () => {
+  it("keeps deterministic partial artifacts for retry instead of deleting a concurrent winner", async () => {
     const upload = vi.fn()
       .mockResolvedValueOnce({ error: null })
       .mockResolvedValueOnce({ error: { message: "temporary storage failure" } });
     const remove = vi.fn(async () => ({ error: null }));
 
-    await expect(uploadListingImageArtifacts({ upload, remove }, paths, processed)).rejects.toThrow("could not be stored");
-    expect(remove).toHaveBeenCalledWith([paths.original]);
+    const error = await uploadListingImageArtifacts({ upload, remove }, paths, processed).catch((reason) => reason);
+
+    expect(error).toBeInstanceOf(ListingMediaStorageError);
+    expect(error.cleanupPending).toBe(true);
+    expect(remove).not.toHaveBeenCalled();
   });
 
-  it("surfaces cleanup-pending state so deterministic retry repair is observable", async () => {
-    const upload = vi.fn()
-      .mockResolvedValueOnce({ error: null })
-      .mockResolvedValueOnce({ error: { message: "temporary storage failure" } });
-    const remove = vi.fn(async () => ({ error: { message: "cleanup unavailable" } }));
+  it("treats the first failed upload result as ambiguous and repairable", async () => {
+    const upload = vi.fn().mockResolvedValueOnce({ error: { message: "ambiguous storage failure" } });
+    const remove = vi.fn(async () => ({ error: null }));
 
     const error = await uploadListingImageArtifacts({ upload, remove }, paths, processed).catch((reason) => reason);
 
     expect(error).toBeInstanceOf(ListingMediaStorageError);
     expect(error.cleanupPending).toBe(true);
+    expect(remove).not.toHaveBeenCalled();
   });
 
   it("deduplicates only database-recorded original and variant paths", () => {

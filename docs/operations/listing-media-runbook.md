@@ -140,7 +140,7 @@ Stop the CLI. The application already falls back to `storage_path`. Leave popula
 - Network interruption: outcome is ambiguous, so the client does not replay automatically; it triggers deterministic draft cleanup.
 - Storage succeeds but metadata fails: the route removes only paths created by that attempt.
 - A stable owner/listing/image upload UUID permits server-side upsert only at those deterministic derivative paths, so an explicit 5xx retry can repair a partial attempt without choosing arbitrary objects.
-- If partial cleanup fails, the route returns 503 and logs only listing/image IDs plus object count; use those IDs to reconstruct and reconcile the exact deterministic paths before closing the incident.
+- If any artifact upload result is ambiguous, the route does not delete deterministic paths that a concurrent same-ID request may own. It returns 503 and logs only listing/image IDs plus object count; the stable retry repairs those private paths. Use the IDs to reconstruct and reconcile them if retries are exhausted.
 - Metadata deletion succeeds but Storage cleanup fails: the API returns 202 and leaves an inaccessible orphan for later exact-path cleanup.
 
 ### Signed URL or revocation issue
