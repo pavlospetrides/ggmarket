@@ -47,9 +47,9 @@ export function NotificationAwarenessHarness({ initiallyActive }: { initiallyAct
       if (result.toast) setToastTitle(result.toast.title);
       if (result.unreadDelta) setUnread((count) => Math.max(0, count + result.unreadDelta));
     };
-    window.addEventListener("ggmarket:test-notification", receive);
+    window.addEventListener("lootriva:test-notification", receive);
     if (readyRef.current) readyRef.current.textContent = "ready";
-    return () => window.removeEventListener("ggmarket:test-notification", receive);
+    return () => window.removeEventListener("lootriva:test-notification", receive);
   }, [registry]);
 
   return <section className="mx-auto max-w-xl space-y-4 p-6" aria-label="Notification awareness harness">

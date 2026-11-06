@@ -25,17 +25,17 @@ describe("auth callback URL generation", () => {
   it("uses the trusted deployment origin for Vercel previews", () => {
     vi.stubEnv("NODE_ENV", "production");
     vi.stubEnv("VERCEL_ENV", "preview");
-    vi.stubEnv("VERCEL_URL", "ggmarket-git-auth-a1b2c3.vercel.app");
+    vi.stubEnv("VERCEL_URL", "lootriva-git-auth-a1b2c3.vercel.app");
     expect(buildAuthCallbackUrl("http://localhost:3000", "/settings/verification"))
-      .toBe("https://ggmarket-git-auth-a1b2c3.vercel.app/auth/callback?next=%2Fsettings%2Fverification");
+      .toBe("https://lootriva-git-auth-a1b2c3.vercel.app/auth/callback?next=%2Fsettings%2Fverification");
   });
 
   it("uses the browser's HTTPS Vercel preview origin when server-only Vercel variables are unavailable", () => {
     vi.stubEnv("NODE_ENV", "production");
     expect(buildAuthCallbackUrl(
-      "https://ggmarket-git-browser-a1b2c3.vercel.app/register",
+      "https://lootriva-git-browser-a1b2c3.vercel.app/register",
       "/settings/verification",
-    )).toBe("https://ggmarket-git-browser-a1b2c3.vercel.app/auth/callback?next=%2Fsettings%2Fverification");
+    )).toBe("https://lootriva-git-browser-a1b2c3.vercel.app/auth/callback?next=%2Fsettings%2Fverification");
   });
 
   it("uses a dedicated canonical recovery endpoint in production", () => {

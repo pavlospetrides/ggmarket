@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Source-aware SQLMap orchestration for GGMarket.
+"""Source-aware SQLMap orchestration for Lootriva.
 
 Production smoke mode deliberately uses bounded native GET probes, not SQLMap.
 This makes its request budget and method restrictions enforceable.
@@ -165,7 +165,7 @@ def _default_executor(command, timeout):
 
 
 def _default_transport(url, timeout):
-    request = urllib.request.Request(url, headers={"Accept-Encoding": "identity", "User-Agent": "GGMarket-Security-Smoke/1.0"})
+    request = urllib.request.Request(url, headers={"Accept-Encoding": "identity", "User-Agent": "Lootriva-Security-Smoke/1.0"})
     try:
         with urllib.request.urlopen(request, timeout=timeout) as response:
             return response.status, dict(response.headers), response.read(262144), response.geturl()
@@ -313,7 +313,7 @@ def write_reports(results, inventory, reports_dir, secrets=()):
             writer.writerow([item["id"], item["method"], item["route"], ";".join(item.get("parameters", [])),
                              item["status"], item.get("detail", ""), ";".join(item.get("sources", []))])
     md_path = directory / "SECURITY_REPORT.md"
-    lines = ["# GGMarket SQL Injection Security Report", "", "## Scope and conclusion", "",
+    lines = ["# Lootriva SQL Injection Security Report", "", "## Scope and conclusion", "",
              f"- Database-connected entry points inventoried: **{discovered}**",
              f"- Locally automatable targets: **{testable}**",
              f"- User-controlled parameter groups inventoried: **{total_parameters}**",

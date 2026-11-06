@@ -295,11 +295,11 @@ export function ChatInterface({
           signal: abortController.signal,
         });
         if (!response.ok) throw new Error("Messages could not be marked as read.");
-        window.dispatchEvent(new Event("ggmarket:notifications-changed"));
+        window.dispatchEvent(new Event("lootriva:notifications-changed"));
       } catch {
         if (!abortController.signal.aborted && scopeRef.current === effectScope) {
           setError("Messages could not be marked as read.");
-          window.dispatchEvent(new Event("ggmarket:notifications-changed"));
+          window.dispatchEvent(new Event("lootriva:notifications-changed"));
         }
       }
     }

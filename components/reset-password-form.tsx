@@ -56,7 +56,7 @@ export function ResetPasswordForm({ initialError = "", initialErrorField = "form
         setErrorField(result.field ?? "form");
         return;
       }
-      window.dispatchEvent(new Event("ggmarket:auth-changed"));
+      window.dispatchEvent(new Event("lootriva:auth-changed"));
       setSuccess(true);
     } catch {
       setError("Your password could not be updated. Check your connection and try again.");

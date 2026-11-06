@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-test_root="$HOME/.cache/ggmarket-webkit-test"
+test_root="$HOME/.cache/lootriva-webkit-test"
 node_root="$HOME/.cache/node-v22.22.0-linux-x64"
-deps_root="$HOME/.cache/ggmarket-webkit-deps"
-debs_root="$HOME/.cache/ggmarket-webkit-debs"
+deps_root="$HOME/.cache/lootriva-webkit-deps"
+debs_root="$HOME/.cache/lootriva-webkit-debs"
 
 export PATH="$node_root/bin:/usr/bin:/bin"
 mkdir -p "$deps_root" "$debs_root"

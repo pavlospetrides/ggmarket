@@ -26,9 +26,9 @@ describe("application URL configuration", () => {
     expect(getApplicationOrigin("http://localhost:3000", {
       NODE_ENV: "production",
       VERCEL_ENV: "preview",
-      VERCEL_URL: "ggmarket-git-domain-a1b2c3.vercel.app",
+      VERCEL_URL: "lootriva-git-domain-a1b2c3.vercel.app",
       NEXT_PUBLIC_SITE_URL: "https://lootriva.com",
-    })).toBe("https://ggmarket-git-domain-a1b2c3.vercel.app");
+    })).toBe("https://lootriva-git-domain-a1b2c3.vercel.app");
 
     expect(getApplicationOrigin("https://preview.example", {
       NODE_ENV: "production",
@@ -57,7 +57,7 @@ describe("canonical host redirects", () => {
 
   it.each([
     "https://lootriva.com/marketplace",
-    "https://ggmarket-git-feature-a1b2c3.vercel.app/marketplace",
+    "https://lootriva-git-feature-a1b2c3.vercel.app/marketplace",
     "http://localhost:3000/marketplace",
   ])("does not redirect canonical, preview, or local traffic: %s", (source) => {
     expect(getCanonicalRedirectUrl(new URL(source))).toBeNull();

@@ -7,7 +7,7 @@
   var appCachePrefixes = ["lootriva-shell-", "ggmarket-shell-"];
 
   function reloadOnce() {
-    if (document.documentElement && document.documentElement.dataset.ggHydrated === "true") return;
+    if (document.documentElement && document.documentElement.dataset.lootrivaHydrated === "true") return;
     try {
       if (sessionStorage.getItem(recoveryKey)) return;
       sessionStorage.setItem(recoveryKey, "1");

@@ -26,12 +26,12 @@ const listingId = "11111111-1111-4111-8111-111111111111";
 const conversationId = "22222222-2222-4222-8222-222222222222";
 
 function jsonRequest(body: unknown = { listingId }) {
-  return new Request("https://ggmarket.test/api/conversations", {
+  return new Request("https://lootriva.test/api/conversations", {
     method: "POST",
     headers: {
       "content-type": "application/json",
-      host: "ggmarket.test",
-      origin: "https://ggmarket.test",
+      host: "lootriva.test",
+      origin: "https://lootriva.test",
       "sec-fetch-site": "same-origin",
     },
     body: JSON.stringify(body),
@@ -39,13 +39,13 @@ function jsonRequest(body: unknown = { listingId }) {
 }
 
 function formRequest() {
-  return new Request("https://ggmarket.test/api/conversations", {
+  return new Request("https://lootriva.test/api/conversations", {
     method: "POST",
     headers: {
       "content-type": "application/x-www-form-urlencoded",
-      host: "ggmarket.test",
-      origin: "https://ggmarket.test",
-      referer: `https://ggmarket.test/listing/${listingId}`,
+      host: "lootriva.test",
+      origin: "https://lootriva.test",
+      referer: `https://lootriva.test/listing/${listingId}`,
       "sec-fetch-site": "same-origin",
     },
     body: new URLSearchParams({ listingId }),
@@ -85,7 +85,7 @@ describe("conversation start API", () => {
 
     expect(response.status).toBe(303);
     expect(response.headers.get("location")).toBe(
-      `https://ggmarket.test/login?next=%2Flisting%2F${listingId}`,
+      `https://lootriva.test/login?next=%2Flisting%2F${listingId}`,
     );
     expect(state.rpcCalls).toEqual([]);
   });
@@ -105,7 +105,7 @@ describe("conversation start API", () => {
 
     expect(response.status).toBe(303);
     expect(response.headers.get("location")).toBe(
-      `https://ggmarket.test/messages/${conversationId}`,
+      `https://lootriva.test/messages/${conversationId}`,
     );
   });
 

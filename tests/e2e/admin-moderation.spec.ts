@@ -43,7 +43,7 @@ test.beforeAll(async () => {
   if (elevated.error) throw elevated.error;
 
   const createdReporter = await admin.auth.admin.createUser({
-    email: `ggmarket.moderation.reporter.${stamp}@example.invalid`,
+    email: `lootriva.moderation.reporter.${stamp}@example.invalid`,
     password,
     email_confirm: true,
     user_metadata: { username: `audit_reporter_${String(stamp).slice(-7)}`, display_name: "Audit Reporter" },

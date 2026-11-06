@@ -5,7 +5,7 @@ test.use({ hasTouch: true, viewport: { width: 390, height: 844 } });
 test("opt-in device diagnostics report hydration and control taps without exposing field values", async ({ page }) => {
   await page.goto("/test-harness/password?ggdebug=1", { waitUntil: "domcontentloaded" });
 
-  const diagnostics = page.getByRole("status", { name: "GGMarket device diagnostics" });
+  const diagnostics = page.getByRole("status", { name: "Lootriva device diagnostics" });
   await expect(diagnostics).toBeVisible();
   await expect(diagnostics).toContainText("Hydration: ready", { timeout: 5_000 });
 
@@ -22,7 +22,7 @@ test("opt-in device diagnostics report hydration and control taps without exposi
 
 test("device diagnostics stay absent unless explicitly requested", async ({ page }) => {
   await page.goto("/test-harness/password", { waitUntil: "domcontentloaded" });
-  await expect(page.getByRole("status", { name: "GGMarket device diagnostics" })).toHaveCount(0);
+  await expect(page.getByRole("status", { name: "Lootriva device diagnostics" })).toHaveCount(0);
 });
 
 test("device diagnostics still render and report disabled controls when a Next client asset fails", async ({ page }) => {
@@ -37,7 +37,7 @@ test("device diagnostics still render and report disabled controls when a Next c
   });
   await page.goto("/test-harness/sell?ggdebug=1", { waitUntil: "domcontentloaded" });
 
-  const diagnostics = page.getByRole("status", { name: "GGMarket device diagnostics" });
+  const diagnostics = page.getByRole("status", { name: "Lootriva device diagnostics" });
   await expect(diagnostics).toBeVisible();
   await expect(diagnostics).toContainText(/Next assets failed: [1-9]/);
   await expect(diagnostics).toContainText(/Marked controls enabled: 0\/[1-9]\d*/);

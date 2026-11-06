@@ -1,4 +1,5 @@
-const STORAGE_KEY = "ggmarket:listing-navigation:v1";
+const STORAGE_KEY = "lootriva:listing-navigation:v1";
+const LEGACY_STORAGE_KEY = "ggmarket:listing-navigation:v1";
 const STORAGE_VERSION = 1;
 const ENTRY_TTL_MS = 30 * 60 * 1_000;
 const MAX_HISTORY_ENTRIES = 32;
@@ -50,8 +51,8 @@ const emptyState = (): StoredState => ({
 function internalUrl(value: string) {
   if (!value.startsWith("/") || value.startsWith("//") || value.includes("\\")) return null;
   try {
-    const parsed = new URL(value, "https://ggmarket.local");
-    if (parsed.origin !== "https://ggmarket.local") return null;
+    const parsed = new URL(value, "https://lootriva.local");
+    if (parsed.origin !== "https://lootriva.local") return null;
     return `${parsed.pathname}${parsed.search}${parsed.hash}`;
   } catch {
     return null;
@@ -95,18 +96,25 @@ function isSnapshot(value: unknown): value is ListingBrowsingSnapshot {
 
 function readState(storage: ListingNavigationStorage) {
   try {
-    const raw = storage.getItem(STORAGE_KEY);
+    const current = storage.getItem(STORAGE_KEY);
+    const legacy = current ? null : storage.getItem(LEGACY_STORAGE_KEY);
+    const raw = current || legacy;
     if (!raw) return emptyState();
     const parsed = JSON.parse(raw) as Partial<StoredState>;
     if (parsed.version !== STORAGE_VERSION || !parsed.entries || !parsed.snapshots) return emptyState();
     const entries = Object.fromEntries(Object.entries(parsed.entries).filter(([, value]) => isContext(value)));
     const snapshots = Object.fromEntries(Object.entries(parsed.snapshots).filter(([, value]) => isSnapshot(value)));
-    return {
+    const state = {
       version: STORAGE_VERSION,
       pending: isContext(parsed.pending) ? parsed.pending : null,
       entries,
       snapshots,
     } satisfies StoredState;
+    if (legacy) {
+      storage.setItem(STORAGE_KEY, JSON.stringify(state));
+      storage.removeItem(LEGACY_STORAGE_KEY);
+    }
+    return state;
   } catch {
     return null;
   }

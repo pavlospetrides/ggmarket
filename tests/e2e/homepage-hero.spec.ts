@@ -13,7 +13,7 @@ const desktopWidths = [768, 1024, 1280, 1440, 1920];
 test("mobile first screen uses the interface-led hero without requesting hero photography", async ({ page }) => {
   const heroImageRequests: string[] = [];
   page.on("request", (request) => {
-    if (/ggmarket-hero-(?:desktop|mobile)/.test(request.url())) heroImageRequests.push(request.url());
+    if (/lootriva-hero-(?:desktop|mobile)/.test(request.url())) heroImageRequests.push(request.url());
   });
 
   await page.setViewportSize(mobileViewports[0]);
@@ -37,10 +37,10 @@ test("mobile first screen uses the interface-led hero without requesting hero ph
     await expect(globalHeader).toHaveCount(1);
     await expect(globalHeader).toBeVisible();
     await expect.poll(async () => Math.round((await globalHeader.boundingBox())?.y ?? -1)).toBe(0);
-    await expect(globalHeader.locator('[aria-label="GGMarket home"]:visible')).toHaveCount(1);
+    await expect(globalHeader.locator('[aria-label="Lootriva home"]:visible')).toHaveCount(1);
     await expect(globalHeader.getByRole("link", { name: /^Messages/ })).toHaveAttribute("href", "/messages");
     await expect(globalHeader.getByRole("button", { name: /^Notifications/ })).toBeVisible();
-    await expect(hero.locator('[aria-label="GGMarket home"]')).toHaveCount(0);
+    await expect(hero.locator('[aria-label="Lootriva home"]')).toHaveCount(0);
     await expect(composition).toBeVisible();
     await expect(switchboard).toBeVisible();
     await expect(switchboard.locator("a")).toHaveCount(4);
@@ -79,12 +79,12 @@ test("mobile first screen uses the interface-led hero without requesting hero ph
     await expect(globalHeader).toBeVisible();
     await expect(globalHeader).toHaveCSS("position", "sticky");
     await expect.poll(async () => Math.round((await globalHeader.boundingBox())?.y ?? -1)).toBe(0);
-    await expect(globalHeader.locator('[aria-label="GGMarket home"]:visible')).toHaveCount(1);
+    await expect(globalHeader.locator('[aria-label="Lootriva home"]:visible')).toHaveCount(1);
     await page.evaluate(() => window.scrollTo(0, 0));
     await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(0);
     await expect(globalHeader).toBeVisible();
     await expect.poll(async () => Math.round((await globalHeader.boundingBox())?.y ?? -1)).toBe(0);
-    await expect(globalHeader.locator('[aria-label="GGMarket home"]:visible')).toHaveCount(1);
+    await expect(globalHeader.locator('[aria-label="Lootriva home"]:visible')).toHaveCount(1);
     await expect(hero).toHaveJSProperty("scrollWidth", await hero.evaluate((element) => element.clientWidth));
   }
 });
@@ -110,15 +110,15 @@ test("mobile sticky header survives touch-like scroll down and back up", async (
   await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(0);
   await expect(header).toBeVisible();
   await expect.poll(async () => Math.round((await header.boundingBox())?.y ?? -1)).toBe(0);
-  await expect(header.locator('[aria-label="GGMarket home"]:visible')).toHaveCount(1);
+  await expect(header.locator('[aria-label="Lootriva home"]:visible')).toHaveCount(1);
 
   await swipe(140, 760);
   await swipe(140, 760);
   await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(0);
   await expect(header).toBeVisible();
   await expect.poll(async () => Math.round((await header.boundingBox())?.y ?? -1)).toBe(0);
-  await expect(header.locator('[aria-label="GGMarket home"]:visible')).toHaveCount(1);
-  await expect(page.locator(".campaign-hero [aria-label='GGMarket home']")).toHaveCount(0);
+  await expect(header.locator('[aria-label="Lootriva home"]:visible')).toHaveCount(1);
+  await expect(page.locator(".campaign-hero [aria-label='Lootriva home']")).toHaveCount(0);
 });
 
 test("desktop homepage uses the integrated procedural 3D hero", async ({ page }) => {
@@ -128,8 +128,8 @@ test("desktop homepage uses the integrated procedural 3D hero", async ({ page })
   const hero = page.locator(".campaign-hero");
   const globalHeader = page.locator("header.global-exchange-header");
   await expect(globalHeader).toHaveCount(1);
-  await expect(globalHeader.locator('[aria-label="GGMarket home"]:visible')).toHaveCount(1);
-  await expect(hero.locator('[aria-label="GGMarket home"]')).toHaveCount(0);
+  await expect(globalHeader.locator('[aria-label="Lootriva home"]:visible')).toHaveCount(1);
+  await expect(hero.locator('[aria-label="Lootriva home"]')).toHaveCount(0);
   await expect(page.getByTestId("jellyfish-hero-background")).toBeVisible();
   await expect(page.getByTestId("mobile-hero-composition")).toBeHidden();
   await expect(page.getByTestId("category-switchboard")).toBeVisible();

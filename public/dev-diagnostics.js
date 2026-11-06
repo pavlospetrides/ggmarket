@@ -15,7 +15,7 @@
     if (!panel) return;
     var controls = document.querySelectorAll("[data-gg-debug-control]");
     var enabled = Array.prototype.filter.call(controls, function (control) { return !control.matches(":disabled"); }).length;
-    var hydrated = document.documentElement.dataset.ggHydrated === "true";
+    var hydrated = document.documentElement.dataset.lootrivaHydrated === "true";
     var serviceWorker = !("serviceWorker" in navigator) ? "unsupported" : navigator.serviceWorker.controller ? "controlled" : "not controlling";
     panel.querySelector("[data-gg-diagnostic-body]").textContent = [
       "Hydration: " + (hydrated ? "ready" : "waiting"),

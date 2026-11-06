@@ -15,7 +15,7 @@ vi.mock("@/lib/validation", async () => import("../lib/validation"));
 
 afterEach(() => vi.unstubAllEnvs());
 
-function formRequest(path: string, values: Record<string, string>, host = "ggmarket.example") {
+function formRequest(path: string, values: Record<string, string>, host = "lootriva.example") {
   return new Request(`https://0.0.0.0/${path}`, {
     method: "POST",
     headers: {
@@ -59,7 +59,7 @@ describe("native registration fallback", () => {
       password: "not-a-real-password",
     }));
 
-    expect(response.headers.get("location")).toBe("https://ggmarket.example/register?error=signup_failed");
+    expect(response.headers.get("location")).toBe("https://lootriva.example/register?error=signup_failed");
   });
 
   it("welcomes an immediately confirmed signup without affecting ordinary login", async () => {
@@ -70,7 +70,7 @@ describe("native registration fallback", () => {
       email: "iphone@example.invalid",
       password: "not-a-real-password",
     }));
-    expect(response.headers.get("location")).toBe("https://ggmarket.example/settings/verification?status=verified&welcome=1");
+    expect(response.headers.get("location")).toBe("https://lootriva.example/settings/verification?status=verified&welcome=1");
   });
 
   it("pins production signup confirmation to the canonical HTTPS callback", async () => {
@@ -138,6 +138,6 @@ describe("native logout contract", () => {
     const { POST } = await import("../app/auth/logout/route");
     const response = await POST(formRequest("auth/logout", {}));
 
-    expect(response.headers.get("location")).toBe("https://ggmarket.example/settings?error=logout_failed");
+    expect(response.headers.get("location")).toBe("https://lootriva.example/settings?error=logout_failed");
   });
 });

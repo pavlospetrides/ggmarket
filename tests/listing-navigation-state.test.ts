@@ -150,6 +150,34 @@ describe("listing navigation state", () => {
     expect(readBrowsingSnapshot({ storage, entryId: "source", currentUrl: "/marketplace", now: 1_100 })).toBeNull();
   });
 
+  it("migrates one-release legacy same-origin browsing state to the Lootriva key", () => {
+    const storage = new MemoryStorage();
+    storage.setItem("ggmarket:listing-navigation:v1", JSON.stringify({
+      version: 1,
+      pending: null,
+      entries: {},
+      snapshots: {
+        "source-entry\n/marketplace": {
+          sourceEntryId: "source-entry",
+          sourceUrl: "/marketplace",
+          listingId: "listing-42",
+          anchorKey: "marketplace:listing-42",
+          scrollX: 0,
+          scrollY: 900,
+          anchorTop: 120,
+          anchorLeft: 0,
+          railKey: null,
+          railScrollLeft: null,
+          createdAt: 1_000,
+        },
+      },
+    }));
+
+    expect(readBrowsingSnapshot({ storage, entryId: "source-entry", currentUrl: "/marketplace", now: 1_100 })?.listingId).toBe("listing-42");
+    expect(storage.getItem("lootriva:listing-navigation:v1")).not.toBeNull();
+    expect(storage.getItem("ggmarket:listing-navigation:v1")).toBeNull();
+  });
+
   it("calculates the scroll correction that returns an anchor to its saved viewport offset", () => {
     expect(calculateAnchorScrollDelta({ currentTop: 552, savedTop: 172 })).toBe(380);
     expect(calculateAnchorScrollDelta({ currentTop: 90, savedTop: 172 })).toBe(-82);

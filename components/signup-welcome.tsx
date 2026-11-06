@@ -7,11 +7,14 @@ export function SignupWelcome({ userId }: { userId: string }) {
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
-    const key = `ggmarket:signup-welcome:${userId}`;
+    const key = `lootriva:signup-welcome:${userId}`;
+    const legacyKey = `ggmarket:signup-welcome:${userId}`;
     const url = new URL(window.location.href);
     url.searchParams.delete("welcome");
     window.history.replaceState(window.history.state, "", `${url.pathname}${url.search}${url.hash}`);
-    if (window.sessionStorage.getItem(key)) {
+    if (window.sessionStorage.getItem(key) || window.sessionStorage.getItem(legacyKey)) {
+      window.sessionStorage.removeItem(legacyKey);
+      window.sessionStorage.setItem(key, "shown");
       return;
     }
     window.sessionStorage.setItem(key, "shown");

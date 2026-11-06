@@ -91,4 +91,15 @@ describe("Lootriva brand identity", () => {
     expect(read("app/page.tsx")).toContain("/images/brand/lootriva-hero-desktop.webp");
     expect(existsSync(new URL("../public/images/brand/lootriva-hero-desktop.webp", import.meta.url))).toBe(true);
   });
+
+  it("aligns active package, browser-event, Playwright, and security tooling names", () => {
+    expect(JSON.parse(read("package.json")).name).toBe("lootriva");
+    expect(JSON.parse(read("package-lock.json")).name).toBe("lootriva");
+    expect(read("playwright.config.ts")).toContain("lootriva-playwright-results");
+    expect(read("components/notification-center.tsx")).toContain("lootriva:notifications-changed");
+    expect(read("components/auth-form.tsx")).toContain("lootriva:auth-changed");
+    const sqlmap = JSON.parse(read("security/sqlmap/targets.json"));
+    expect(sqlmap.application).toBe("Lootriva");
+    expect(sqlmap.production.host).toBe("lootriva.com");
+  });
 });

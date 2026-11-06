@@ -14,7 +14,7 @@ vi.mock("@/lib/supabase/server", () => ({ createClient: mocks.createClient }));
 vi.mock("@/lib/request-security", async () => import("../lib/request-security"));
 
 function request(values: Record<string, string>, acceptsJson = true) {
-  return new Request("https://ggmarket.test/auth/update-password", {
+  return new Request("https://lootriva.test/auth/update-password", {
     method: "POST",
     headers: {
       "content-type": "application/x-www-form-urlencoded",
@@ -97,7 +97,7 @@ describe("password update route", () => {
     const response = await POST(request({ password: "new-password", confirmation: "new-password" }, false));
 
     expect(response.status).toBe(303);
-    expect(response.headers.get("location")).toBe("https://ggmarket.test/reset-password?status=success");
+    expect(response.headers.get("location")).toBe("https://lootriva.test/reset-password?status=success");
   });
 
   it("preserves a safe validation reason for a no-JavaScript form", async () => {
@@ -105,7 +105,7 @@ describe("password update route", () => {
     const response = await POST(request({ password: "new-password", confirmation: "different" }, false));
 
     expect(response.status).toBe(303);
-    expect(response.headers.get("location")).toBe("https://ggmarket.test/reset-password?status=validation&reason=mismatch");
+    expect(response.headers.get("location")).toBe("https://lootriva.test/reset-password?status=validation&reason=mismatch");
   });
 
   it("returns a safe unavailable response when claims verification throws", async () => {

@@ -26,7 +26,7 @@ vi.mock("@/lib/security", async () => import("../lib/security"));
 import { PATCH } from "../app/api/gg-card/route";
 
 function request(body: unknown) {
-  return new Request("https://ggmarket.test/api/gg-card", {
+  return new Request("https://lootriva.test/api/gg-card", {
     method: "PATCH",
     headers: { "content-type": "application/json" },
     body: JSON.stringify(body),
@@ -59,7 +59,7 @@ describe("GG Card mutation API", () => {
   });
 
   it("rejects an oversized declared body before database access", async () => {
-    const response = await PATCH(new Request("https://ggmarket.test/api/gg-card", {
+    const response = await PATCH(new Request("https://lootriva.test/api/gg-card", {
       method: "PATCH",
       headers: { "content-type": "application/json", "content-length": "70000" },
       body: JSON.stringify({ slogan: "safe", themeId: "gg-purple", isPublic: false }),

@@ -33,12 +33,12 @@ class RunnerTests(unittest.TestCase):
     def test_production_requires_exact_opt_in_https_host_and_get_allowlist(self):
         phrase = self.inventory["production"]["opt_in_phrase"]
         with self.assertRaises(runner.SafetyError):
-            runner.validate_execution("production-smoke", "https://ggmarket.eu", self.inventory)
+            runner.validate_execution("production-smoke", "https://lootriva.com", self.inventory)
         with self.assertRaises(runner.SafetyError):
-            runner.validate_execution("production-smoke", "http://ggmarket.eu", self.inventory, opt_in=phrase)
+            runner.validate_execution("production-smoke", "http://lootriva.com", self.inventory, opt_in=phrase)
         with self.assertRaises(runner.SafetyError):
             runner.validate_execution("production-smoke", "https://evil.example", self.inventory, opt_in=phrase)
-        runner.validate_execution("production-smoke", "https://ggmarket.eu", self.inventory, opt_in=phrase)
+        runner.validate_execution("production-smoke", "https://lootriva.com", self.inventory, opt_in=phrase)
 
     def test_template_expansion_blocks_missing_fixture(self):
         self.assertEqual(runner.expand_template("${FIXTURE_ID}", {"FIXTURE_ID": "abc"}), "abc")
@@ -107,7 +107,7 @@ class RunnerTests(unittest.TestCase):
             self.inventory["defaults"],
             {
                 "FIXTURE_LISTING_ID": "00000000-0000-0000-0000-000000000101",
-                "GGMARKET_TEST_COOKIE_A": "synthetic=cookie",
+                "LOOTRIVA_TEST_COOKIE_A": "synthetic=cookie",
             },
         )
         joined = "\n".join(command)
@@ -191,7 +191,7 @@ class RunnerTests(unittest.TestCase):
             return 500, {}, b"error", url
         audit = runner.AuditRunner(self.inventory, transport=transport, sleeper=lambda _: None)
         targets = [t for t in self.inventory["targets"] if t.get("production", {}).get("allowed")]
-        results = audit.run_production_smoke(targets, "https://ggmarket.eu", budget=1)
+        results = audit.run_production_smoke(targets, "https://lootriva.com", budget=1)
         self.assertEqual(len(calls), 1)
         self.assertEqual(results[0]["status"], "http_error")
 

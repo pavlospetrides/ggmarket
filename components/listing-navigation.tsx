@@ -232,7 +232,7 @@ function titleCaseSource(value: string) {
 
 export function listingBackDestination(sourceUrl: string) {
   if (!sourceUrl.startsWith("/") || sourceUrl.startsWith("//") || sourceUrl.includes("\\")) return "Marketplace";
-  const url = new URL(sourceUrl, "https://ggmarket.invalid");
+  const url = new URL(sourceUrl, "https://lootriva.invalid");
   const pathname = url.pathname;
   const isRoute = (route: string) => pathname === `/${route}` || pathname.endsWith(`/${route}`);
   if (isRoute("favorites")) return "Favorites";

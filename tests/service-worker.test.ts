@@ -98,7 +98,7 @@ describe("service worker hydration safety", () => {
     const source = read("public/sw-bootstrap.js");
     let reloads = 0;
     let controllerChange: (() => void) | undefined;
-    const documentElement = { dataset: { ggHydrated: "true" } };
+    const documentElement = { dataset: { lootrivaHydrated: "true" } };
     runInNewContext(source, {
       document: { currentScript: { dataset: { environment: "production" } }, documentElement },
       navigator: {

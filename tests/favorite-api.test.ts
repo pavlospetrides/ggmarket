@@ -46,17 +46,17 @@ import { DELETE, POST } from "../app/api/favorites/route";
 
 const listingId = "11111111-1111-4111-8111-111111111111";
 const request = (method: "POST" | "DELETE", body: unknown = { listingId }) =>
-  new Request("https://ggmarket.test/api/favorites", {
+  new Request("https://lootriva.test/api/favorites", {
     method,
     headers: {
       "content-type": "application/json",
-      host: "ggmarket.test",
-      origin: "https://ggmarket.test",
+      host: "lootriva.test",
+      origin: "https://lootriva.test",
       "sec-fetch-site": "same-origin",
     },
     body: JSON.stringify(body),
   });
-const formRequest = (intent: "add" | "remove", host = "ggmarket.test") =>
+const formRequest = (intent: "add" | "remove", host = "lootriva.test") =>
   new Request("https://0.0.0.0/api/favorites", {
     method: "POST",
     headers: {
@@ -138,7 +138,7 @@ describe("favorites API ownership and persistence contract", () => {
     const response = await POST(formRequest("add"));
     expect(response.status).toBe(303);
     expect(response.headers.get("location")).toBe(
-      "https://ggmarket.test/login?next=%2Fmarketplace%3Fcategory%3Dgames",
+      "https://lootriva.test/login?next=%2Fmarketplace%3Fcategory%3Dgames",
     );
   });
 });

@@ -8,8 +8,8 @@ const admin = createClient(url, serviceKey, {
 });
 const stamp = Date.now();
 const password = `Gg!${crypto.randomUUID()}aA1`;
-const emailA = `ggmarket.e2e.a.${stamp}@example.invalid`;
-const emailB = `ggmarket.e2e.b.${stamp}@example.invalid`;
+const emailA = `lootriva.e2e.a.${stamp}@example.invalid`;
+const emailB = `lootriva.e2e.b.${stamp}@example.invalid`;
 const usernameA = `e2e_a_${String(stamp).slice(-8)}`;
 let userA: User;
 let userB: User;

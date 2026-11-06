@@ -5,7 +5,7 @@ import { requireMutationEnvironment } from "./mutation-guard";
 const { url, anonKey, serviceKey } = requireMutationEnvironment();
 const admin = createClient(url, serviceKey, { auth: { persistSession: false } });
 const stamp = Date.now();
-const email = `ggmarket.mobile.${stamp}@example.invalid`;
+const email = `lootriva.mobile.${stamp}@example.invalid`;
 const password = `Gg!${crypto.randomUUID()}aA1`;
 let user: User;
 let seller: User;
@@ -28,7 +28,7 @@ test.beforeAll(async () => {
   if (created.error || !created.data.user) throw created.error;
   user = created.data.user;
   const createdSeller = await admin.auth.admin.createUser({
-    email: `ggmarket.mobile.seller.${stamp}@example.invalid`,
+    email: `lootriva.mobile.seller.${stamp}@example.invalid`,
     password,
     email_confirm: true,
     user_metadata: { username: `mobile_seller_${String(stamp).slice(-7)}`, display_name: "Mobile Seller" },

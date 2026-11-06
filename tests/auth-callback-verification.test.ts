@@ -25,44 +25,44 @@ describe("Supabase confirmation callback", () => {
     auth.exchangeCodeForSession.mockResolvedValue({ error: null });
     auth.getUser.mockResolvedValue({ data: { user: { email_confirmed_at: "2026-10-20T10:00:00Z" } }, error: null });
     const { GET } = await import("../app/auth/callback/route");
-    const response = await GET(new Request("https://ggmarket.test/auth/callback?code=valid&next=%2Fsettings%2Fverification"));
-    expect(response.headers.get("location")).toBe("https://ggmarket.test/settings/verification?status=verified");
+    const response = await GET(new Request("https://lootriva.test/auth/callback?code=valid&next=%2Fsettings%2Fverification"));
+    expect(response.headers.get("location")).toBe("https://lootriva.test/settings/verification?status=verified");
   });
 
   it("bridges legacy signup token links to explicit confirmation without consuming them", async () => {
     const { GET } = await import("../app/auth/callback/route");
-    const response = await GET(new Request("https://ggmarket.test/auth/callback?token_hash=token&type=signup&next=%2Fsettings%2Fverification"));
+    const response = await GET(new Request("https://lootriva.test/auth/callback?token_hash=token&type=signup&next=%2Fsettings%2Fverification"));
     expect(auth.verifyOtp).not.toHaveBeenCalled();
-    expect(response.headers.get("location")).toBe("https://ggmarket.test/auth/confirm-signup?token_hash=token&type=email");
+    expect(response.headers.get("location")).toBe("https://lootriva.test/auth/confirm-signup?token_hash=token&type=email");
   });
 
   it("reports invalid or expired verification links to an existing session", async () => {
     auth.exchangeCodeForSession.mockResolvedValue({ error: { code: "otp_expired", message: "expired" } });
     auth.getUser.mockResolvedValue({ data: { user: { email_confirmed_at: null } }, error: null });
     const { GET } = await import("../app/auth/callback/route");
-    const response = await GET(new Request("https://ggmarket.test/auth/callback?code=expired&next=%2Fsettings%2Fverification"));
-    expect(response.headers.get("location")).toBe("https://ggmarket.test/verify-email?status=expired_or_used");
+    const response = await GET(new Request("https://lootriva.test/auth/callback?code=expired&next=%2Fsettings%2Fverification"));
+    expect(response.headers.get("location")).toBe("https://lootriva.test/verify-email?status=expired_or_used");
   });
 
   it("does not let a signup token GET claim welcome or verification", async () => {
     const { GET } = await import("../app/auth/callback/route");
-    const response = await GET(new Request("https://ggmarket.test/auth/callback?token_hash=token&type=email&next=%2Fsettings%2Fverification&welcome=1"));
+    const response = await GET(new Request("https://lootriva.test/auth/callback?token_hash=token&type=email&next=%2Fsettings%2Fverification&welcome=1"));
     expect(auth.verifyOtp).not.toHaveBeenCalled();
-    expect(response.headers.get("location")).toBe("https://ggmarket.test/auth/confirm-signup?token_hash=token&type=email");
+    expect(response.headers.get("location")).toBe("https://lootriva.test/auth/confirm-signup?token_hash=token&type=email");
   });
 
   it("reports malformed confirmation links without claiming success", async () => {
     auth.getUser.mockResolvedValue({ data: { user: null }, error: null });
     const { GET } = await import("../app/auth/callback/route");
-    const response = await GET(new Request("https://ggmarket.test/auth/callback?type=email&next=%2Fsettings%2Fverification"));
-    expect(response.headers.get("location")).toBe("https://ggmarket.test/verify-email?status=invalid");
+    const response = await GET(new Request("https://lootriva.test/auth/callback?type=email&next=%2Fsettings%2Fverification"));
+    expect(response.headers.get("location")).toBe("https://lootriva.test/verify-email?status=invalid");
   });
 
   it("bridges legacy recovery token links to the dedicated recovery landing", async () => {
     const { GET } = await import("../app/auth/callback/route");
-    const response = await GET(new Request("https://ggmarket.test/auth/callback?token_hash=recovery-token&type=recovery&next=%2Freset-password"));
+    const response = await GET(new Request("https://lootriva.test/auth/callback?token_hash=recovery-token&type=recovery&next=%2Freset-password"));
     expect(auth.verifyOtp).not.toHaveBeenCalled();
-    expect(response.headers.get("location")).toBe("https://ggmarket.test/auth/recovery?token_hash=recovery-token&type=recovery");
+    expect(response.headers.get("location")).toBe("https://lootriva.test/auth/recovery?token_hash=recovery-token&type=recovery");
   });
 
   it("uses the canonical HTTPS origin for production callback redirects", async () => {
@@ -77,23 +77,23 @@ describe("Supabase confirmation callback", () => {
     auth.exchangeCodeForSession.mockResolvedValue({ error: null });
     auth.getUser.mockResolvedValue({ data: { user: { email_confirmed_at: "2026-10-20T10:00:00Z" } }, error: null });
     const { GET } = await import("../app/auth/callback/route");
-    const response = await GET(new Request("https://ggmarket.test/auth/callback?code=recovery&next=%2Freset-password"));
-    expect(response.headers.get("location")).toBe("https://ggmarket.test/reset-password");
+    const response = await GET(new Request("https://lootriva.test/auth/callback?code=recovery&next=%2Freset-password"));
+    expect(response.headers.get("location")).toBe("https://lootriva.test/reset-password");
   });
 
   it("handles OAuth cancellation without attempting a code exchange", async () => {
     auth.getUser.mockResolvedValue({ data: { user: null }, error: null });
     const { GET } = await import("../app/auth/callback/route");
-    const response = await GET(new Request("https://ggmarket.test/auth/callback?error=access_denied&error_description=User+cancelled&next=%2Flisting%2Ftest"));
+    const response = await GET(new Request("https://lootriva.test/auth/callback?error=access_denied&error_description=User+cancelled&next=%2Flisting%2Ftest"));
     expect(auth.exchangeCodeForSession).not.toHaveBeenCalled();
-    expect(response.headers.get("location")).toBe("https://ggmarket.test/login?error=oauth_cancelled&next=%2Flisting%2Ftest");
+    expect(response.headers.get("location")).toBe("https://lootriva.test/login?error=oauth_cancelled&next=%2Flisting%2Ftest");
   });
 
   it("does not present an expired legacy recovery link as cancelled Google sign-in", async () => {
     const { GET } = await import("../app/auth/callback/route");
-    const response = await GET(new Request("https://ggmarket.test/auth/callback?error=access_denied&error_code=otp_expired&next=%2Freset-password"));
+    const response = await GET(new Request("https://lootriva.test/auth/callback?error=access_denied&error_code=otp_expired&next=%2Freset-password"));
 
-    expect(response.headers.get("location")).toBe("https://ggmarket.test/reset-password?status=expired_or_used");
+    expect(response.headers.get("location")).toBe("https://lootriva.test/reset-password?status=expired_or_used");
     expect(response.headers.get("location")).not.toContain("oauth_cancelled");
   });
 
@@ -101,34 +101,34 @@ describe("Supabase confirmation callback", () => {
     auth.exchangeCodeForSession.mockResolvedValue({ error: { code: "bad_code_verifier" } });
     auth.getUser.mockResolvedValue({ data: { user: null }, error: null });
     const { GET } = await import("../app/auth/callback/route");
-    const response = await GET(new Request("https://ggmarket.test/auth/callback?code=legacy-recovery&next=%2Freset-password"));
+    const response = await GET(new Request("https://lootriva.test/auth/callback?code=legacy-recovery&next=%2Freset-password"));
 
-    expect(response.headers.get("location")).toBe("https://ggmarket.test/reset-password?status=invalid");
+    expect(response.headers.get("location")).toBe("https://lootriva.test/reset-password?status=invalid");
   });
 
   it("keeps an inactive legacy recovery account out of ordinary login", async () => {
     auth.exchangeCodeForSession.mockResolvedValue({ error: null });
     mocks.rpc.mockResolvedValue({ data: false, error: null });
     const { GET } = await import("../app/auth/callback/route");
-    const response = await GET(new Request("https://ggmarket.test/auth/callback?code=legacy-recovery&next=%2Freset-password"));
+    const response = await GET(new Request("https://lootriva.test/auth/callback?code=legacy-recovery&next=%2Freset-password"));
 
-    expect(response.headers.get("location")).toBe("https://ggmarket.test/reset-password?status=unavailable");
+    expect(response.headers.get("location")).toBe("https://lootriva.test/reset-password?status=unavailable");
   });
 
   it("rejects unsafe OAuth return destinations", async () => {
     auth.exchangeCodeForSession.mockResolvedValue({ error: null });
     auth.getUser.mockResolvedValue({ data: { user: { email_confirmed_at: "2026-10-20T10:00:00Z" } }, error: null });
     const { GET } = await import("../app/auth/callback/route");
-    const response = await GET(new Request("https://ggmarket.test/auth/callback?code=valid&next=%2F%252fevil.example"));
-    expect(response.headers.get("location")).toBe("https://ggmarket.test/profile");
+    const response = await GET(new Request("https://lootriva.test/auth/callback?code=valid&next=%2F%252fevil.example"));
+    expect(response.headers.get("location")).toBe("https://lootriva.test/profile");
   });
 
   it("ends a newly established OAuth session for a suspended account", async () => {
     auth.exchangeCodeForSession.mockResolvedValue({ error: null });
     mocks.rpc.mockResolvedValue({ data: false, error: null });
     const { GET } = await import("../app/auth/callback/route");
-    const response = await GET(new Request("https://ggmarket.test/auth/callback?code=google&next=%2Fmessages"));
+    const response = await GET(new Request("https://lootriva.test/auth/callback?code=google&next=%2Fmessages"));
     expect(auth.signOut).toHaveBeenCalledOnce();
-    expect(response.headers.get("location")).toBe("https://ggmarket.test/login?error=account_suspended&next=%2Fmessages");
+    expect(response.headers.get("location")).toBe("https://lootriva.test/login?error=account_suspended&next=%2Fmessages");
   });
 });

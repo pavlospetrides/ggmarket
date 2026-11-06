@@ -15,7 +15,7 @@ const accountA = "11111111-1111-4111-8111-111111111111";
 const accountB = "22222222-2222-4222-8222-222222222222";
 
 function request(body: unknown) {
-  return new Request("https://ggmarket.test/api/reviews", {
+  return new Request("https://lootriva.test/api/reviews", {
     method: "POST",
     headers: { "content-type": "application/json" },
     body: JSON.stringify(body),
@@ -58,7 +58,7 @@ describe("reviews API authorization", () => {
   it("rejects a declared oversized body before database access", async () => {
     mocks.getUser.mockResolvedValue({ id: accountA });
     const { POST } = await import("../app/api/reviews/route");
-    const response = await POST(new Request("https://ggmarket.test/api/reviews", {
+    const response = await POST(new Request("https://lootriva.test/api/reviews", {
       method: "POST",
       headers: { "content-type": "application/json", "content-length": "70000" },
       body: JSON.stringify({ sellerId: accountB, rating: 5 }),

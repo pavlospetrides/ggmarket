@@ -1,6 +1,6 @@
-# GGMarket SQL Injection Audit Suite
+# Lootriva SQL Injection Audit Suite
 
-This directory contains a source-aware inventory and a conservative Windows runner for GGMarket. The default execution boundary is a loopback application connected to a disposable local Supabase stack. It does not discover or guess routes at runtime.
+This directory contains a source-aware inventory and a conservative Windows runner for Lootriva. The default execution boundary is a loopback application connected to a disposable local Supabase stack. It does not discover or guess routes at runtime.
 
 The source review found no request-controlled raw SQL sink. Next.js handlers use Supabase/PostgREST builders or typed RPC arguments. Search sorting and taxonomy keys are selected from allowlists. The PL/pgSQL `EXECUTE` statements found in migrations interpolate catalog-derived or hard-coded identifiers using `%I`, not request values. The hardened `SECURITY DEFINER` functions use an empty `search_path` and schema-qualified objects.
 
@@ -16,7 +16,7 @@ The source review found no request-controlled raw SQL sink. Next.js handlers use
 
 1. Python 3.11 or newer.
 2. SQLMap from its official repository. The runner checks `--sqlmap-path`, `SQLMAP_PATH`, and the two known Downloads locations in `targets.json`.
-3. The GGMarket app running locally and configured only for the disposable local Supabase stack.
+3. The Lootriva app running locally and configured only for the disposable local Supabase stack.
 4. Synthetic accounts and records. Never supply production sessions or real user data.
 
 Before active testing, independently verify that the app's Supabase URL is loopback and that its project/API keys belong to the disposable stack. The runner validates its HTTP target, but it cannot prove where a misconfigured application sends its database calls.
@@ -39,9 +39,9 @@ python -m json.tool security/sqlmap/targets.json > $null
 Create synthetic fixture data, then expose only the required values through the current PowerShell process:
 
 ```powershell
-$env:GGMARKET_TEST_COOKIE_A = 'synthetic-user-a-session-cookie'
-$env:GGMARKET_TEST_COOKIE_B = 'synthetic-user-b-session-cookie'
-$env:GGMARKET_TEST_COOKIE_ADMIN = 'synthetic-local-admin-session-cookie'
+$env:LOOTRIVA_TEST_COOKIE_A = 'synthetic-user-a-session-cookie'
+$env:LOOTRIVA_TEST_COOKIE_B = 'synthetic-user-b-session-cookie'
+$env:LOOTRIVA_TEST_COOKIE_ADMIN = 'synthetic-local-admin-session-cookie'
 $env:FIXTURE_USER_ID_B = '00000000-0000-0000-0000-000000000002'
 $env:FIXTURE_LISTING_ID = '00000000-0000-0000-0000-000000000101'
 $env:FIXTURE_LISTING_ID_A = '00000000-0000-0000-0000-000000000102'
@@ -76,7 +76,7 @@ Production mode is deliberately not a production SQLMap scan. It performs a smal
 ```powershell
 .\security\sqlmap\run-tests.ps1 `
   -Mode production-smoke `
-  -BaseUrl https://ggmarket.eu `
+  -BaseUrl https://lootriva.com `
   -RequestBudget 2 `
   -ProductionOptIn I_UNDERSTAND_PRODUCTION_SMOKE_IS_LIVE_READ_ONLY
 ```

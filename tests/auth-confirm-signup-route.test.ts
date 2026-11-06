@@ -11,7 +11,7 @@ const mocks = vi.hoisted(() => ({
 vi.mock("@/lib/supabase/server", () => ({ createClient: mocks.createClient }));
 vi.mock("@/lib/request-security", async () => import("../lib/request-security"));
 
-function postRequest(token = TOKEN_HASH, origin = "https://ggmarket.test") {
+function postRequest(token = TOKEN_HASH, origin = "https://lootriva.test") {
   return new Request(`${origin}/auth/confirm-signup/verify`, {
     method: "POST",
     headers: { cookie: `${PENDING_COOKIE}=${token}`, origin },
@@ -31,12 +31,12 @@ describe("scanner-safe signup confirmation", () => {
 
   it("stages a typed token on GET without consuming it", async () => {
     const { GET } = await import("../app/auth/confirm-signup/route");
-    const response = await GET(new Request(`https://ggmarket.test/auth/confirm-signup?token_hash=${TOKEN_HASH}&type=email`));
+    const response = await GET(new Request(`https://lootriva.test/auth/confirm-signup?token_hash=${TOKEN_HASH}&type=email`));
 
     expect(mocks.createClient).not.toHaveBeenCalled();
     expect(mocks.auth.verifyOtp).not.toHaveBeenCalled();
     expect(response.status).toBe(303);
-    expect(response.headers.get("location")).toBe("https://ggmarket.test/auth/confirm-signup/continue");
+    expect(response.headers.get("location")).toBe("https://lootriva.test/auth/confirm-signup/continue");
     expect(response.headers.get("set-cookie")).toContain(`${PENDING_COOKIE}=${TOKEN_HASH}`);
     expect(response.headers.get("set-cookie")).toContain("HttpOnly");
     expect(response.headers.get("set-cookie")?.toLowerCase()).toContain("samesite=lax");
@@ -46,15 +46,15 @@ describe("scanner-safe signup confirmation", () => {
   });
 
   it.each([
-    ["missing", `https://ggmarket.test/auth/confirm-signup?type=email`],
-    ["malformed", `https://ggmarket.test/auth/confirm-signup?token_hash=short&type=email`],
-    ["wrong type", `https://ggmarket.test/auth/confirm-signup?token_hash=${TOKEN_HASH}&type=recovery`],
+    ["missing", `https://lootriva.test/auth/confirm-signup?type=email`],
+    ["malformed", `https://lootriva.test/auth/confirm-signup?token_hash=short&type=email`],
+    ["wrong type", `https://lootriva.test/auth/confirm-signup?token_hash=${TOKEN_HASH}&type=recovery`],
   ])("rejects %s GET links without storing or consuming", async (_label, url) => {
     const { GET } = await import("../app/auth/confirm-signup/route");
     const response = await GET(new Request(url));
     expect(mocks.createClient).not.toHaveBeenCalled();
     expect(response.headers.get("set-cookie")).toBeNull();
-    expect(response.headers.get("location")).toBe("https://ggmarket.test/verify-email?status=invalid");
+    expect(response.headers.get("location")).toBe("https://lootriva.test/verify-email?status=invalid");
   });
 
   it("verifies only email tokens after a same-origin POST and reaches welcome", async () => {
@@ -62,7 +62,7 @@ describe("scanner-safe signup confirmation", () => {
     const { POST } = await import("../app/auth/confirm-signup/verify/route");
     const response = await POST(postRequest());
     expect(mocks.auth.verifyOtp).toHaveBeenCalledWith({ token_hash: TOKEN_HASH, type: "email" });
-    expect(response.headers.get("location")).toBe("https://ggmarket.test/settings/verification?status=verified&welcome=1");
+    expect(response.headers.get("location")).toBe("https://lootriva.test/settings/verification?status=verified&welcome=1");
     expect(response.headers.get("set-cookie")).toContain(`${PENDING_COOKIE}=;`);
   });
 
@@ -72,14 +72,14 @@ describe("scanner-safe signup confirmation", () => {
     const { POST } = await import("../app/auth/confirm-signup/verify/route");
     const response = await POST(request);
     expect(mocks.auth.verifyOtp).not.toHaveBeenCalled();
-    expect(response.headers.get("location")).toBe("https://ggmarket.test/verify-email?status=invalid");
+    expect(response.headers.get("location")).toBe("https://lootriva.test/verify-email?status=invalid");
   });
 
   it("reports an expired or reused signed-out link without account enumeration", async () => {
     mocks.auth.verifyOtp.mockResolvedValue({ data: { session: null, user: null }, error: { code: "otp_expired" } });
     const { POST } = await import("../app/auth/confirm-signup/verify/route");
     const response = await POST(postRequest());
-    expect(response.headers.get("location")).toBe("https://ggmarket.test/verify-email?status=expired_or_used");
+    expect(response.headers.get("location")).toBe("https://lootriva.test/verify-email?status=expired_or_used");
   });
 
   it("offers an already-verified continuation only for a confirmed current session", async () => {
@@ -87,7 +87,7 @@ describe("scanner-safe signup confirmation", () => {
     mocks.auth.getUser.mockResolvedValue({ data: { user: { email_confirmed_at: "2026-11-05T10:00:00Z" } }, error: null });
     const { POST } = await import("../app/auth/confirm-signup/verify/route");
     const response = await POST(postRequest());
-    expect(response.headers.get("location")).toBe("https://ggmarket.test/settings/verification?status=already_verified");
+    expect(response.headers.get("location")).toBe("https://lootriva.test/settings/verification?status=already_verified");
   });
 
   it("signs out a newly confirmed inactive account and fails closed", async () => {
@@ -96,15 +96,15 @@ describe("scanner-safe signup confirmation", () => {
     const { POST } = await import("../app/auth/confirm-signup/verify/route");
     const response = await POST(postRequest());
     expect(mocks.auth.signOut).toHaveBeenCalledOnce();
-    expect(response.headers.get("location")).toBe("https://ggmarket.test/verify-email?status=unavailable");
+    expect(response.headers.get("location")).toBe("https://lootriva.test/verify-email?status=unavailable");
   });
 
   it("fails safely when the pending cookie or provider is unavailable", async () => {
     const { POST } = await import("../app/auth/confirm-signup/verify/route");
-    const missing = await POST(new Request("https://ggmarket.test/auth/confirm-signup/verify", { method: "POST", headers: { origin: "https://ggmarket.test" } }));
-    expect(missing.headers.get("location")).toBe("https://ggmarket.test/verify-email?status=invalid");
+    const missing = await POST(new Request("https://lootriva.test/auth/confirm-signup/verify", { method: "POST", headers: { origin: "https://lootriva.test" } }));
+    expect(missing.headers.get("location")).toBe("https://lootriva.test/verify-email?status=invalid");
     mocks.createClient.mockResolvedValue(null);
     const unavailable = await POST(postRequest());
-    expect(unavailable.headers.get("location")).toBe("https://ggmarket.test/verify-email?status=unavailable");
+    expect(unavailable.headers.get("location")).toBe("https://lootriva.test/verify-email?status=unavailable");
   });
 });
