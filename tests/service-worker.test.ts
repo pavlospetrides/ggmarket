@@ -7,9 +7,38 @@ const read = (path: string) => readFileSync(new URL(`../${path}`, import.meta.ur
 describe("service worker hydration safety", () => {
   it("never serves Next application scripts cache-first", () => {
     const worker = read("public/sw.js");
+    expect(worker).toContain('const CACHE = "lootriva-shell-v1"');
     expect(worker).not.toContain('url.pathname.startsWith("/_next/static/")');
     expect(worker).toContain("self.skipWaiting()");
     expect(worker).toContain("self.clients.claim()");
+  });
+
+  it("deletes only known Lootriva and one-release legacy application caches", async () => {
+    const source = read("public/sw.js");
+    let activate: ((event: { waitUntil: (promise: Promise<unknown>) => void }) => void) | undefined;
+    const deleted: string[] = [];
+    let activation: Promise<unknown> | undefined;
+    runInNewContext(source, {
+      self: {
+        addEventListener: (name: string, listener: typeof activate) => { if (name === "activate") activate = listener; },
+        skipWaiting: async () => undefined,
+        clients: { claim: async () => undefined },
+        location: { origin: "https://lootriva.com" },
+      },
+      caches: {
+        keys: async () => ["lootriva-shell-v0", "lootriva-shell-v1", "ggmarket-shell-v3", "unrelated-cache"],
+        delete: async (key: string) => { deleted.push(key); return true; },
+        open: async () => ({ addAll: async () => undefined }),
+        match: async () => undefined,
+      },
+      URL,
+      Promise,
+      fetch: async () => undefined,
+    });
+    activate?.({ waitUntil: (promise) => { activation = promise; } });
+    await activation;
+    expect(deleted).toEqual(["lootriva-shell-v0", "ggmarket-shell-v3"]);
+    expect(deleted).not.toContain("unrelated-cache");
   });
 
   it("checks for worker updates without using the HTTP cache", () => {
@@ -39,8 +68,8 @@ describe("service worker hydration safety", () => {
         },
       },
       caches: {
-        keys: async () => ["ggmarket-shell-v2", "unrelated-cache"],
-        delete: async (key: string) => { if (key.startsWith("ggmarket-")) deleted += 1; return true; },
+        keys: async () => ["lootriva-shell-v0", "ggmarket-shell-v2", "unrelated-cache"],
+        delete: async (key: string) => { if (/^(?:lootriva|ggmarket)-shell-/.test(key)) deleted += 1; return true; },
       },
       location: { reload: () => { reloads += 1; } },
       sessionStorage: {
@@ -55,7 +84,7 @@ describe("service worker hydration safety", () => {
     await new Promise((resolve) => setTimeout(resolve, 0));
 
     expect(unregistered).toBe(1);
-    expect(deleted).toBe(1);
+    expect(deleted).toBe(2);
     expect(reloads).toBe(1);
   });
 

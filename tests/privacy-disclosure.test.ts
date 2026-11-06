@@ -16,8 +16,8 @@ describe("essential storage disclosure", () => {
     const policy = read("app/cookies/page.tsx");
     expect(policy).toContain("sb-&lt;project-ref&gt;-auth-token");
     expect(policy).toContain("400 days");
-    expect(policy).toContain("ggmarket-sw-recovery");
-    expect(policy).toContain("ggmarket-shell-v3");
+    expect(policy).toContain("lootriva-sw-recovery");
+    expect(policy).toContain("lootriva-shell-v1");
     expect(policy).toContain("no analytics, advertising, or marketing cookies");
     expect(policy).toContain("does not ask for cookie consent");
   });

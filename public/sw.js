@@ -1,4 +1,5 @@
-const CACHE = "ggmarket-shell-v3";
+const CACHE = "lootriva-shell-v1";
+const APP_CACHE_PREFIXES = ["lootriva-shell-", "ggmarket-shell-"];
 const SHELL = ["/offline", "/icon.svg"];
 self.addEventListener("install", (event) => event.waitUntil(Promise.all([
   caches.open(CACHE).then((cache) => cache.addAll(SHELL)),
@@ -6,7 +7,9 @@ self.addEventListener("install", (event) => event.waitUntil(Promise.all([
 ])));
 self.addEventListener("activate", (event) => event.waitUntil(
   caches.keys()
-    .then((keys) => Promise.all(keys.filter((key) => key !== CACHE).map((key) => caches.delete(key))))
+    .then((keys) => Promise.all(keys
+      .filter((key) => key !== CACHE && APP_CACHE_PREFIXES.some((prefix) => key.startsWith(prefix)))
+      .map((key) => caches.delete(key))))
     .then(() => self.clients.claim()),
 ));
 self.addEventListener("fetch", (event) => {

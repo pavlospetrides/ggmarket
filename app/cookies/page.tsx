@@ -22,13 +22,13 @@ const rows = [
     data: "A random verifier used to bind the browser to the authentication flow; it is not an advertising identifier.",
   },
   {
-    name: <code>ggmarket-sw-recovery</code>,
+    name: <code>lootriva-sw-recovery</code>,
     purpose: "Prevents repeated reloads while recovering from an outdated service worker or application bundle.",
     duration: "Per-tab sessionStorage; removed as soon as the application hydrates successfully.",
     data: "The value 1 only. No account or marketplace information.",
   },
   {
-    name: <code>ggmarket-shell-v3</code>,
+    name: <code>lootriva-shell-v1</code>,
     purpose: "Keeps the offline page and Lootriva icon available through the browser Cache Storage API in production.",
     duration: "Until the cache version changes, the service worker is removed, or the browser/site data is cleared.",
     data: "Only /offline and /icon.svg. Authenticated pages and API responses are not cached.",

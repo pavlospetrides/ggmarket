@@ -4,6 +4,7 @@ export function ServiceWorkerRegistration() {
   useEffect(() => {
     document.documentElement.dataset.ggHydrated = "true";
     try {
+      sessionStorage.removeItem("lootriva-sw-recovery");
       sessionStorage.removeItem("ggmarket-sw-recovery");
     } catch {
       // Hydration remains successful when storage is unavailable.
