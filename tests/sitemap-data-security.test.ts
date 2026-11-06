@@ -65,8 +65,8 @@ describe("anonymous sitemap query security", () => {
 
   it("uses inner RLS-visible relationships without requesting protected profile fields", async () => {
     await getPublicSitemapCounts();
-    await getPublicListingSitemapRows(1);
-    await getPublicProfileSitemapRows(1);
+    await getPublicListingSitemapRows(2);
+    await getPublicProfileSitemapRows(2);
 
     expect(queryState.clients).toEqual([
       {
@@ -86,26 +86,39 @@ describe("anonymous sitemap query security", () => {
       },
     ]);
     expect(queryState.queries).toHaveLength(4);
-    expect(queryState.queries.map((query) => query.operations[0])).toEqual([
-      {
-        method: "select",
-        args: ["id,seller:profiles!listings_seller_id_fkey!inner(id)", { count: "exact", head: true }],
-      },
-      {
-        method: "select",
-        args: ["id,listings:listings!listings_seller_id_fkey!inner(id)", { count: "exact", head: true }],
-      },
-      {
-        method: "select",
-        args: ["id,status,published_at,updated_at,seller:profiles!listings_seller_id_fkey!inner(id)"],
-      },
-      {
-        method: "select",
-        args: ["username,updated_at,listings:listings!listings_seller_id_fkey!inner(status,updated_at)"],
-      },
+    expect(queryState.queries.map((query) => query.operations)).toEqual([
+      [
+        {
+          method: "select",
+          args: ["id,seller:profiles!listings_seller_id_fkey!inner(id)", { count: "exact", head: true }],
+        },
+        { method: "eq", args: ["status", "active"] },
+      ],
+      [
+        {
+          method: "select",
+          args: ["id,listings:listings!listings_seller_id_fkey!inner(id)", { count: "exact", head: true }],
+        },
+        { method: "eq", args: ["listings.status", "active"] },
+      ],
+      [
+        {
+          method: "select",
+          args: ["id,status,published_at,updated_at,seller:profiles!listings_seller_id_fkey!inner(id)"],
+        },
+        { method: "eq", args: ["status", "active"] },
+        { method: "order", args: ["id"] },
+        { method: "range", args: [1000, 1999] },
+      ],
+      [
+        {
+          method: "select",
+          args: ["username,updated_at,listings:listings!listings_seller_id_fkey!inner(status,updated_at)"],
+        },
+        { method: "eq", args: ["listings.status", "active"] },
+        { method: "order", args: ["username"] },
+        { method: "range", args: [1000, 1999] },
+      ],
     ]);
-    expect(queryState.queries.flatMap((query) => query.operations)).not.toContainEqual(
-      expect.objectContaining({ method: "is" }),
-    );
   });
 });
