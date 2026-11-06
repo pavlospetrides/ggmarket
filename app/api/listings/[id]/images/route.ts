@@ -114,6 +114,9 @@ export async function POST(request: Request, { params }: RouteContext) {
     if (reconciliation.status === "existing") {
       return NextResponse.json(reconciliation.image);
     }
+    if (reconciliation.status === "conflict") {
+      return NextResponse.json({ error: "Upload identifier conflict." }, { status: 409 });
+    }
     if (reconciliation.status === "pending" || reconciliation.cleanupPending) {
       console.error("Listing image upload cleanup pending", {
         listingId: id,

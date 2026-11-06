@@ -80,6 +80,21 @@ describe("trusted listing media storage", () => {
     expect(remove).not.toHaveBeenCalled();
   });
 
+  it("never removes a same-listing winner when the upload ID has a conflicting sort order", async () => {
+    const remove = vi.fn(async () => ({ error: null }));
+
+    const result = await reconcileListingImageMetadataFailure(
+      { upload: vi.fn(), remove },
+      Object.values(paths),
+      { data: { listing_id: "listing-id", sort_order: 1 }, error: null },
+      "listing-id",
+      0,
+    );
+
+    expect(result).toEqual({ status: "conflict" });
+    expect(remove).not.toHaveBeenCalled();
+  });
+
   it("deduplicates only database-recorded original and variant paths", () => {
     expect(listingImageObjectPaths({
       storage_path: "a/original.webp",

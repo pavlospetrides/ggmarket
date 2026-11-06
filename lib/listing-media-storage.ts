@@ -40,11 +40,14 @@ export async function reconcileListingImageMetadataFailure<
 ): Promise<
   | { status: "pending" }
   | { status: "existing"; image: T }
+  | { status: "conflict" }
   | { status: "removed"; cleanupPending: boolean }
 > {
   if (lookup.error) return { status: "pending" };
-  if (lookup.data?.listing_id === listingId && lookup.data.sort_order === sortOrder) {
-    return { status: "existing", image: lookup.data };
+  if (lookup.data?.listing_id === listingId) {
+    return lookup.data.sort_order === sortOrder
+      ? { status: "existing", image: lookup.data }
+      : { status: "conflict" };
   }
   const cleanup = await bucket.remove(paths);
   return { status: "removed", cleanupPending: Boolean(cleanup.error) };
