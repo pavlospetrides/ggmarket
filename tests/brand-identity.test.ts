@@ -102,4 +102,12 @@ describe("Lootriva brand identity", () => {
     expect(sqlmap.application).toBe("Lootriva");
     expect(sqlmap.production.host).toBe("lootriva.com");
   });
+
+  it("uses LT instead of retired GG shorthand in visible product surfaces", () => {
+    expect(read("app/page.tsx")).toContain("LT / LOADOUT ATLAS");
+    expect(read("components/page-masthead.tsx")).toContain("<span>LT</span>");
+    expect(read("components/ui/favorite-lanyard-rail.tsx")).toContain(">LT</span>");
+    expect(read("app/api/verification/item/route.ts")).toContain("`LT-${randomInt");
+    expect(read("lib/gg-card.ts")).toContain('label: "Lootriva Purple"');
+  });
 });

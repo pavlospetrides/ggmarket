@@ -172,6 +172,23 @@ describe("mutation origin validation", () => {
     expect(response.headers.get("location")).toBe(expected);
   });
 
+  it.each(["POST", "PUT", "PATCH", "DELETE", "OPTIONS"])(
+    "never replays a %s request body across a canonical-host migration",
+    async (method) => {
+      const response = await proxy(new NextRequest("https://www.lootriva.com/api/favorites", {
+        method,
+        headers: { "content-type": "application/json" },
+        body: method === "OPTIONS" ? undefined : JSON.stringify({ listingId: "private" }),
+      }));
+
+      expect(response.status).toBe(403);
+      expect(response.headers.get("location")).toBeNull();
+      await expect(response.json()).resolves.toEqual({
+        error: "Repeat this request on https://lootriva.com.",
+      });
+    },
+  );
+
   it.each([
     ["https://ggmarket.eu/auth/recovery?token_hash=private&type=recovery", "https://lootriva.com/forgot-password?status=legacy_link"],
     ["https://www.ggmarket.eu/auth/confirm-signup?token_hash=private&type=email", "https://lootriva.com/verify-email?status=legacy_link"],

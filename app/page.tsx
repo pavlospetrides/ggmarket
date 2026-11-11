@@ -37,7 +37,7 @@ export default async function HomePage() {
           <div className="campaign-search"><SearchBar large /></div>
         </div>
         <MobileHomeHero />
-        <p className="campaign-index" aria-hidden="true">GG / LOADOUT ATLAS</p>
+        <p className="campaign-index" aria-hidden="true">LT / LOADOUT ATLAS</p>
       </div>
     </section>
 

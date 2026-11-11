@@ -72,7 +72,7 @@ Security invariant: link GET only stages the token in a Secure, HttpOnly, SameSi
 
 - [ ] Vercel Project → Settings → Domains: add/verify `lootriva.com`, `www.lootriva.com`, `ggmarket.eu`, and `www.ggmarket.eu` on this project before DNS cutover.
 - [ ] Set `lootriva.com` as the primary Production domain.
-- [ ] Configure `www.lootriva.com` to permanently redirect to `lootriva.com`, not the reverse.
+- [ ] Keep both `lootriva.com` and `www.lootriva.com` attached to the production deployment, with no Vercel domain-level redirect on `www`. Requests to `www` must reach the application proxy so it can strip token/code-bearing URLs before issuing the permanent apex redirect. The application, not a platform redirect rule, enforces `www` → apex.
 - [ ] Attach the retired GGMarket hosts so application-controlled exact-host compatibility redirects can run. Ordinary public paths/queries must reach the apex; token/code-bearing and auth paths must restart safely without forwarding secrets.
 - [ ] Production environment variable: set `NEXT_PUBLIC_SITE_URL=https://lootriva.com`. Verify Supabase public/server variables point to the existing intended Production project. Do not change keys as part of branding.
 - [ ] Confirm no variable contains a retired public URL unless it is an explicitly documented compatibility input.
@@ -89,7 +89,7 @@ Security invariant: link GET only stages the token in a Secure, HttpOnly, SameSi
 ### 7. Production release and immediate verification
 
 - [ ] Merge only after approval, then deploy the reviewed commit to Production through the normal Vercel release flow. Do not deploy a different SHA.
-- [ ] Verify with fresh requests (no cached redirect): apex returns 200; `www` returns one permanent redirect to the same apex path/query; there is no loop.
+- [ ] Verify with fresh requests (no cached redirect): apex returns 200; a safe `www` GET returns one application-issued permanent redirect to the same apex path/query; a token-bearing `www` URL restarts at the documented safe destination with no secret in `Location`; and there is no loop.
 - [ ] Verify retired public listing/profile links retain safe path/query. Verify a synthetic token-bearing legacy URL returns only the documented restart destination and its `Location` contains no token, code, provider token, access token, refresh token, or fragment.
 - [ ] Inspect HTML and headers for apex canonical, Open Graph, Twitter, manifest, icon, robots, and sitemap URLs; none may reference `www` or the retired domain.
 - [ ] Verify all customer pages, API fallback HTML, auth screens, email copy, PWA/offline shell, and Lootriva Card show Lootriva/LT assets.

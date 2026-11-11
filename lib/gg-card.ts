@@ -1,5 +1,5 @@
 export const GG_CARD_THEMES = {
-  "gg-purple": { id: "gg-purple", label: "GG Purple", strapColor: "#6d46d9", inkColor: "#f5f1ff", cardColor: "#171329" },
+  "gg-purple": { id: "gg-purple", label: "Lootriva Purple", strapColor: "#6d46d9", inkColor: "#f5f1ff", cardColor: "#171329" },
   "midnight-black": { id: "midnight-black", label: "Midnight Black", strapColor: "#171a21", inkColor: "#f4f5f7", cardColor: "#090b10" },
   "arctic-white": { id: "arctic-white", label: "Arctic White", strapColor: "#e8edf5", inkColor: "#182033", cardColor: "#f9fbff" },
   crimson: { id: "crimson", label: "Crimson", strapColor: "#a61f35", inkColor: "#fff3f5", cardColor: "#2a0f16" },

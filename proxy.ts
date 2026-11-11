@@ -64,6 +64,15 @@ function rejectedVerificationResponse(request: NextRequest) {
 export async function proxy(request: NextRequest) {
   const canonicalRedirect = getCanonicalRedirectUrl(request.nextUrl);
   if (canonicalRedirect) {
+    if (!["GET", "HEAD"].includes(request.method)) {
+      return secure(
+        NextResponse.json(
+          { error: "Repeat this request on https://lootriva.com." },
+          { status: 403 },
+        ),
+        request,
+      );
+    }
     return secure(NextResponse.redirect(canonicalRedirect, 308), request);
   }
 
