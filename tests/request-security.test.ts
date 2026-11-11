@@ -162,10 +162,10 @@ describe("mutation origin validation", () => {
   });
 
   it.each([
-    ["https://www.lootriva.com/marketplace?q=gpu", "https://lootriva.com/marketplace?q=gpu"],
-    ["https://ggmarket.eu/marketplace?q=gpu", "https://lootriva.com/marketplace?q=gpu"],
-    ["https://www.ggmarket.eu/profile/player", "https://lootriva.com/profile/player"],
-    ["https://ggmarket-sage.vercel.app/listing/abc?ref=old", "https://lootriva.com/listing/abc?ref=old"],
+    ["https://www.lootriva.com/marketplace?q=gpu", "https://lootriva.com/marketplace?q=gpu#"],
+    ["https://ggmarket.eu/marketplace?q=gpu", "https://lootriva.com/marketplace?q=gpu#"],
+    ["https://www.ggmarket.eu/profile/player", "https://lootriva.com/profile/player#"],
+    ["https://ggmarket-sage.vercel.app/listing/abc?ref=old", "https://lootriva.com/listing/abc?ref=old#"],
   ])("redirects legacy public host %s to the canonical host", async (source, expected) => {
     const response = await proxy(new NextRequest(source));
     expect(response.status).toBe(308);
@@ -190,9 +190,9 @@ describe("mutation origin validation", () => {
   );
 
   it.each([
-    ["https://ggmarket.eu/auth/recovery?token_hash=private&type=recovery", "https://lootriva.com/forgot-password?status=legacy_link"],
-    ["https://www.ggmarket.eu/auth/confirm-signup?token_hash=private&type=email", "https://lootriva.com/verify-email?status=legacy_link"],
-    ["https://www.lootriva.com/auth/callback?code=private", "https://lootriva.com/login?error=legacy_link"],
+    ["https://ggmarket.eu/auth/recovery?token_hash=private&type=recovery", "https://lootriva.com/forgot-password?status=legacy_link#"],
+    ["https://www.ggmarket.eu/auth/confirm-signup?token_hash=private&type=email", "https://lootriva.com/verify-email?status=legacy_link#"],
+    ["https://www.lootriva.com/auth/callback?code=private", "https://lootriva.com/login?error=legacy_link#"],
   ])("redirects legacy authentication links without forwarding credentials: %s", async (source, expected) => {
     const response = await proxy(new NextRequest(source));
     expect(response.status).toBe(308);

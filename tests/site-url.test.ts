@@ -47,10 +47,10 @@ describe("application URL configuration", () => {
 
 describe("canonical host redirects", () => {
   it.each([
-    ["https://www.lootriva.com/marketplace?q=gpu", "https://lootriva.com/marketplace?q=gpu"],
-    ["https://ggmarket.eu/marketplace?q=gpu", "https://lootriva.com/marketplace?q=gpu"],
-    ["https://www.ggmarket.eu/profile/player?tab=listings", "https://lootriva.com/profile/player?tab=listings"],
-    ["https://ggmarket-sage.vercel.app/listing/abc?ref=old", "https://lootriva.com/listing/abc?ref=old"],
+    ["https://www.lootriva.com/marketplace?q=gpu", "https://lootriva.com/marketplace?q=gpu#"],
+    ["https://ggmarket.eu/marketplace?q=gpu", "https://lootriva.com/marketplace?q=gpu#"],
+    ["https://www.ggmarket.eu/profile/player?tab=listings", "https://lootriva.com/profile/player?tab=listings#"],
+    ["https://ggmarket-sage.vercel.app/listing/abc?ref=old", "https://lootriva.com/listing/abc?ref=old#"],
   ])("redirects %s while preserving path and query", (source, expected) => {
     expect(getCanonicalRedirectUrl(new URL(source))?.toString()).toBe(expected);
   });
@@ -64,11 +64,11 @@ describe("canonical host redirects", () => {
   });
 
   it.each([
-    ["https://ggmarket.eu/auth/recovery?token_hash=secret&type=recovery", "https://lootriva.com/forgot-password?status=legacy_link"],
-    ["https://www.ggmarket.eu/auth/confirm-signup?token_hash=secret&type=email", "https://lootriva.com/verify-email?status=legacy_link"],
-    ["https://www.lootriva.com/auth/callback?code=secret&next=%2Fprofile", "https://lootriva.com/login?error=legacy_link"],
-    ["https://ggmarket.eu/listing/abc?provider_token=secret", "https://lootriva.com/login?error=legacy_link"],
-    ["https://ggmarket.eu/listing/abc?access_token=secret#refresh_token=also-secret", "https://lootriva.com/login?error=legacy_link"],
+    ["https://ggmarket.eu/auth/recovery?token_hash=secret&type=recovery", "https://lootriva.com/forgot-password?status=legacy_link#"],
+    ["https://www.ggmarket.eu/auth/confirm-signup?token_hash=secret&type=email", "https://lootriva.com/verify-email?status=legacy_link#"],
+    ["https://www.lootriva.com/auth/callback?code=secret&next=%2Fprofile", "https://lootriva.com/login?error=legacy_link#"],
+    ["https://ggmarket.eu/listing/abc?provider_token=secret", "https://lootriva.com/login?error=legacy_link#"],
+    ["https://ggmarket.eu/listing/abc?access_token=secret#refresh_token=also-secret", "https://lootriva.com/login?error=legacy_link#"],
   ])("never forwards authentication secrets from an alias: %s", (source, expected) => {
     const target = getCanonicalRedirectUrl(new URL(source));
     expect(target?.toString()).toBe(expected);

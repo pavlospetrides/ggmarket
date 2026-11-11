@@ -73,19 +73,24 @@ export function buildCanonicalUrl(pathname: string) {
 export function getCanonicalRedirectUrl(requestUrl: URL) {
   if (!LEGACY_PUBLIC_HOSTS.has(requestUrl.hostname.toLowerCase())) return null;
 
+  let target: URL;
   if (requestUrl.pathname.startsWith("/auth/recovery")) {
-    return new URL("/forgot-password?status=legacy_link", CANONICAL_SITE_ORIGIN);
-  }
-  if (requestUrl.pathname.startsWith("/auth/confirm-signup")) {
-    return new URL("/verify-email?status=legacy_link", CANONICAL_SITE_ORIGIN);
-  }
-  if (
+    target = new URL("/forgot-password?status=legacy_link", CANONICAL_SITE_ORIGIN);
+  } else if (requestUrl.pathname.startsWith("/auth/confirm-signup")) {
+    target = new URL("/verify-email?status=legacy_link", CANONICAL_SITE_ORIGIN);
+  } else if (
     requestUrl.pathname.startsWith("/auth/")
     || requestUrl.hash
     || [...requestUrl.searchParams.keys()].some((key) => SENSITIVE_QUERY_KEYS.has(key.toLowerCase()))
   ) {
-    return new URL("/login?error=legacy_link", CANONICAL_SITE_ORIGIN);
+    target = new URL("/login?error=legacy_link", CANONICAL_SITE_ORIGIN);
+  } else {
+    target = new URL(`${requestUrl.pathname}${requestUrl.search}`, `${CANONICAL_SITE_ORIGIN}/`);
   }
 
-  return new URL(`${requestUrl.pathname}${requestUrl.search}`, `${CANONICAL_SITE_ORIGIN}/`);
+  // Browsers do not send URL fragments to servers and otherwise inherit the
+  // original fragment across redirects. An explicit empty fragment prevents a
+  // legacy OAuth/access-token fragment from reaching the canonical origin.
+  target.hash = "#";
+  return target;
 }

@@ -46,7 +46,7 @@ Initial signup and resend pass `https://lootriva.com/auth/confirm-signup` as `em
 
 ## Domain routing checks
 
-- In Vercel Domains, mark `lootriva.com` as the primary production domain and configure `www.lootriva.com` to redirect permanently to it.
+- In Vercel Domains, attach both `lootriva.com` and `www.lootriva.com` to the production deployment without a Vercel domain-level redirect. Requests to `www` must reach the application proxy, which clears inherited fragments and strips token/code-bearing URLs before issuing the permanent apex redirect.
 - Keep the generated project hostname assigned to the project. The application performs exact-host compatibility handling for retired hosts while leaving all other Vercel preview hostnames untouched.
 - Verify `/auth/callback`, `/sitemap.xml`, and `/robots.txt` after the next authorized deployment. Do not test by changing production users or issuing real customer emails.
 - With an isolated new account, inspect the Confirm signup anchor without sharing it: it must start with `https://lootriva.com/auth/confirm-signup?token_hash=` and include `type=email`. Opening it must show **Confirm your email** before verification, then reach the existing Welcome panel only after the explicit button is pressed.
