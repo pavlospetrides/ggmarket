@@ -14,7 +14,7 @@ import { PUBLIC_PAGE_SOCIAL_METADATA } from "@/lib/site-metadata";
 
 export const metadata: Metadata = {
   title: "Browse gaming gear",
-  description: "Discover fresh gaming gear, popular listings, retro finds, trades, and wanted posts on GGMarket.",
+  description: "Discover fresh gaming gear, popular listings, retro finds, trades, and wanted posts on Lootriva.",
   ...PUBLIC_PAGE_SOCIAL_METADATA.browse,
 };
 
@@ -50,7 +50,7 @@ export default async function BrowsePage() {
         <span className="absolute inset-0 bg-[linear-gradient(90deg,rgba(5,7,10,.92),rgba(5,7,10,.18))]" aria-hidden="true" /> {/* taste-skill-ignore: neutral image scrim keeps hero copy readable */}
         <div className="relative flex min-h-[28rem] max-w-2xl flex-col justify-end p-6 sm:min-h-[38rem] sm:p-10 lg:p-14">
           <h1 className="max-w-[10ch] text-[clamp(3.25rem,8vw,8rem)] font-[790] leading-[.86] tracking-[-.07em]">Find what plays next</h1>
-          <p className="mt-6 max-w-lg text-base leading-7 text-white/85 sm:text-lg">Explore fresh listings, specialist hardware, retro finds, trades, and wanted posts from the GGMarket community.</p>
+          <p className="mt-6 max-w-lg text-base leading-7 text-white/85 sm:text-lg">Explore fresh listings, specialist hardware, retro finds, trades, and wanted posts from the Lootriva community.</p>
           <Link href="/marketplace" className="btn-primary mt-7 w-fit">Open Marketplace <ArrowRight className="size-4" /></Link>
         </div>
       </div>

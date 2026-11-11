@@ -3,7 +3,7 @@ import { DEFAULT_GG_CARD, GG_CARD_THEMES, getGGCardTheme, mapGGCardRow } from ".
 import { ggCardSchema } from "../lib/validation";
 import { shouldAnimateBadge } from "../components/ui/lanyard-badge";
 
-describe("GG Card domain contract", () => {
+describe("Lootriva Card domain contract", () => {
   it("provides the private GG Purple default and four complete safe themes", () => {
     expect(DEFAULT_GG_CARD).toEqual({ slogan: "Play. Trade. Belong.", themeId: "gg-purple", isPublic: false });
     expect(Object.keys(GG_CARD_THEMES)).toEqual(["gg-purple", "midnight-black", "arctic-white", "crimson"]);
@@ -43,7 +43,7 @@ describe("GG Card domain contract", () => {
     expect(ggCardSchema.safeParse(payload).success).toBe(false);
   });
 });
-describe("GG Card animation lifecycle", () => {
+describe("Lootriva Card animation lifecycle", () => {
   it.each([
     [{ reduced: false, documentVisible: true, intersecting: true }, true],
     [{ reduced: true, documentVisible: true, intersecting: true }, false],

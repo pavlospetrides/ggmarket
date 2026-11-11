@@ -4,7 +4,7 @@ Last updated: 2026-11-06 (Europe/Athens)
 
 ## Safety boundary
 
-GGMarket listing media remains in the private `listing-images` Supabase Storage bucket. Application reads are authorized through the existing `listing_images` RLS policies and one-hour signed URLs. Upload processing uses the narrowly isolated server-only Supabase admin client; browser code never receives a service-role or secret key.
+Lootriva listing media remains in the private `listing-images` Supabase Storage bucket. Application reads are authorized through the existing `listing_images` RLS policies and one-hour signed URLs. Upload processing uses the narrowly isolated server-only Supabase admin client; browser code never receives a service-role or secret key.
 
 Never make the bucket public, disable RLS, run the backfill against production without written approval, log signed URLs, or delete legacy originals. A Storage URL is not proof of authorization.
 

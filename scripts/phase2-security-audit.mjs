@@ -53,7 +53,7 @@ async function observePostgresInsert(client, table, filter, action) {
 
 try {
   for (const suffix of ["buyer", "outsider", "seller"]) {
-    const created = await admin.auth.admin.createUser({ email: `ggmarket.p2.${suffix}.${stamp}@example.invalid`, password, email_confirm: true, user_metadata: { username: `p2_${suffix}_${String(stamp).slice(-7)}`.slice(0, 24), display_name: `P2 ${suffix}` } });
+    const created = await admin.auth.admin.createUser({ email: `lootriva.p2.${suffix}.${stamp}@example.invalid`, password, email_confirm: true, user_metadata: { username: `p2_${suffix}_${String(stamp).slice(-7)}`.slice(0, 24), display_name: `P2 ${suffix}` } });
     if (created.error || !created.data.user) throw created.error ?? new Error("User creation failed");
     users.push(created.data.user);
   }

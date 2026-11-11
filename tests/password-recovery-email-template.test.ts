@@ -6,11 +6,12 @@ describe("Reset Password email template", () => {
     const html = await readFile(new URL("../docs/auth/reset-password-email.html", import.meta.url), "utf8");
 
     expect(html).toMatch(/<a\s[^>]*href=/i);
-    expect(html).toContain("https://ggmarket.eu/auth/recovery?token_hash={{ .TokenHash }}");
+    expect(html).toContain("https://lootriva.com/auth/recovery?token_hash={{ .TokenHash }}");
     expect(html).toContain("&amp;type=recovery");
     expect(html).not.toContain("{{ .ConfirmationURL }}");
     expect(html).not.toContain("{{ .RedirectTo }}");
     expect(html).not.toContain("localhost");
+    expect(html).toContain("Reset your Lootriva password");
   });
 
   it("configures the disposable local stack for its HTTP recovery endpoint", async () => {
@@ -20,7 +21,9 @@ describe("Reset Password email template", () => {
     expect(config).toContain('"http://localhost:3000/auth/recovery"');
     expect(config).toContain('[auth.email.template.recovery]');
     expect(config).toContain('content_path = "./supabase/templates/recovery.html"');
+    expect(config).toContain('subject = "Reset your Lootriva password"');
     expect(html).toContain("http://localhost:3000/auth/recovery?token_hash={{ .TokenHash }}");
     expect(html).toContain("&amp;type=recovery");
+    expect(html).toContain("Lootriva");
   });
 });

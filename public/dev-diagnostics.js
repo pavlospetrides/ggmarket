@@ -15,7 +15,7 @@
     if (!panel) return;
     var controls = document.querySelectorAll("[data-gg-debug-control]");
     var enabled = Array.prototype.filter.call(controls, function (control) { return !control.matches(":disabled"); }).length;
-    var hydrated = document.documentElement.dataset.ggHydrated === "true";
+    var hydrated = document.documentElement.dataset.lootrivaHydrated === "true";
     var serviceWorker = !("serviceWorker" in navigator) ? "unsupported" : navigator.serviceWorker.controller ? "controlled" : "not controlling";
     panel.querySelector("[data-gg-diagnostic-body]").textContent = [
       "Hydration: " + (hydrated ? "ready" : "waiting"),
@@ -58,11 +58,11 @@
     panel = document.createElement("aside");
     panel.id = "gg-device-diagnostics";
     panel.setAttribute("role", "status");
-    panel.setAttribute("aria-label", "GGMarket device diagnostics");
+    panel.setAttribute("aria-label", "Lootriva device diagnostics");
     panel.style.cssText = "position:fixed;z-index:100;left:8px;right:8px;bottom:calc(88px + env(safe-area-inset-bottom));max-height:42vh;overflow:auto;padding:12px;border:1px solid #7762d8;border-radius:12px;background:rgba(8,10,16,.96);color:#f5f3ff;font:12px/1.45 ui-monospace,SFMono-Regular,Menlo,monospace;white-space:pre-wrap;pointer-events:none";
 
     var heading = document.createElement("strong");
-    heading.textContent = "GGMarket device diagnostics";
+    heading.textContent = "Lootriva device diagnostics";
     heading.style.display = "block";
     heading.style.marginBottom = "6px";
     panel.appendChild(heading);

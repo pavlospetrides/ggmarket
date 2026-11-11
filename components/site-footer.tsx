@@ -7,7 +7,7 @@ export function SiteFooter() {
     <div className="container-page">
       <div className="footer-mark" aria-hidden="true">
         <BrandMark className="footer-symbol" />
-        <span className="footer-wordmark">GGMarket</span>
+        <span className="footer-wordmark">Lootriva</span>
       </div>
       <div className="footer-links">
         <Logo />

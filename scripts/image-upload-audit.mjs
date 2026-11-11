@@ -9,7 +9,7 @@ if (!["127.0.0.1", "localhost", "::1", "[::1]"].includes(appUrl.hostname)) {
 
 const admin = createClient(url, serviceKey, { auth: { persistSession: false } });
 const stamp = Date.now();
-const email = `ggmarket.qa.upload.${stamp}@example.invalid`;
+const email = `lootriva.qa.upload.${stamp}@example.invalid`;
 const password = `Gg!${crypto.randomUUID()}aA1`;
 let user;
 let listingId;

@@ -122,7 +122,7 @@ describe("premium marketplace visual foundation", () => {
     expect(heroBackground).toContain('from "@react-three/fiber"');
     expect(heroBackground).toContain("prefers-reduced-motion: reduce");
     expect(heroBackground).toContain("Pause hero animation");
-    expect(heroBackground).not.toContain("ggmarket-hero-desktop.webp");
+    expect(heroBackground).not.toContain("lootriva-hero-desktop.webp");
     expect(home).toContain("Browse marketplace");
     expect(home).toContain("Sell your gear");
     expect(home).toContain("Just listed");

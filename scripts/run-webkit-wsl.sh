@@ -2,16 +2,16 @@
 set -euo pipefail
 
 repo_source="/mnt/c/Users/pavlo/OneDrive/Documents/ggshop"
-test_root="$HOME/.cache/ggmarket-webkit-test"
+test_root="$HOME/.cache/lootriva-webkit-test"
 node_root="$HOME/.cache/node-v22.22.0-linux-x64"
-deps_root="$HOME/.cache/ggmarket-webkit-deps"
+deps_root="$HOME/.cache/lootriva-webkit-deps"
 
 if [[ ! -x "$node_root/bin/node" ]]; then
-  curl -fsSL "https://nodejs.org/dist/v22.22.0/node-v22.22.0-linux-x64.tar.xz" -o "$HOME/.cache/ggmarket-node.tar.xz"
-  tar -xJf "$HOME/.cache/ggmarket-node.tar.xz" -C "$HOME/.cache"
+  curl -fsSL "https://nodejs.org/dist/v22.22.0/node-v22.22.0-linux-x64.tar.xz" -o "$HOME/.cache/lootriva-node.tar.xz"
+  tar -xJf "$HOME/.cache/lootriva-node.tar.xz" -C "$HOME/.cache"
 fi
 
-if [[ "$test_root" != "$HOME/.cache/ggmarket-webkit-test" ]]; then
+if [[ "$test_root" != "$HOME/.cache/lootriva-webkit-test" ]]; then
   echo "Unexpected test directory" >&2
   exit 2
 fi

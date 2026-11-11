@@ -24,7 +24,7 @@ function formRedirect(request: Request, path: string) {
 
 function formError(message: string, status: number) {
   return new NextResponse(
-    `<!doctype html><html lang="en"><meta name="viewport" content="width=device-width"><title>GGMarket</title><body><main><h1>Message not sent</h1><p>${message}</p><p>Return to the conversation and try again.</p></main></body></html>`,
+    `<!doctype html><html lang="en"><meta name="viewport" content="width=device-width"><title>Lootriva</title><body><main><h1>Message not sent</h1><p>${message}</p><p>Return to the conversation and try again.</p></main></body></html>`,
     { status, headers: { "content-type": "text/html; charset=utf-8" } },
   );
 }

@@ -9,7 +9,7 @@ export default function GGCardHarnessPage() {
   const identity = { displayName: "Synthetic Player", username: "synthetic-player" };
   return (
     <main className="container-page py-8">
-      <h1 className="text-3xl font-bold">GG Card interaction harness</h1>
+      <h1 className="text-3xl font-bold">Lootriva Card interaction harness</h1>
       <div data-testid="public-card"><GGCardSection own={false} identity={identity} card={{ ...DEFAULT_GG_CARD, slogan: "Public synthetic card", isPublic: true }} /></div>
       <div data-testid="private-card"><GGCardSection own={false} identity={identity} card={null} /></div>
       <div data-testid="owner-card"><GGCardSection own identity={identity} card={DEFAULT_GG_CARD} /></div>

@@ -1,8 +1,8 @@
-# GGMarket Threat Model
+# Lootriva Threat Model
 
 ## Executive summary
 
-GGMarket's highest-risk boundary is the internet-reachable Supabase project: browser and server clients use the public Data API, Auth, Realtime, and Storage services, while RLS and function authorization provide the main isolation between marketplace users. The current schema has strong owner and participant policies, constrained Storage paths, private draft images, and narrow moderation functions. The most important remaining risks are configuration drift between migrations and the deployed project, accidental service-role use against the wrong environment, malicious image content, authentication abuse, and future changes that weaken RLS or privileged RPC checks.
+Lootriva's highest-risk boundary is the internet-reachable Supabase project: browser and server clients use the public Data API, Auth, Realtime, and Storage services, while RLS and function authorization provide the main isolation between marketplace users. The current schema has strong owner and participant policies, constrained Storage paths, private draft images, and narrow moderation functions. The most important remaining risks are configuration drift between migrations and the deployed project, accidental service-role use against the wrong environment, malicious image content, authentication abuse, and future changes that weaken RLS or privileged RPC checks.
 
 ## Scope and assumptions
 

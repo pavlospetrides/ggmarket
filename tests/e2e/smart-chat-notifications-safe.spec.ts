@@ -8,7 +8,7 @@ const conversationB = "22222222-2222-4222-8222-222222222222";
 
 async function emit(page: Page, id: string, conversationId = conversationA) {
   await page.evaluate(({ id, conversationId }) => {
-    window.dispatchEvent(new CustomEvent("ggmarket:test-notification", { detail: { id, conversationId } }));
+    window.dispatchEvent(new CustomEvent("lootriva:test-notification", { detail: { id, conversationId } }));
   }, { id, conversationId });
 }
 

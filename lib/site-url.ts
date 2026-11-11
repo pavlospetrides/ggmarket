@@ -1,9 +1,23 @@
-export const CANONICAL_SITE_ORIGIN = "https://ggmarket.eu";
+export const CANONICAL_SITE_ORIGIN = "https://lootriva.com";
 export const LOCAL_SITE_ORIGIN = "http://localhost:3000";
 
 const LEGACY_PUBLIC_HOSTS = new Set([
+  "www.lootriva.com",
+  "ggmarket.eu",
   "www.ggmarket.eu",
   "ggmarket-sage.vercel.app",
+]);
+
+const SENSITIVE_QUERY_KEYS = new Set([
+  "access_token",
+  "authorization_code",
+  "code",
+  "confirmation_token",
+  "provider_refresh_token",
+  "provider_token",
+  "refresh_token",
+  "token",
+  "token_hash",
 ]);
 
 type SiteEnvironment = Readonly<Record<string, string | undefined>>;
@@ -58,5 +72,25 @@ export function buildCanonicalUrl(pathname: string) {
 
 export function getCanonicalRedirectUrl(requestUrl: URL) {
   if (!LEGACY_PUBLIC_HOSTS.has(requestUrl.hostname.toLowerCase())) return null;
-  return new URL(`${requestUrl.pathname}${requestUrl.search}${requestUrl.hash}`, `${CANONICAL_SITE_ORIGIN}/`);
+
+  let target: URL;
+  if (requestUrl.pathname.startsWith("/auth/recovery")) {
+    target = new URL("/forgot-password?status=legacy_link", CANONICAL_SITE_ORIGIN);
+  } else if (requestUrl.pathname.startsWith("/auth/confirm-signup")) {
+    target = new URL("/verify-email?status=legacy_link", CANONICAL_SITE_ORIGIN);
+  } else if (
+    requestUrl.pathname.startsWith("/auth/")
+    || requestUrl.hash
+    || [...requestUrl.searchParams.keys()].some((key) => SENSITIVE_QUERY_KEYS.has(key.toLowerCase()))
+  ) {
+    target = new URL("/login?error=legacy_link", CANONICAL_SITE_ORIGIN);
+  } else {
+    target = new URL(`${requestUrl.pathname}${requestUrl.search}`, `${CANONICAL_SITE_ORIGIN}/`);
+  }
+
+  // Browsers do not send URL fragments to servers and otherwise inherit the
+  // original fragment across redirects. An explicit empty fragment prevents a
+  // legacy OAuth/access-token fragment from reaching the canonical origin.
+  target.hash = "#";
+  return target;
 }

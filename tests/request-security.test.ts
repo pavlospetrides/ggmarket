@@ -30,9 +30,9 @@ describe("mutation origin validation", () => {
 
   it("honors forwarded production host and protocol", () => {
     expect(isTrustedMutationRequest(headers({
-      origin: "https://ggmarket.example",
+      origin: "https://lootriva.example",
       host: "internal:3000",
-      "x-forwarded-host": "ggmarket.example",
+      "x-forwarded-host": "lootriva.example",
       "x-forwarded-proto": "https",
       "sec-fetch-site": "same-origin",
     }), "http:" )).toBe(true);
@@ -41,7 +41,7 @@ describe("mutation origin validation", () => {
   it("rejects a different origin even when the target host is trusted", () => {
     expect(isTrustedMutationRequest(headers({
       origin: "https://attacker.example",
-      host: "ggmarket.example",
+      host: "lootriva.example",
       "x-forwarded-proto": "https",
       "sec-fetch-site": "cross-site",
     }), "http:" )).toBe(false);
@@ -49,35 +49,35 @@ describe("mutation origin validation", () => {
 
   it("rejects an originless request explicitly marked cross-site", () => {
     expect(isTrustedMutationRequest(headers({
-      host: "ggmarket.example",
+      host: "lootriva.example",
       "sec-fetch-site": "cross-site",
     }), "https:" )).toBe(false);
   });
 
   it("rejects an originless mutation when the browser does not prove it is same-origin", () => {
     expect(isTrustedMutationRequest(headers({
-      host: "ggmarket.example",
+      host: "lootriva.example",
     }), "https:" )).toBe(false);
   });
 
   it("rejects an explicit null origin even when fetch metadata says same-origin", () => {
     expect(isTrustedMutationRequest(headers({
       origin: "null",
-      host: "ggmarket.example",
+      host: "lootriva.example",
       "sec-fetch-site": "same-origin",
     }), "https:" )).toBe(false);
   });
 
   it("uses the configured production origin instead of client-supplied forwarding headers", () => {
     vi.stubEnv("NODE_ENV", "production");
-    vi.stubEnv("NEXT_PUBLIC_SITE_URL", "https://ggmarket.eu");
+    vi.stubEnv("NEXT_PUBLIC_SITE_URL", "https://lootriva.com");
     const requestHeaders = headers({
       host: "internal:3000",
       "x-forwarded-host": "attacker.vercel.app",
       "x-forwarded-proto": "https",
     });
 
-    expect(getPublicRequestOrigin(requestHeaders, "http:")).toBe("https://ggmarket.eu");
+    expect(getPublicRequestOrigin(requestHeaders, "http:")).toBe("https://lootriva.com");
     expect(isTrustedMutationRequest(new Headers({
       ...Object.fromEntries(requestHeaders.entries()),
       origin: "https://attacker.vercel.app",
@@ -93,28 +93,28 @@ describe("mutation origin validation", () => {
       host: "localhost:3000",
       "x-forwarded-host": "attacker.example",
       "x-forwarded-proto": "http",
-    }), "http:")).toBe("https://ggmarket.eu");
+    }), "http:")).toBe("https://lootriva.com");
   });
 
   it("uses the trusted Vercel deployment origin for preview authentication", () => {
     vi.stubEnv("NODE_ENV", "production");
     vi.stubEnv("VERCEL_ENV", "preview");
-    vi.stubEnv("VERCEL_URL", "ggmarket-git-auth-a1b2c3.vercel.app");
-    vi.stubEnv("NEXT_PUBLIC_SITE_URL", "https://ggmarket.eu");
+    vi.stubEnv("VERCEL_URL", "lootriva-git-auth-a1b2c3.vercel.app");
+    vi.stubEnv("NEXT_PUBLIC_SITE_URL", "https://lootriva.com");
 
     expect(getPublicRequestOrigin(headers({
       host: "internal:3000",
       "x-forwarded-host": "attacker.example",
       "x-forwarded-proto": "https",
-    }), "http:")).toBe("https://ggmarket-git-auth-a1b2c3.vercel.app");
+    }), "http:")).toBe("https://lootriva-git-auth-a1b2c3.vercel.app");
   });
 
   it("rejects cross-site auth mutations in the application proxy", async () => {
-    const response = await proxy(new NextRequest("https://ggmarket.example/auth/logout", {
+    const response = await proxy(new NextRequest("https://lootriva.example/auth/logout", {
       method: "POST",
       headers: {
         origin: "https://attacker.example",
-        host: "ggmarket.example",
+        host: "lootriva.example",
         "sec-fetch-site": "cross-site",
       },
     }));
@@ -126,17 +126,17 @@ describe("mutation origin validation", () => {
     ["/auth/confirm-signup/verify", "/verify-email?status=invalid"],
     ["/auth/recovery/confirm", "/reset-password?status=invalid"],
   ])("returns a browser-friendly rejection for protected verification POST %s", async (path, target) => {
-    const response = await proxy(new NextRequest(`https://ggmarket.example${path}`, {
+    const response = await proxy(new NextRequest(`https://lootriva.example${path}`, {
       method: "POST",
       headers: {
         origin: "https://attacker.example",
-        host: "ggmarket.example",
+        host: "lootriva.example",
         "sec-fetch-site": "cross-site",
       },
     }));
 
     expect(response.status).toBe(303);
-    expect(response.headers.get("location")).toBe(`https://ggmarket.example${target}`);
+    expect(response.headers.get("location")).toBe(`https://lootriva.example${target}`);
     expect(response.headers.get("content-type")).toBeNull();
     expect(response.headers.get("cache-control")).toContain("private");
     expect(response.headers.get("cache-control")).toContain("no-store");
@@ -146,28 +146,58 @@ describe("mutation origin validation", () => {
     "/auth/confirm-signup/continue",
     "/auth/recovery/continue",
   ])("allows a clean confirmation page to preserve its same-origin POST origin: %s", async (path) => {
-    const response = await proxy(new NextRequest(`https://ggmarket.example${path}`));
+    const response = await proxy(new NextRequest(`https://lootriva.example${path}`));
     expect(response.headers.get("referrer-policy")).toBe("same-origin");
   });
 
   it("prevents recovery credentials from leaking through referrers", async () => {
-    const response = await proxy(new NextRequest("https://ggmarket.example/auth/recovery?token_hash=private"));
+    const response = await proxy(new NextRequest("https://lootriva.example/auth/recovery?token_hash=private"));
 
     expect(response.headers.get("referrer-policy")).toBe("no-referrer");
   });
 
   it("prevents signup confirmation credentials from leaking through referrers", async () => {
-    const response = await proxy(new NextRequest("https://ggmarket.example/auth/confirm-signup?token_hash=private"));
+    const response = await proxy(new NextRequest("https://lootriva.example/auth/confirm-signup?token_hash=private"));
     expect(response.headers.get("referrer-policy")).toBe("no-referrer");
   });
 
   it.each([
-    ["https://www.ggmarket.eu/marketplace?q=gpu", "https://ggmarket.eu/marketplace?q=gpu"],
-    ["https://ggmarket-sage.vercel.app/listing/abc?ref=old", "https://ggmarket.eu/listing/abc?ref=old"],
+    ["https://www.lootriva.com/marketplace?q=gpu", "https://lootriva.com/marketplace?q=gpu#"],
+    ["https://ggmarket.eu/marketplace?q=gpu", "https://lootriva.com/marketplace?q=gpu#"],
+    ["https://www.ggmarket.eu/profile/player", "https://lootriva.com/profile/player#"],
+    ["https://ggmarket-sage.vercel.app/listing/abc?ref=old", "https://lootriva.com/listing/abc?ref=old#"],
   ])("redirects legacy public host %s to the canonical host", async (source, expected) => {
     const response = await proxy(new NextRequest(source));
     expect(response.status).toBe(308);
     expect(response.headers.get("location")).toBe(expected);
+  });
+
+  it.each(["POST", "PUT", "PATCH", "DELETE", "OPTIONS"])(
+    "never replays a %s request body across a canonical-host migration",
+    async (method) => {
+      const response = await proxy(new NextRequest("https://www.lootriva.com/api/favorites", {
+        method,
+        headers: { "content-type": "application/json" },
+        body: method === "OPTIONS" ? undefined : JSON.stringify({ listingId: "private" }),
+      }));
+
+      expect(response.status).toBe(403);
+      expect(response.headers.get("location")).toBeNull();
+      await expect(response.json()).resolves.toEqual({
+        error: "Repeat this request on https://lootriva.com.",
+      });
+    },
+  );
+
+  it.each([
+    ["https://ggmarket.eu/auth/recovery?token_hash=private&type=recovery", "https://lootriva.com/forgot-password?status=legacy_link#"],
+    ["https://www.ggmarket.eu/auth/confirm-signup?token_hash=private&type=email", "https://lootriva.com/verify-email?status=legacy_link#"],
+    ["https://www.lootriva.com/auth/callback?code=private", "https://lootriva.com/login?error=legacy_link#"],
+  ])("redirects legacy authentication links without forwarding credentials: %s", async (source, expected) => {
+    const response = await proxy(new NextRequest(source));
+    expect(response.status).toBe(308);
+    expect(response.headers.get("location")).toBe(expected);
+    expect(response.headers.get("location")).not.toContain("private");
   });
 });
 

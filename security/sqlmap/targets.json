@@ -1,13 +1,13 @@
 {
   "schema_version": 1,
-  "application": "GGMarket",
+  "application": "Lootriva",
   "defaults": {"delay": 1.0, "timeout": 15, "retries": 1, "per_target_seconds": 180},
   "sqlmap_candidates": [
     "C:\\Users\\pavlo\\Downloads\\sqlmap\\sqlmap.py",
     "C:\\Users\\Pavlos\\Downloads\\sqlmap\\sqlmap.py"
   ],
   "production": {
-    "host": "ggmarket.eu",
+    "host": "lootriva.com",
     "allowed_paths": ["/marketplace", "/search"],
     "opt_in_phrase": "I_UNDERSTAND_PRODUCTION_SMOKE_IS_LIVE_READ_ONLY",
     "max_request_budget": 12
@@ -58,152 +58,152 @@
     },
     {
       "id": "api-reviews-get", "route": "/api/reviews", "method": "GET", "parameters": ["sellerId"],
-      "auth": {"type": "cookie", "env": "GGMARKET_TEST_COOKIE_A"}, "sink": "reviews/profiles/listings builders", "risk": "low",
+      "auth": {"type": "cookie", "env": "LOOTRIVA_TEST_COOKIE_A"}, "sink": "reviews/profiles/listings builders", "risk": "low",
       "reasoning": "builder equality filter", "sources": ["app/api/reviews/route.ts"],
       "local": {"enabled": true, "path": "/api/reviews", "query": {"sellerId": "${FIXTURE_USER_ID_B}"}, "inject": "sellerId"}, "production": {"allowed": false}
     },
     {
       "id": "api-reviews-post", "route": "/api/reviews", "method": "POST", "parameters": ["sellerId", "rating", "comment"],
-      "auth": {"type": "cookie", "env": "GGMARKET_TEST_COOKIE_A"}, "sink": "reviews insert", "risk": "low", "reasoning": "validated JSON into PostgREST insert",
+      "auth": {"type": "cookie", "env": "LOOTRIVA_TEST_COOKIE_A"}, "sink": "reviews insert", "risk": "low", "reasoning": "validated JSON into PostgREST insert",
       "sources": ["app/api/reviews/route.ts"],
       "local": {"enabled": true, "path": "/api/reviews", "json": {"sellerId": "${FIXTURE_USER_ID_B}", "rating": 5, "comment": "fixture"}, "inject": "comment"}, "production": {"allowed": false}
     },
     {
       "id": "api-listings-create", "route": "/api/listings", "method": "POST", "parameters": ["title", "description", "price", "category", "condition", "location", "intent", "taxonomy"],
-      "auth": {"type": "cookie", "env": "GGMARKET_TEST_COOKIE_A"}, "sink": "listings insert", "risk": "low", "reasoning": "Zod validation and builder insert",
+      "auth": {"type": "cookie", "env": "LOOTRIVA_TEST_COOKIE_A"}, "sink": "listings insert", "risk": "low", "reasoning": "Zod validation and builder insert",
       "sources": ["app/api/listings/route.ts", "lib/validation.ts"],
       "local": {"enabled": false}, "production": {"allowed": false}
     },
     {
       "id": "api-listings-update", "route": "/api/listings/{id}", "method": "PATCH", "parameters": ["id", "listing fields", "publish"],
-      "auth": {"type": "cookie", "env": "GGMARKET_TEST_COOKIE_A"}, "sink": "listings update eq(id, seller_id)", "risk": "low", "reasoning": "validated values and builder filters",
+      "auth": {"type": "cookie", "env": "LOOTRIVA_TEST_COOKIE_A"}, "sink": "listings update eq(id, seller_id)", "risk": "low", "reasoning": "validated values and builder filters",
       "sources": ["app/api/listings/[id]/route.ts"], "local": {"enabled": false}, "production": {"allowed": false}
     },
     {
       "id": "api-listings-delete", "route": "/api/listings/{id}", "method": "DELETE", "parameters": ["id"],
-      "auth": {"type": "cookie", "env": "GGMARKET_TEST_COOKIE_A"}, "sink": "listings delete eq(id, seller_id)", "risk": "low", "reasoning": "builder filters; destructive test intentionally manual",
+      "auth": {"type": "cookie", "env": "LOOTRIVA_TEST_COOKIE_A"}, "sink": "listings delete eq(id, seller_id)", "risk": "low", "reasoning": "builder filters; destructive test intentionally manual",
       "sources": ["app/api/listings/[id]/route.ts"], "local": {"enabled": false}, "production": {"allowed": false}
     },
     {
       "id": "api-listing-images-upload", "route": "/api/listings/{id}/images", "method": "POST", "parameters": ["id", "multipart file"],
-      "auth": {"type": "cookie", "env": "GGMARKET_TEST_COOKIE_A"}, "sink": "listing ownership query and Storage upload", "risk": "low", "reasoning": "no SQL string construction; multipart unsuitable for generic SQLMap",
+      "auth": {"type": "cookie", "env": "LOOTRIVA_TEST_COOKIE_A"}, "sink": "listing ownership query and Storage upload", "risk": "low", "reasoning": "no SQL string construction; multipart unsuitable for generic SQLMap",
       "sources": ["app/api/listings/[id]/images/route.ts"], "local": {"enabled": false}, "production": {"allowed": false}
     },
     {
       "id": "api-listing-image-delete", "route": "/api/listing-images/{id}", "method": "DELETE", "parameters": ["id"],
-      "auth": {"type": "cookie", "env": "GGMARKET_TEST_COOKIE_A"}, "sink": "listing_images delete and Storage remove", "risk": "low", "reasoning": "builder filter; destructive manual fixture only",
+      "auth": {"type": "cookie", "env": "LOOTRIVA_TEST_COOKIE_A"}, "sink": "listing_images delete and Storage remove", "risk": "low", "reasoning": "builder filter; destructive manual fixture only",
       "sources": ["app/api/listing-images/[id]/route.ts"], "local": {"enabled": false}, "production": {"allowed": false}
     },
     {
       "id": "api-favorites-post", "route": "/api/favorites", "method": "POST", "parameters": ["listingId", "intent"],
-      "auth": {"type": "cookie", "env": "GGMARKET_TEST_COOKIE_A"}, "sink": "favorites insert/delete", "risk": "low", "reasoning": "validated JSON/form and builders",
+      "auth": {"type": "cookie", "env": "LOOTRIVA_TEST_COOKIE_A"}, "sink": "favorites insert/delete", "risk": "low", "reasoning": "validated JSON/form and builders",
       "sources": ["app/api/favorites/route.ts"],
       "local": {"enabled": true, "path": "/api/favorites", "json": {"listingId": "${FIXTURE_LISTING_ID}"}, "inject": "listingId"}, "production": {"allowed": false}
     },
     {
       "id": "api-recently-viewed", "route": "/api/recently-viewed", "method": "POST", "parameters": ["listingId"],
-      "auth": {"type": "cookie", "env": "GGMARKET_TEST_COOKIE_A"}, "sink": "recently_viewed upsert", "risk": "low", "reasoning": "builder upsert",
+      "auth": {"type": "cookie", "env": "LOOTRIVA_TEST_COOKIE_A"}, "sink": "recently_viewed upsert", "risk": "low", "reasoning": "builder upsert",
       "sources": ["app/api/recently-viewed/route.ts"],
       "local": {"enabled": true, "path": "/api/recently-viewed", "json": {"listingId": "${FIXTURE_LISTING_ID}"}, "inject": "listingId"}, "production": {"allowed": false}
     },
     {
       "id": "api-conversations-create", "route": "/api/conversations", "method": "POST", "parameters": ["listingId"],
-      "auth": {"type": "cookie", "env": "GGMARKET_TEST_COOKIE_A"}, "sink": "start_conversation RPC", "risk": "low", "reasoning": "typed RPC parameter",
+      "auth": {"type": "cookie", "env": "LOOTRIVA_TEST_COOKIE_A"}, "sink": "start_conversation RPC", "risk": "low", "reasoning": "typed RPC parameter",
       "sources": ["app/api/conversations/route.ts"],
       "local": {"enabled": true, "path": "/api/conversations", "json": {"listingId": "${FIXTURE_LISTING_ID}"}, "inject": "listingId"}, "production": {"allowed": false}
     },
     {
       "id": "api-messages-get", "route": "/api/conversations/{id}/messages", "method": "GET", "parameters": ["id"],
-      "auth": {"type": "cookie", "env": "GGMARKET_TEST_COOKIE_A"}, "sink": "conversations/messages builders", "risk": "low", "reasoning": "builder equality and RLS",
+      "auth": {"type": "cookie", "env": "LOOTRIVA_TEST_COOKIE_A"}, "sink": "conversations/messages builders", "risk": "low", "reasoning": "builder equality and RLS",
       "sources": ["app/api/conversations/[id]/messages/route.ts"],
       "local": {"enabled": true, "path": "/api/conversations/${FIXTURE_CONVERSATION_ID}*/messages", "inject": "*"}, "production": {"allowed": false}
     },
     {
       "id": "api-messages-post", "route": "/api/conversations/{id}/messages", "method": "POST", "parameters": ["id", "body", "clientId"],
-      "auth": {"type": "cookie", "env": "GGMARKET_TEST_COOKIE_A"}, "sink": "messages insert", "risk": "low", "reasoning": "validated JSON/form and builder insert",
+      "auth": {"type": "cookie", "env": "LOOTRIVA_TEST_COOKIE_A"}, "sink": "messages insert", "risk": "low", "reasoning": "validated JSON/form and builder insert",
       "sources": ["app/api/conversations/[id]/messages/route.ts"],
       "local": {"enabled": true, "path": "/api/conversations/${FIXTURE_CONVERSATION_ID}/messages", "json": {"body": "fixture", "clientId": "00000000-0000-4000-8000-000000000301"}, "inject": "body"}, "production": {"allowed": false}
     },
     {
       "id": "api-offers-create", "route": "/api/offers", "method": "POST", "parameters": ["conversationId", "amount", "parentOfferId"],
-      "auth": {"type": "cookie", "env": "GGMARKET_TEST_COOKIE_A"}, "sink": "create_offer RPC", "risk": "low", "reasoning": "typed RPC parameters",
+      "auth": {"type": "cookie", "env": "LOOTRIVA_TEST_COOKIE_A"}, "sink": "create_offer RPC", "risk": "low", "reasoning": "typed RPC parameters",
       "sources": ["app/api/offers/route.ts"],
       "local": {"enabled": true, "path": "/api/offers", "json": {"conversationId": "${FIXTURE_CONVERSATION_ID}", "amount": 25}, "inject": "conversationId"}, "production": {"allowed": false}
     },
     {
       "id": "api-offers-respond", "route": "/api/offers/{id}", "method": "PATCH", "parameters": ["id", "action"],
-      "auth": {"type": "cookie", "env": "GGMARKET_TEST_COOKIE_B"}, "sink": "respond_to_offer RPC", "risk": "low", "reasoning": "typed RPC parameters",
+      "auth": {"type": "cookie", "env": "LOOTRIVA_TEST_COOKIE_B"}, "sink": "respond_to_offer RPC", "risk": "low", "reasoning": "typed RPC parameters",
       "sources": ["app/api/offers/[id]/route.ts"], "local": {"enabled": false}, "production": {"allowed": false}
     },
     {
       "id": "api-trades-create", "route": "/api/trades", "method": "POST", "parameters": ["conversationId", "offeredListingId", "cashAdjustment", "note"],
-      "auth": {"type": "cookie", "env": "GGMARKET_TEST_COOKIE_A"}, "sink": "create_trade_proposal RPC", "risk": "low", "reasoning": "typed RPC parameters",
+      "auth": {"type": "cookie", "env": "LOOTRIVA_TEST_COOKIE_A"}, "sink": "create_trade_proposal RPC", "risk": "low", "reasoning": "typed RPC parameters",
       "sources": ["app/api/trades/route.ts"],
       "local": {"enabled": true, "path": "/api/trades", "json": {"conversationId": "${FIXTURE_CONVERSATION_ID}", "offeredListingId": "${FIXTURE_LISTING_ID_A}", "cashAdjustment": 0, "note": "fixture"}, "inject": "note"}, "production": {"allowed": false}
     },
     {
       "id": "api-trades-respond", "route": "/api/trades/{id}", "method": "PATCH", "parameters": ["id", "action"],
-      "auth": {"type": "cookie", "env": "GGMARKET_TEST_COOKIE_B"}, "sink": "respond_to_trade RPC", "risk": "low", "reasoning": "typed RPC parameters",
+      "auth": {"type": "cookie", "env": "LOOTRIVA_TEST_COOKIE_B"}, "sink": "respond_to_trade RPC", "risk": "low", "reasoning": "typed RPC parameters",
       "sources": ["app/api/trades/[id]/route.ts"], "local": {"enabled": false}, "production": {"allowed": false}
     },
     {
       "id": "api-saved-searches-create", "route": "/api/saved-searches", "method": "POST", "parameters": ["name", "query", "category", "filters"],
-      "auth": {"type": "cookie", "env": "GGMARKET_TEST_COOKIE_A"}, "sink": "saved_searches insert", "risk": "low", "reasoning": "validated JSON and builder insert",
+      "auth": {"type": "cookie", "env": "LOOTRIVA_TEST_COOKIE_A"}, "sink": "saved_searches insert", "risk": "low", "reasoning": "validated JSON and builder insert",
       "sources": ["app/api/saved-searches/route.ts"],
       "local": {"enabled": true, "path": "/api/saved-searches", "json": {"name": "fixture", "searchTerm": "console", "enabled": true}, "inject": "searchTerm"}, "production": {"allowed": false}
     },
     {
       "id": "api-saved-searches-update", "route": "/api/saved-searches/{id}", "method": "PATCH", "parameters": ["id", "name", "enabled", "filters"],
-      "auth": {"type": "cookie", "env": "GGMARKET_TEST_COOKIE_A"}, "sink": "saved_searches update", "risk": "low", "reasoning": "builder update and ownership filter",
+      "auth": {"type": "cookie", "env": "LOOTRIVA_TEST_COOKIE_A"}, "sink": "saved_searches update", "risk": "low", "reasoning": "builder update and ownership filter",
       "sources": ["app/api/saved-searches/[id]/route.ts"], "local": {"enabled": false}, "production": {"allowed": false}
     },
     {
       "id": "api-notifications-get", "route": "/api/notifications", "method": "GET", "parameters": [],
-      "auth": {"type": "cookie", "env": "GGMARKET_TEST_COOKIE_A"}, "sink": "notifications select by auth identity", "risk": "none", "reasoning": "no user query parameter",
+      "auth": {"type": "cookie", "env": "LOOTRIVA_TEST_COOKIE_A"}, "sink": "notifications select by auth identity", "risk": "none", "reasoning": "no user query parameter",
       "sources": ["app/api/notifications/route.ts"], "local": {"enabled": false}, "production": {"allowed": false}
     },
     {
       "id": "api-notifications-patch", "route": "/api/notifications", "method": "PATCH", "parameters": ["id", "ids", "all"],
-      "auth": {"type": "cookie", "env": "GGMARKET_TEST_COOKIE_A"}, "sink": "notifications update", "risk": "low", "reasoning": "builder in/eq plus user ownership",
+      "auth": {"type": "cookie", "env": "LOOTRIVA_TEST_COOKIE_A"}, "sink": "notifications update", "risk": "low", "reasoning": "builder in/eq plus user ownership",
       "sources": ["app/api/notifications/route.ts"], "local": {"enabled": false}, "production": {"allowed": false}
     },
     {
       "id": "api-reports-create", "route": "/api/reports", "method": "POST", "parameters": ["listingId", "reason", "details"],
-      "auth": {"type": "cookie", "env": "GGMARKET_TEST_COOKIE_A"}, "sink": "reports insert", "risk": "low", "reasoning": "validated builder insert",
+      "auth": {"type": "cookie", "env": "LOOTRIVA_TEST_COOKIE_A"}, "sink": "reports insert", "risk": "low", "reasoning": "validated builder insert",
       "sources": ["app/api/reports/route.ts"],
       "local": {"enabled": true, "path": "/api/reports", "json": {"listingId": "${FIXTURE_LISTING_ID}", "reason": "other", "details": "fixture"}, "inject": "details"}, "production": {"allowed": false}
     },
     {
       "id": "api-profile-update", "route": "/api/profile", "method": "PATCH", "parameters": ["username", "displayName", "location", "bio"],
-      "auth": {"type": "cookie", "env": "GGMARKET_TEST_COOKIE_A"}, "sink": "profiles update", "risk": "low", "reasoning": "validated builder update",
+      "auth": {"type": "cookie", "env": "LOOTRIVA_TEST_COOKIE_A"}, "sink": "profiles update", "risk": "low", "reasoning": "validated builder update",
       "sources": ["app/api/profile/route.ts"], "local": {"enabled": false}, "production": {"allowed": false}
     },
     {
       "id": "api-item-verification", "route": "/api/verification/item", "method": "POST", "parameters": ["listingId"],
-      "auth": {"type": "cookie", "env": "GGMARKET_TEST_COOKIE_A"}, "sink": "create_item_verification_challenge RPC", "risk": "low", "reasoning": "typed RPC parameter",
+      "auth": {"type": "cookie", "env": "LOOTRIVA_TEST_COOKIE_A"}, "sink": "create_item_verification_challenge RPC", "risk": "low", "reasoning": "typed RPC parameter",
       "sources": ["app/api/verification/item/route.ts"],
       "local": {"enabled": true, "path": "/api/verification/item", "json": {"listingId": "${FIXTURE_LISTING_ID_A}"}, "inject": "listingId"}, "production": {"allowed": false}
     },
     {
       "id": "api-admin-reports", "route": "/api/admin/reports", "method": "PATCH", "parameters": ["reportId", "listingId", "action"],
-      "auth": {"type": "cookie", "env": "GGMARKET_TEST_COOKIE_ADMIN"}, "sink": "moderate_report RPC", "risk": "low", "reasoning": "admin gate and typed RPC",
+      "auth": {"type": "cookie", "env": "LOOTRIVA_TEST_COOKIE_ADMIN"}, "sink": "moderate_report RPC", "risk": "low", "reasoning": "admin gate and typed RPC",
       "sources": ["app/api/admin/reports/route.ts"], "local": {"enabled": false}, "production": {"allowed": false}
     },
     {
       "id": "api-email-verification", "route": "/api/verification/email", "method": "POST", "parameters": ["authenticated email"],
-      "auth": {"type": "cookie", "env": "GGMARKET_TEST_COOKIE_A"}, "sink": "Supabase Auth resend", "risk": "low", "reasoning": "Auth API using the authenticated identity, not application SQL",
+      "auth": {"type": "cookie", "env": "LOOTRIVA_TEST_COOKIE_A"}, "sink": "Supabase Auth resend", "risk": "low", "reasoning": "Auth API using the authenticated identity, not application SQL",
       "sources": ["app/api/verification/email/route.ts"], "local": {"enabled": false}, "production": {"allowed": false}
     },
     {
       "id": "page-private-account-reads", "route": "/profile, /favorites, /messages, /notifications, /saved-searches, /admin", "method": "GET",
-      "parameters": ["authenticated identity", "page where applicable"], "auth": {"type": "cookie", "env": "GGMARKET_TEST_COOKIE_A"},
+      "parameters": ["authenticated identity", "page where applicable"], "auth": {"type": "cookie", "env": "LOOTRIVA_TEST_COOKIE_A"},
       "sink": "profile/listing/favorite/conversation/notification/saved-search/report builders", "risk": "low", "reasoning": "queries are scoped through auth identity, RLS, builder filters and numeric ranges",
       "sources": ["app/profile/page.tsx", "app/favorites/page.tsx", "app/messages/page.tsx", "app/notifications/page.tsx", "app/saved-searches/page.tsx", "app/admin/page.tsx"],
       "local": {"enabled": false}, "production": {"allowed": false}
     },
     {
       "id": "page-conversation", "route": "/messages/{id}", "method": "GET", "parameters": ["id"],
-      "auth": {"type": "cookie", "env": "GGMARKET_TEST_COOKIE_A"}, "sink": "conversation/message/offer/trade/listing builders", "risk": "low", "reasoning": "builder equality filters plus RLS",
+      "auth": {"type": "cookie", "env": "LOOTRIVA_TEST_COOKIE_A"}, "sink": "conversation/message/offer/trade/listing builders", "risk": "low", "reasoning": "builder equality filters plus RLS",
       "sources": ["app/messages/[id]/page.tsx", "lib/phase2-data.ts"], "local": {"enabled": false}, "production": {"allowed": false}
     },
     {
@@ -223,7 +223,7 @@
     },
     {
       "id": "auth-logout", "route": "/auth/logout", "method": "POST", "parameters": [],
-      "auth": {"type": "cookie", "env": "GGMARKET_TEST_COOKIE_A"}, "sink": "Supabase Auth signOut", "risk": "none", "reasoning": "no user-controlled database input",
+      "auth": {"type": "cookie", "env": "LOOTRIVA_TEST_COOKIE_A"}, "sink": "Supabase Auth signOut", "risk": "none", "reasoning": "no user-controlled database input",
       "sources": ["app/auth/logout/route.ts"], "local": {"enabled": false}, "production": {"allowed": false}
     },
     {

@@ -4,7 +4,7 @@ import { validateMutationEnvironment } from "./mutation-environment.mjs";
 const { url, anonKey, serviceKey } = validateMutationEnvironment(process.env, { requireLocal: true });
 const admin = createClient(url, serviceKey, { auth: { persistSession: false } });
 const stamp = Date.now(); const password = `Gg!${crypto.randomUUID()}aA1`;
-const emailA = `ggmarket.qa.a.${stamp}@example.invalid`; const emailB = `ggmarket.qa.b.${stamp}@example.invalid`;
+const emailA = `lootriva.qa.a.${stamp}@example.invalid`; const emailB = `lootriva.qa.b.${stamp}@example.invalid`;
 const results = []; let userA; let userB; let rogueListingId; let ownedStoragePath;
 const record = (name, passed, detail = "") => results.push({ name, passed, detail });
 try {
@@ -26,7 +26,7 @@ try {
   rogueListingId = suspendedCreate.data?.id;
   record("suspended user cannot create listings", Boolean(suspendedCreate.error), suspendedCreate.error ? "blocked" : "CURRENT_SCHEMA_VULNERABLE");
   await admin.from("profiles").update({ suspended_at: null }).eq("id", userB.id);
-  const { data: listing, error: listingError } = await clientA.from("listings").insert({ seller_id: userA.id, category_id: category.id, title: `GGMarket QA Listing ${stamp}`, description: "Temporary automated authorization test listing.", price: 123, currency: "EUR", condition: "good", status: "draft", location: "QA City", shipping_available: true, meetup_available: false, attributes: {} }).select("id").single(); if (listingError) throw listingError;
+  const { data: listing, error: listingError } = await clientA.from("listings").insert({ seller_id: userA.id, category_id: category.id, title: `Lootriva QA Listing ${stamp}`, description: "Temporary automated authorization test listing.", price: 123, currency: "EUR", condition: "good", status: "draft", location: "QA City", shipping_available: true, meetup_available: false, attributes: {} }).select("id").single(); if (listingError) throw listingError;
   const { data: crossListing, error: crossListingError } = await clientB.from("listings").update({ price: 1 }).eq("id", listing.id).select("id"); record("other user cannot edit listing", !crossListingError && crossListing?.length === 0);
   const { data: crossDelete, error: crossDeleteError } = await clientB.from("listings").delete().eq("id", listing.id).select("id"); record("other user cannot delete listing", !crossDeleteError && crossDelete?.length === 0);
   const { error: transferError } = await clientA.from("listings").update({ seller_id: userB.id }).eq("id", listing.id); record("owner cannot transfer seller identity", Boolean(transferError));

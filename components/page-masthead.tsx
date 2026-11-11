@@ -20,7 +20,7 @@ export function PageMasthead({
   return (
     <header className={`exchange-masthead exchange-masthead--${variant}`}>
       <div className="exchange-masthead__index" aria-hidden="true">
-        <span>GG</span>
+        <span>LT</span>
         <span>/ MARKET</span>
       </div>
       <div className="exchange-masthead__copy">

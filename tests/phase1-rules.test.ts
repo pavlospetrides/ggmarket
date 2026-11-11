@@ -37,35 +37,35 @@ describe("Security helpers", () => {
   });
   it("enforces image type and size", () => { expect(isAllowedImageFile({ type: "image/webp", size: 1024 })).toBe(true); expect(isAllowedImageFile({ type: "image/svg+xml", size: 1024 })).toBe(false); expect(isAllowedImageFile({ type: "image/jpeg", size: 11_000_000 })).toBe(false); expect(isAllowedImageFile({ type: "image/jpeg", size: 0 })).toBe(false); });
   it("rejects malformed and non-JSON request bodies", async () => {
-    expect(await readJson(new Request("https://ggmarket.test", { method: "POST", headers: { "content-type": "application/json" }, body: "{" }))).toBeNull();
-    expect(await readJson(new Request("https://ggmarket.test", { method: "POST", headers: { "content-type": "text/plain" }, body: "{}" }))).toBeNull();
-    expect(await readJson(new Request("https://ggmarket.test", { method: "POST", headers: { "content-type": "application/json" }, body: '{"ok":true}' }))).toEqual({ ok: true });
+    expect(await readJson(new Request("https://lootriva.test", { method: "POST", headers: { "content-type": "application/json" }, body: "{" }))).toBeNull();
+    expect(await readJson(new Request("https://lootriva.test", { method: "POST", headers: { "content-type": "text/plain" }, body: "{}" }))).toBeNull();
+    expect(await readJson(new Request("https://lootriva.test", { method: "POST", headers: { "content-type": "application/json" }, body: '{"ok":true}' }))).toEqual({ ok: true });
   });
   it("rejects JSON bodies larger than the application limit before schema validation", async () => {
     const oversized = JSON.stringify({ value: "x".repeat(65_536) });
-    expect(await readJson(new Request("https://ggmarket.test", {
+    expect(await readJson(new Request("https://lootriva.test", {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: oversized,
     }))).toBeNull();
-    expect(await readJson(new Request("https://ggmarket.test", {
+    expect(await readJson(new Request("https://lootriva.test", {
       method: "POST",
       headers: { "content-type": "application/json", "content-length": "70000" },
       body: '{"ok":true}',
     }))).toBeNull();
   });
   it("bounds URL-encoded form bodies before parsing", async () => {
-    expect(await readUrlEncodedForm(new Request("https://ggmarket.test", {
+    expect(await readUrlEncodedForm(new Request("https://lootriva.test", {
       method: "POST",
       headers: { "content-type": "application/x-www-form-urlencoded" },
       body: "email=user%40example.invalid&next=%2Fprofile",
     }))).toEqual(new URLSearchParams("email=user%40example.invalid&next=%2Fprofile"));
-    expect(await readUrlEncodedForm(new Request("https://ggmarket.test", {
+    expect(await readUrlEncodedForm(new Request("https://lootriva.test", {
       method: "POST",
       headers: { "content-type": "application/x-www-form-urlencoded" },
       body: `message=${"x".repeat(65_536)}`,
     }))).toBeNull();
-    expect(await readUrlEncodedForm(new Request("https://ggmarket.test", {
+    expect(await readUrlEncodedForm(new Request("https://lootriva.test", {
       method: "POST",
       headers: { "content-type": "multipart/form-data; boundary=test" },
       body: "--test--",
@@ -75,7 +75,7 @@ describe("Security helpers", () => {
     const body = new ReadableStream<Uint8Array>({
       start(controller) { controller.error(new Error("stream failed")); },
     });
-    await expect(readJson(new Request("https://ggmarket.test", {
+    await expect(readJson(new Request("https://lootriva.test", {
       method: "POST",
       headers: { "content-type": "application/json" },
       body,

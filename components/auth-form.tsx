@@ -63,7 +63,7 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
           await supabase.auth.signOut();
           throw new Error(active === false ? "This account is suspended and cannot sign in." : "Account status could not be verified.");
         }
-        window.dispatchEvent(new Event("ggmarket:auth-changed"));
+        window.dispatchEvent(new Event("lootriva:auth-changed"));
         router.replace(next);
         router.refresh();
       } else {
@@ -78,7 +78,7 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
         });
         if (authError) throw authError;
         if (data.session) {
-          window.dispatchEvent(new Event("ggmarket:auth-changed"));
+          window.dispatchEvent(new Event("lootriva:auth-changed"));
           router.replace(data.user?.email_confirmed_at ? "/settings/verification?status=verified&welcome=1" : "/profile");
           router.refresh();
         } else {
@@ -205,7 +205,7 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
             : "Create account"}
       </button>
       <p className="text-center text-sm text-[var(--muted)]">
-        {mode === "login" ? "New to GGMarket?" : "Already have an account?"}{" "}
+        {mode === "login" ? "New to Lootriva?" : "Already have an account?"}{" "}
         <Link
           className="font-bold text-[#aa98ff]"
           href={alternateAuthHref}

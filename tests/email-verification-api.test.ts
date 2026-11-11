@@ -27,7 +27,7 @@ describe("email verification resend API", () => {
     auth.getUser.mockResolvedValue({ data: { user: null }, error: null });
     auth.resend.mockResolvedValue({ error: null });
     const { POST } = await import("../app/api/verification/email/route");
-    const response = await POST(new Request("https://ggmarket.test/api/verification/email", {
+    const response = await POST(new Request("https://lootriva.test/api/verification/email", {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ email: "member@example.test" }),
@@ -35,7 +35,7 @@ describe("email verification resend API", () => {
     expect(auth.resend).toHaveBeenCalledWith({
       type: "signup",
       email: "member@example.test",
-      options: { emailRedirectTo: "https://ggmarket.test/auth/confirm-signup" },
+      options: { emailRedirectTo: "https://lootriva.test/auth/confirm-signup" },
     });
     expect(await response.json()).toEqual({ status: "sent" });
   });
@@ -52,7 +52,7 @@ describe("email verification resend API", () => {
       body: JSON.stringify({ email: "member@example.test" }),
     }));
     expect(auth.resend).toHaveBeenCalledWith(expect.objectContaining({
-      options: { emailRedirectTo: "https://ggmarket.eu/auth/confirm-signup" },
+      options: { emailRedirectTo: "https://lootriva.com/auth/confirm-signup" },
     }));
   });
 
@@ -67,7 +67,7 @@ describe("email verification resend API", () => {
   it("rejects a declared oversized resend body before calling the provider", async () => {
     auth.getUser.mockResolvedValue({ data: { user: null }, error: null });
     const { POST } = await import("../app/api/verification/email/route");
-    const response = await POST(new Request("https://ggmarket.test/api/verification/email", {
+    const response = await POST(new Request("https://lootriva.test/api/verification/email", {
       method: "POST",
       headers: { "content-type": "application/json", "content-length": "70000" },
       body: JSON.stringify({ email: "member@example.test" }),

@@ -9,7 +9,7 @@ test.beforeEach(async ({ page }) => {
     await route.fulfill({ response });
   });
   await page.goto("/test-harness/gg-card");
-  await expect(page.getByRole("heading", { name: "GG Card interaction harness" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Lootriva Card interaction harness" })).toBeVisible();
 });
 
 test("public/private controls, lazy viewer, keyboard flip, and focus restoration", async ({ page }) => {
@@ -17,17 +17,17 @@ test("public/private controls, lazy viewer, keyboard flip, and focus restoration
   const privateCard = page.getByTestId("private-card");
   const ownerCard = page.getByTestId("owner-card");
 
-  await expect(publicCard.getByRole("button", { name: "View GG Card" })).toBeVisible();
+  await expect(publicCard.getByRole("button", { name: "View Lootriva Card" })).toBeVisible();
   await expect(publicCard.getByRole("button", { name: "Customize Card" })).toHaveCount(0);
   await expect(privateCard).toBeEmpty();
   await expect(ownerCard.getByRole("button", { name: "View My Card" })).toBeVisible();
   await expect(ownerCard.getByRole("button", { name: "Customize Card" })).toBeVisible();
   await expect(page.locator("canvas")).toHaveCount(0);
 
-  const trigger = publicCard.getByRole("button", { name: "View GG Card" });
+  const trigger = publicCard.getByRole("button", { name: "View Lootriva Card" });
   await trigger.focus();
   await trigger.press("Enter");
-  const dialog = page.getByRole("dialog", { name: "Synthetic Player's GG Card" });
+  const dialog = page.getByRole("dialog", { name: "Synthetic Player's Lootriva Card" });
   await expect(dialog).toBeVisible();
   await expect(dialog.locator("canvas")).toHaveCount(1);
 
@@ -46,7 +46,7 @@ test("public/private controls, lazy viewer, keyboard flip, and focus restoration
 test("customization is bounded, themed, previewed, and private by default", async ({ page }) => {
   const ownerCard = page.getByTestId("owner-card");
   await ownerCard.getByRole("button", { name: "Customize Card" }).click();
-  const dialog = page.getByRole("dialog", { name: "Customize My GG Card" });
+  const dialog = page.getByRole("dialog", { name: "Customize My Lootriva Card" });
   const slogan = dialog.getByLabel("Slogan");
   await expect(slogan).toHaveAttribute("maxlength", "80");
   await expect(dialog.getByLabel("Show on my public profile")).not.toBeChecked();
@@ -59,7 +59,7 @@ test("customization is bounded, themed, previewed, and private by default", asyn
 });
 
 test("normal motion animates while reduced motion settles to a static pose", async ({ page }) => {
-  await page.getByTestId("public-card").getByRole("button", { name: "View GG Card" }).click();
+  await page.getByTestId("public-card").getByRole("button", { name: "View Lootriva Card" }).click();
   const inner = page.getByTestId("gg-card-inner");
   const before = await inner.getAttribute("style");
   await page.waitForTimeout(350);
@@ -68,7 +68,7 @@ test("normal motion animates while reduced motion settles to a static pose", asy
 
   await page.keyboard.press("Escape");
   await page.emulateMedia({ reducedMotion: "reduce" });
-  await page.getByTestId("public-card").getByRole("button", { name: "View GG Card" }).click();
+  await page.getByTestId("public-card").getByRole("button", { name: "View Lootriva Card" }).click();
   const reducedInner = page.getByTestId("gg-card-inner");
   const reducedBefore = await reducedInner.getAttribute("style");
   await page.waitForTimeout(350);
@@ -78,7 +78,7 @@ test("normal motion animates while reduced motion settles to a static pose", asy
 });
 
 test("animation pauses while the document is hidden and resumes when visible", async ({ page }) => {
-  await page.getByTestId("public-card").getByRole("button", { name: "View GG Card" }).click();
+  await page.getByTestId("public-card").getByRole("button", { name: "View Lootriva Card" }).click();
   const inner = page.getByTestId("gg-card-inner");
   await expect(inner).toBeVisible();
   await page.evaluate(() => {
@@ -102,7 +102,7 @@ test("repeated viewer cycles keep one canvas, stop on close, and perform no data
     if (pathname.startsWith("/api/") || /\/(?:rest|auth)\/v1\//.test(pathname)) protectedRequests.push(pathname);
   });
   const initialScripts = await page.evaluate(() => performance.getEntriesByType("resource").filter((entry) => entry.name.includes("/_next/") && entry.name.endsWith(".js")).length);
-  const trigger = page.getByTestId("public-card").getByRole("button", { name: "View GG Card" });
+  const trigger = page.getByTestId("public-card").getByRole("button", { name: "View Lootriva Card" });
   for (let cycle = 0; cycle < 3; cycle += 1) {
     await trigger.click();
     await expect(page.locator("canvas")).toHaveCount(1);
@@ -116,7 +116,7 @@ test("repeated viewer cycles keep one canvas, stop on close, and perform no data
 });
 
 test("dragging pulls the badge without accidentally flipping it", async ({ page }) => {
-  await page.getByTestId("public-card").getByRole("button", { name: "View GG Card" }).click();
+  await page.getByTestId("public-card").getByRole("button", { name: "View Lootriva Card" }).click();
   const badge = page.getByTestId("gg-card-badge");
   const before = await badge.boundingBox();
   expect(before).toBeTruthy();
@@ -133,13 +133,13 @@ test("dragging pulls the badge without accidentally flipping it", async ({ page 
 
 test("mobile viewer remains inside the viewport with usable controls", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.getByTestId("public-card").getByRole("button", { name: "View GG Card" }).click();
-  const dialog = page.getByRole("dialog", { name: "Synthetic Player's GG Card" });
+  await page.getByTestId("public-card").getByRole("button", { name: "View Lootriva Card" }).click();
+  const dialog = page.getByRole("dialog", { name: "Synthetic Player's Lootriva Card" });
   const box = await dialog.boundingBox();
   expect(box).toBeTruthy();
   expect(box!.x).toBeGreaterThanOrEqual(0);
   expect(box!.x + box!.width).toBeLessThanOrEqual(390);
-  const close = dialog.getByRole("button", { name: "Close GG Card" });
+  const close = dialog.getByRole("button", { name: "Close Lootriva Card" });
   const closeBox = await close.boundingBox();
   expect(closeBox?.width).toBeGreaterThanOrEqual(44);
   expect(closeBox?.height).toBeGreaterThanOrEqual(44);

@@ -10,11 +10,11 @@ export async function PATCH(request: Request) {
 
   const parsed = ggCardSchema.safeParse(await readJson(request));
   if (!parsed.success) {
-    return NextResponse.json({ error: parsed.error.issues[0]?.message ?? "Invalid GG Card." }, { status: 400 });
+    return NextResponse.json({ error: parsed.error.issues[0]?.message ?? "Invalid Lootriva Card." }, { status: 400 });
   }
 
   const supabase = await createClient();
-  if (!supabase) return NextResponse.json({ error: "Your GG Card could not be saved." }, { status: 503 });
+  if (!supabase) return NextResponse.json({ error: "Your Lootriva Card could not be saved." }, { status: 503 });
   const { data, error } = await supabase
     .from("gg_cards")
     .upsert({
@@ -27,9 +27,9 @@ export async function PATCH(request: Request) {
     .single();
 
   if (error || !data) {
-    console.error("GG Card update failed", { code: error?.code });
+    console.error("Lootriva Card update failed", { code: error?.code });
     return NextResponse.json(
-      { error: "Your GG Card could not be saved." },
+      { error: "Your Lootriva Card could not be saved." },
       { status: error?.code === "42501" ? 403 : 400 },
     );
   }

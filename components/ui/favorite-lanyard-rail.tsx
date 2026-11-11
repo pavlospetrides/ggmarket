@@ -179,7 +179,7 @@ const FavoriteBadgeFaces = React.memo(function FavoriteBadgeFaces({
         </span>
         <span className="mx-[0.8em] mb-[0.7em] mt-auto flex min-w-0 items-center justify-between gap-[0.45em] text-[0.62em] font-semibold text-[#aeb7c6]">
           <span className="min-w-0 truncate">{item.category}</span>
-          <span className="shrink-0 rounded-full bg-[#262038] px-[0.6em] py-[0.28em] text-[#cbbfff]">GG</span>
+          <span className="shrink-0 rounded-full bg-[#262038] px-[0.6em] py-[0.28em] text-[#cbbfff]">LT</span>
         </span>
         <span aria-hidden="true" className="pointer-events-none absolute inset-0 bg-black" style={{ opacity: "var(--rail-shade,0)" }} />
       </span>

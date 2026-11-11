@@ -56,7 +56,7 @@ export function ResetPasswordForm({ initialError = "", initialErrorField = "form
         setErrorField(result.field ?? "form");
         return;
       }
-      window.dispatchEvent(new Event("ggmarket:auth-changed"));
+      window.dispatchEvent(new Event("lootriva:auth-changed"));
       setSuccess(true);
     } catch {
       setError("Your password could not be updated. Check your connection and try again.");
@@ -73,7 +73,7 @@ export function ResetPasswordForm({ initialError = "", initialErrorField = "form
           <CircleCheck className="size-7" aria-hidden="true" />
         </div>
         <h2 className="text-xl font-bold">Password updated</h2>
-        <p className="text-base leading-7 text-[var(--text-secondary)]">Your new password is ready. Sign in to continue to GGMarket.</p>
+        <p className="text-base leading-7 text-[var(--text-secondary)]">Your new password is ready. Sign in to continue to Lootriva.</p>
         <Link className="btn-primary w-full" href="/login">Go to login</Link>
       </div>
     );

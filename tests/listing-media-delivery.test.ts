@@ -43,6 +43,6 @@ describe("listing media delivery", () => {
     const home = read("app/page.tsx");
 
     expect(home).toContain('import Image from "next/image"');
-    expect(home).toContain('src="/images/brand/ggmarket-hero-desktop.webp"');
+    expect(home).toContain('src="/images/brand/lootriva-hero-desktop.webp"');
   });
 });

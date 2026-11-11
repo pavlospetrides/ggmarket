@@ -66,7 +66,7 @@ describe("notification API", () => {
   });
 
   it("batch-marks only authenticated-owner rows in the displayed snapshot", async () => {
-    const response = await PATCH(new Request("https://ggmarket.test/api/notifications", {
+    const response = await PATCH(new Request("https://lootriva.test/api/notifications", {
       method: "PATCH",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ ids: ["n1", "n2"] }),
@@ -80,7 +80,7 @@ describe("notification API", () => {
   });
 
   it("rejects malformed or duplicate batch identifiers", async () => {
-    const response = await PATCH(new Request("https://ggmarket.test/api/notifications", {
+    const response = await PATCH(new Request("https://lootriva.test/api/notifications", {
       method: "PATCH",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ ids: ["n1", "n1"] }),

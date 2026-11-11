@@ -11,13 +11,13 @@ export const metadata: Metadata = {
 
 export default function SignupConfirmationPage() {
   return (
-    <AuthShell title="Confirm your email" subtitle="Finish creating your GGMarket account.">
+    <AuthShell title="Confirm your email" subtitle="Finish creating your Lootriva account.">
       <div className="space-y-5 text-center">
         <div className="mx-auto grid size-14 place-items-center rounded-full bg-[#143926] text-[var(--success)]">
           <MailCheck className="size-7" aria-hidden="true" />
         </div>
         <p className="text-base leading-7 text-[var(--text-secondary)]">
-          Your email has not been verified yet. Continue only if you created this GGMarket account.
+          Your email has not been verified yet. Continue only if you created this Lootriva account.
         </p>
         <form action="/auth/confirm-signup/verify" method="post">
           <button className="btn-primary w-full" type="submit">Verify email and continue</button>

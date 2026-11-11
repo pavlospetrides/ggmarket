@@ -1,10 +1,10 @@
-# GGMarket product design system
+# Lootriva product design system
 
-This document is the visual and interaction authority for GGMarket. Existing application behavior, authentication, data access, and security remain authoritative; this system governs how those capabilities are presented.
+This document is the visual and interaction authority for Lootriva. Existing application behavior, authentication, data access, and security remain authoritative; this system governs how those capabilities are presented.
 
 ## Product direction: the midnight exchange
 
-GGMarket is a focused player-to-player exchange, not a generic neon gaming landing page. The interface combines cinematic campaign moments with compact, factual marketplace surfaces. Purple identifies primary action, cyan supports discovery and information, and near-black graphite keeps inventory imagery and transaction state dominant.
+Lootriva is a focused player-to-player exchange, not a generic neon gaming landing page. The interface combines cinematic campaign moments with compact, factual marketplace surfaces. Purple identifies primary action, cyan supports discovery and information, and near-black graphite keeps inventory imagery and transaction state dominant.
 
 The official visual balance is **70% premium minimal gaming** and **30% neo-brutalist**. Premium minimal is the operating system: precise type, restrained color, compact information, and calm task surfaces. Neo-brutalism is the signature layer: strong silhouettes, asymmetric editorial grids, heavier selected-state strokes, and decisive type contrast. It belongs in discovery, campaigns, navigation moments, and important actions—not on every field or transaction control.
 
@@ -12,11 +12,11 @@ The recurring visual idea is an **inventory routing board**: gaming categories a
 
 The product should feel premium without becoming sparse, gaming-specific without relying on glowing decoration, compact without becoming cramped, and trustworthy through clear information rather than unsupported claims. Editorial artwork may introduce a category or campaign, but it must never resemble a real listing.
 
-## Brand identity: Portal Pair
+## Brand identity: LT Portal
 
-The GGMarket symbol is a pair of offset geometric G channels. Together they read as two players, two inventory sides, and a hand-off across a marketplace. The open counters keep the silhouette legible at favicon size; the diagonal relationship gives it forward motion without borrowing a controller, mascot, eye, or platform trademark.
+The Lootriva symbol interlocks a geometric L and T into one compact portal. The two planes read as inventory moving between players while keeping the initials legible at favicon size without borrowing a controller, mascot, eye, or platform trademark.
 
-- The primary horizontal lockup pairs the symbol with the `GGMarket` wordmark. Use it in navigation, authentication, marketing, and the footer.
+- The primary horizontal lockup pairs the symbol with the `Lootriva` wordmark. Use it in navigation, authentication, marketing, and the footer.
 - The compact symbol is reserved for favicons, app icons, constrained mobile placements, and large graphic brand moments.
 - On dark surfaces, use white plus brand violet (`#8F7BFF`). On light surfaces, use graphite (`#0B0D12`) plus deep violet (`#5B3FDB`). Monochrome is permitted when reproduction or contrast requires it.
 - Never rotate, stretch, outline, glow, place inside a new container, or recolor the two channels independently outside the approved variants.
@@ -104,7 +104,7 @@ Supported review widths: 320, 360, 375, 390, 393, 430, 768, 1024, 1280, 1440, an
 
 ### Mobile homepage
 
-- Do not load or display the desktop campaign photograph on mobile. Use a dedicated interface-led composition built from Portal Pair geometry, tonal surfaces, and restrained ambient light.
+- Do not load or display the desktop campaign photograph on mobile. Use a dedicated interface-led composition built from LT Portal geometry, tonal surfaces, and restrained ambient light.
 - Compose two related zones: brand/value/actions first, then a functional category exchange console as the visual payoff. Do not place controls over decorative imagery.
 - Keep the headline concise and search usable at 320px; actions may stack at narrow widths.
 - Keep the above-the-fold desktop hero photograph isolated behind the desktop media query so mobile browsers do not fetch it. Lower editorial campaign sections may retain independently lazy-loaded imagery.

@@ -6,7 +6,7 @@ if (existsSync(".env.local")) process.loadEnvFile?.(".env.local");
 const baseURL = process.env.PLAYWRIGHT_BASE_URL ?? "http://localhost:3000";
 export default defineConfig({
   testDir: "./tests/e2e",
-  outputDir: join(tmpdir(), "ggmarket-playwright-results"),
+  outputDir: join(tmpdir(), "lootriva-playwright-results"),
   timeout: 120_000,
   expect: { timeout: 20_000 },
   fullyParallel: false,

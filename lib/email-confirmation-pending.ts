@@ -1,4 +1,4 @@
-export const PENDING_EMAIL_CONFIRMATION_COOKIE = "ggmarket-signup-confirmation-pending";
+export const PENDING_EMAIL_CONFIRMATION_COOKIE = "lootriva-signup-confirmation-pending";
 
 export function isValidEmailConfirmationTokenHash(value: string | null | undefined): value is string {
   return Boolean(value && /^[A-Za-z0-9_-]{32,512}$/.test(value));

@@ -1,4 +1,4 @@
-# GGMarket Security Audit
+# Lootriva Security Audit
 
 **Audit date:** 2026-10-19  
 **Scope:** Current worktree, including uncommitted files; Next.js application, API routes, authentication routes, proxy, Supabase clients, seven SQL migrations, Storage and Realtime policies, marketplace data access, and security test tooling.  

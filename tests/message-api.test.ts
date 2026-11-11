@@ -92,12 +92,12 @@ import { GET, POST } from "../app/api/conversations/[id]/messages/route";
 const context = (id = conversationId) => ({ params: Promise.resolve({ id }) });
 
 function jsonRequest(body: unknown = { body: persisted.body, clientId }) {
-  return new Request(`https://ggmarket.test/api/conversations/${conversationId}/messages`, {
+  return new Request(`https://lootriva.test/api/conversations/${conversationId}/messages`, {
     method: "POST",
     headers: {
       "content-type": "application/json",
-      host: "ggmarket.test",
-      origin: "https://ggmarket.test",
+      host: "lootriva.test",
+      origin: "https://lootriva.test",
       "sec-fetch-site": "same-origin",
     },
     body: JSON.stringify(body),
@@ -105,13 +105,13 @@ function jsonRequest(body: unknown = { body: persisted.body, clientId }) {
 }
 
 function formRequest() {
-  return new Request(`https://ggmarket.test/api/conversations/${conversationId}/messages`, {
+  return new Request(`https://lootriva.test/api/conversations/${conversationId}/messages`, {
     method: "POST",
     headers: {
       "content-type": "application/x-www-form-urlencoded",
-      host: "ggmarket.test",
-      origin: "https://ggmarket.test",
-      referer: `https://ggmarket.test/messages/${conversationId}`,
+      host: "lootriva.test",
+      origin: "https://lootriva.test",
+      referer: `https://lootriva.test/messages/${conversationId}`,
       "sec-fetch-site": "same-origin",
     },
     body: new URLSearchParams({ message: persisted.body, clientId }),
@@ -133,7 +133,7 @@ describe("conversation message API", () => {
   it("rejects unauthenticated reads and writes before database access", async () => {
     state.user = null;
 
-    const read = await GET(new Request(`https://ggmarket.test/api/conversations/${conversationId}/messages`), context());
+    const read = await GET(new Request(`https://lootriva.test/api/conversations/${conversationId}/messages`), context());
     const write = await POST(jsonRequest(), context());
 
     expect(read.status).toBe(401);
@@ -201,7 +201,7 @@ describe("conversation message API", () => {
   });
 
   it("returns only RLS-authorized conversation messages for reconciliation", async () => {
-    const response = await GET(new Request(`https://ggmarket.test/api/conversations/${conversationId}/messages`), context());
+    const response = await GET(new Request(`https://lootriva.test/api/conversations/${conversationId}/messages`), context());
 
     expect(response.status).toBe(200);
     await expect(response.json()).resolves.toEqual({ messages: [persisted] });
@@ -212,7 +212,7 @@ describe("conversation message API", () => {
     state.selectRows = [];
     state.selectError = { code: "42501" };
 
-    const response = await GET(new Request(`https://ggmarket.test/api/conversations/${conversationId}/messages`), context());
+    const response = await GET(new Request(`https://lootriva.test/api/conversations/${conversationId}/messages`), context());
 
     expect(response.status).toBe(403);
     await expect(response.json()).resolves.toEqual({ error: "You cannot read this conversation." });
@@ -222,7 +222,7 @@ describe("conversation message API", () => {
     const response = await POST(formRequest(), context());
 
     expect(response.status).toBe(303);
-    expect(response.headers.get("location")).toBe(`https://ggmarket.test/messages/${conversationId}`);
+    expect(response.headers.get("location")).toBe(`https://lootriva.test/messages/${conversationId}`);
     expect(state.inserted).toHaveLength(1);
   });
 });

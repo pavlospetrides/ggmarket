@@ -17,7 +17,7 @@ function loginRequest(next = "/profile", options: { url?: string; host?: string 
     password: "not-a-real-password",
     next,
   });
-  return new Request(options.url ?? "https://ggmarket.example/auth/login", {
+  return new Request(options.url ?? "https://lootriva.example/auth/login", {
     method: "POST",
     headers: {
       "content-type": "application/x-www-form-urlencoded",
@@ -46,7 +46,7 @@ describe("native login fallback", () => {
       password: "not-a-real-password",
     });
     expect(response.status).toBe(303);
-    expect(response.headers.get("location")).toBe("https://ggmarket.example/favorites?view=grid");
+    expect(response.headers.get("location")).toBe("https://lootriva.example/favorites?view=grid");
   });
 
   it("returns to login with visible feedback when credentials are rejected", async () => {
@@ -57,7 +57,7 @@ describe("native login fallback", () => {
 
     expect(response.status).toBe(303);
     expect(response.headers.get("location")).toBe(
-      "https://ggmarket.example/login?error=invalid_credentials&next=%2Ffavorites",
+      "https://lootriva.example/login?error=invalid_credentials&next=%2Ffavorites",
     );
   });
 
@@ -67,7 +67,7 @@ describe("native login fallback", () => {
 
     const response = await POST(loginRequest("https://evil.example"));
 
-    expect(response.headers.get("location")).toBe("https://ggmarket.example/profile");
+    expect(response.headers.get("location")).toBe("https://lootriva.example/profile");
   });
 
   it("redirects LAN clients to the public request host instead of 0.0.0.0", async () => {
@@ -90,6 +90,6 @@ describe("native login fallback", () => {
     const { POST } = await import("../app/auth/login/route");
     const response = await POST(loginRequest("/messages"));
     expect(signOut).toHaveBeenCalledOnce();
-    expect(response.headers.get("location")).toBe("https://ggmarket.example/login?error=account_suspended&next=%2Fmessages");
+    expect(response.headers.get("location")).toBe("https://lootriva.example/login?error=account_suspended&next=%2Fmessages");
   });
 });

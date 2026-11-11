@@ -166,16 +166,16 @@ export function NotificationCenter({ children }: { children: ReactNode }) {
     };
     const visibility = () => { if (document.visibilityState === "visible") refresh(); };
     window.addEventListener("online", refresh);
-    window.addEventListener("ggmarket:notifications-changed", refresh);
-    window.addEventListener("ggmarket:auth-changed", bootstrap);
+    window.addEventListener("lootriva:notifications-changed", refresh);
+    window.addEventListener("lootriva:auth-changed", bootstrap);
     document.addEventListener("visibilitychange", visibility);
     return () => {
       disposed = true;
       accountGeneration.current += 1;
       authSubscription?.unsubscribe();
       window.removeEventListener("online", refresh);
-      window.removeEventListener("ggmarket:notifications-changed", refresh);
-      window.removeEventListener("ggmarket:auth-changed", bootstrap);
+      window.removeEventListener("lootriva:notifications-changed", refresh);
+      window.removeEventListener("lootriva:auth-changed", bootstrap);
       document.removeEventListener("visibilitychange", visibility);
       if (channel && supabase) void supabase.removeChannel(channel);
     };
@@ -292,7 +292,7 @@ export function useActiveConversation(conversationId: string, live: boolean) {
     const release = registry.register(conversationId, live);
     return () => {
       release();
-      if (live) window.dispatchEvent(new Event("ggmarket:notifications-changed"));
+      if (live) window.dispatchEvent(new Event("lootriva:notifications-changed"));
     };
   }, [conversationId, live, registry]);
 }

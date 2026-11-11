@@ -15,7 +15,7 @@ export async function generateMetadata({
   if (!profile) return { title: "Seller unavailable", robots: { index: false } };
   const title = `${profile.seller.displayName} (@${profile.seller.username})`;
   const description = profile.seller.bio?.slice(0, 155)
-    ?? `View ${profile.seller.displayName}'s listings and seller profile on GGMarket.`;
+    ?? `View ${profile.seller.displayName}'s listings and seller profile on Lootriva.`;
   return {
     title,
     description,

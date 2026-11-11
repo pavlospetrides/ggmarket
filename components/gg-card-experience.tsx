@@ -12,11 +12,11 @@ export default function GGCardExperience({ card, displayName, username }: {
   return (
     <div className="overflow-hidden rounded-2xl bg-[#0b0e15]">
       <LanyardBadge
-        title="GGMarket"
+        title="Lootriva"
         subtitle={card.slogan}
         name={displayName}
         role={`@${username}`}
-        strapText="GGMarket"
+        strapText="Lootriva"
         strapLabel="PLAY · TRADE · BELONG"
         strapColor={theme.strapColor}
         inkColor={theme.inkColor}

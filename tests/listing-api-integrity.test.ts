@@ -63,7 +63,7 @@ const validUpdate = {
 };
 
 async function patch(body: Record<string, unknown>) {
-  return PATCH(new Request("https://ggmarket.test/api/listings/listing-1", {
+  return PATCH(new Request("https://lootriva.test/api/listings/listing-1", {
     method: "PATCH",
     headers: { "content-type": "application/json" },
     body: JSON.stringify(body),

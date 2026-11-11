@@ -130,7 +130,7 @@ async function measureClientTransitions(
     await measureTransition(
       page,
       "Home",
-      page.getByRole("link", { name: "GGMarket home" }).first(),
+      page.getByRole("link", { name: "Lootriva home" }).first(),
       "**/",
       page.locator("#home-heading"),
       samples,
@@ -311,7 +311,7 @@ test("authenticated production navigation stays responsive", async ({ browser })
         await measureTransition(
           page,
           "Home",
-          page.getByRole("link", { name: "GGMarket home" }).first(),
+          page.getByRole("link", { name: "Lootriva home" }).first(),
           "**/",
           page.locator("#home-heading"),
           samples,
