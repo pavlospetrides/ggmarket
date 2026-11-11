@@ -117,3 +117,23 @@ The tracked historical inventory is: `.taste-skill/critique.md`, `.taste-skill/d
 6. Change the PWA cache name with an activation cleanup that removes only known application cache prefixes; do not clear unrelated origin storage.
 7. Legal pages may change brand/domain only. Owner, controller identity, address, company registration, retention periods, and legal bases remain explicit review items.
 
+## Final implementation verification — 2026-11-11
+
+The eight-task implementation completed on `feat/lootriva-rebrand-recovery`. No production deployment, DNS, dashboard configuration, environment variable, database permission, RLS policy, Storage policy, or migration was changed.
+
+- TypeScript: `npm run typecheck` passed.
+- Lint: `npm run lint -- --max-warnings=0` passed with zero warnings.
+- Vitest: 85 files and 624 tests passed.
+- Production build: Next.js 16.4.3 compiled, completed TypeScript, and generated 59/59 static pages using process-local synthetic public build values.
+- Dependency audit: `npm audit --omit=dev --audit-level=high` reported zero vulnerabilities.
+- SQLMap tooling: 17/17 runner unit tests passed; no production target was scanned.
+- Auth browser simulation: 26 applicable recovery/signup/OAuth cases passed across Chromium and WebKit, with two expected project skips. Every Supabase request was intercepted at a synthetic endpoint; this is not a substitute for the manual fresh-email test against hosted Supabase.
+- Lootriva Card browser matrix: 28/28 cases passed across desktop/mobile Chromium and WebKit.
+- Responsive visual review: recovery, legal, and Lootriva Card surfaces were inspected at 390, 768, and 1440 CSS-pixel widths; the card overflow measurement was zero.
+- Source/security checks: `git diff --check` passed; the migration diff is empty; the credential-pattern review found only an example placeholder and environment-variable names, not credential values.
+- Active old-brand scan: retired hosts remain only in the exact compatibility allowlist, tests, and cutover runbook. Immutable `gg_card` API/data identifiers and the `gg-purple` stored identifier remain unchanged; their customer-visible labels are Lootriva.
+
+An independent whole-branch review found two redirect-policy issues and the remaining visible `GG` shorthand. The branch now rejects non-GET/HEAD legacy-host requests without replay, routes `www` through the application before redirecting so secret-bearing URLs are stripped, and uses `LT`/Lootriva on all identified customer-visible surfaces. The affected regression suite passed 55/55 after correction. The reviewer process then exhausted its external execution quota after returning these findings; no additional findings were reported.
+
+The final browser rerun attempted on 2026-11-11 was stopped because this clean worktree has no live Supabase values: missing values fail closed, while synthetic values cannot serve marketplace data. The earlier intercepted browser results above remain the automated evidence. Real hosted-email delivery and dashboard state are explicit deployment gates in `docs/operations/lootriva-cutover-runbook.md`.
+
