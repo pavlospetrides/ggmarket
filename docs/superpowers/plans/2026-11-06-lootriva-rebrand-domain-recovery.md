@@ -169,4 +169,3 @@
 - [ ] **Step 6: Run security/quality gates:** project secret scan, dependency audit, `git diff --check`, scoped old-brand search, and a manual review of redirects/CSRF/cookies/token logs/RLS/signed media/suspension behavior.
 - [ ] **Step 7: Request independent whole-branch code review**, fix Critical/Important findings, and rerun affected plus full verification.
 - [ ] **Step 8: Commit final evidence, push `feat/lootriva-rebrand-recovery`, and open a PR to `main`** with configuration dependencies, test evidence, manual gates, cutover, and rollback. Do not merge or deploy Production.
-

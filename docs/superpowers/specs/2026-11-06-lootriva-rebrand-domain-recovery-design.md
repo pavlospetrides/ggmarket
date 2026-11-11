@@ -125,4 +125,3 @@ Legacy public redirects are long-lived for bookmarks and SEO. Legacy Supabase re
 - Exact SVG path geometry and rasterization tooling, provided the LT mark meets the stated readability/contrast rules and introduces no new runtime dependency.
 - Test-file grouping and small helper extraction consistent with existing patterns.
 - Whether transitional browser-key aliases live beside each feature or in one narrowly scoped compatibility helper.
-
