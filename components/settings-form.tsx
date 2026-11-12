@@ -4,6 +4,9 @@ import { LogOut } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, type FormEvent, type MouseEvent as ReactMouseEvent } from "react";
 import { Loader2 } from "./ui/loader-2";
+import { ProfileAvatar } from "./profile-avatar";
+import { ProfileMediaEditor } from "./profile-media-editor";
+import { ProfileMediaImage } from "./profile-media-image";
 
 type SettingsFormProps = {
   email: string;
@@ -11,6 +14,8 @@ type SettingsFormProps = {
   displayName: string;
   location: string;
   bio: string;
+  avatarUrl?: string;
+  coverUrl?: string;
   logoutError?: boolean;
 };
 
@@ -20,6 +25,8 @@ export function SettingsForm({
   displayName,
   location,
   bio,
+  avatarUrl,
+  coverUrl,
   logoutError = false,
 }: SettingsFormProps) {
   const router = useRouter();
@@ -118,6 +125,10 @@ export function SettingsForm({
         <p className="mt-1 text-sm text-[var(--muted)]">
           How other gamers see you on Lootriva.
         </p>
+        <div className="mt-6 grid gap-5 border-b border-[var(--border)] pb-6 sm:grid-cols-2">
+          <section className="min-w-0" aria-labelledby="photo-heading"><h3 id="photo-heading" className="font-bold">Profile photo</h3><div className="mt-3 flex items-center gap-4"><ProfileAvatar name={displayName} url={avatarUrl} className="size-20 text-2xl" /><ProfileMediaEditor kind="avatar" currentUrl={avatarUrl} triggerClassName="btn-secondary min-h-11" /></div></section>
+          <section className="min-w-0" aria-labelledby="cover-heading"><h3 id="cover-heading" className="font-bold">Cover photo</h3><div className="relative mt-3 h-20 overflow-hidden rounded-xl bg-[#1b2030]">{coverUrl ? <ProfileMediaImage src={coverUrl} alt="Current cover" sizes="(max-width: 640px) 100vw, 400px" className="object-cover" /> : <div className="absolute inset-y-0 left-0 w-2/3 bg-[#28234a] opacity-70" />}</div><div className="mt-3"><ProfileMediaEditor kind="cover" currentUrl={coverUrl} triggerClassName="btn-secondary min-h-11" /></div></section>
+        </div>
         <div className="mt-6 grid gap-5 sm:grid-cols-2">
           <div>
             <label className="label" htmlFor="displayName">
