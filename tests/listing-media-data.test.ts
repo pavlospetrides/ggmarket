@@ -53,7 +53,7 @@ describe("data access media bounds", () => {
 
     expect(source).toContain("card_path,detail_path");
     expect(source).toContain("selectListingImagesForDelivery(row.images, imagePurpose)");
-    expect(source).toContain(".createSignedUrls(imagePaths, 3600)");
+    expect(source).toContain("signAuthorizedListingImages(selections");
     expect(source).not.toContain("imagePaths.map(async (path)");
     expect(source).toContain('enrichRows(supabase, [data as unknown as ListingRow], "detail")');
   });
@@ -61,8 +61,8 @@ describe("data access media bounds", () => {
   it("batches conversation card signing instead of signing once per row", () => {
     const source = read("lib/phase2-data.ts");
 
-    expect(source).toContain("listing_images(storage_path,card_path,sort_order)");
-    expect(source).toContain("createSignedUrls(imagePaths, 3600)");
+    expect(source).toContain("listing_images(storage_path,card_path,storage_provider,sort_order)");
+    expect(source).toContain("signAuthorizedListingImages(selections");
     expect(source).not.toContain("createSignedUrl(imagePath, 3600)");
   });
 });
