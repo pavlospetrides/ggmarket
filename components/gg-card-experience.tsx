@@ -20,7 +20,10 @@ export default function GGCardExperience({ card, displayName, username }: {
         strapLabel="PLAY · TRADE · BELONG"
         strapColor={theme.strapColor}
         inkColor={theme.inkColor}
+        textColor={card.textColor}
+        frontPatternColor={card.frontPatternColor}
         cardColor={theme.cardColor}
+        flipButtonPosition="top-left"
         cardWidth={220}
         height="min(68svh, 620px)"
       />
