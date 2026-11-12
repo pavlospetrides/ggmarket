@@ -1,7 +1,8 @@
 import { readFileSync } from "node:fs";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: vi.fn() }) }));
 import { ListingMediaImage } from "../components/listing-media-image";
 
 const read = (path: string) => readFileSync(new URL(`../${path}`, import.meta.url), "utf8");

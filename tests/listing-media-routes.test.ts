@@ -80,6 +80,13 @@ describe("trusted listing media storage", () => {
     expect(remove).not.toHaveBeenCalled();
   });
 
+  it("retains unreferenced artifacts when another same-ID request can still commit", async () => {
+    const remove = vi.fn(async () => ({ error: null }));
+    const result = await reconcileListingImageMetadataFailure({ upload: vi.fn(), remove }, Object.values(paths), { data: null, error: null }, "listing-id", 0);
+    expect(result).toEqual({ status: "pending" });
+    expect(remove).not.toHaveBeenCalled();
+  });
+
   it("never removes a same-listing winner when the upload ID has a conflicting sort order", async () => {
     const remove = vi.fn(async () => ({ error: null }));
 

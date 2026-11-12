@@ -9,6 +9,8 @@ import { resolveTaxonomyQuery } from "./gaming-taxonomy";
 import type { Category, Listing, ListingQuery, PaginatedListings, Review, Seller } from "./types";
 import { mapGGCardRow, type GGCardConfig, type GGCardRow } from "./gg-card";
 import { selectListingImagesForDelivery } from "./listing-media";
+import { signAuthorizedListingImages } from "./listing-media-delivery";
+import { createMediaStorage, storedMediaProvider } from "./media-storage";
 
 export class DataAccessError extends Error {
   constructor(public operation: string) {
@@ -48,6 +50,7 @@ type ListingRow = {
     storage_path: string;
     card_path: string | null;
     detail_path: string | null;
+    storage_provider?: string;
     sort_order: number;
   }[];
 };
@@ -62,7 +65,7 @@ type ProfileRow = {
   created_at: string;
 };
 const listingSelect =
-  "id,title,description,price,currency,location,condition,status,attributes,view_count,shipping_available,meetup_available,created_at,published_at,category:categories!listings_category_id_fkey!inner(id,name,slug,icon),seller:profiles!listings_seller_id_fkey!inner(id,username,display_name,avatar_path,location,bio,created_at),images:listing_images!listing_images_listing_id_fkey(id,storage_path,card_path,detail_path,sort_order)";
+  "id,title,description,price,currency,location,condition,status,attributes,view_count,shipping_available,meetup_available,created_at,published_at,category:categories!listings_category_id_fkey!inner(id,name,slug,icon),seller:profiles!listings_seller_id_fkey!inner(id,username,display_name,avatar_path,location,bio,created_at),images:listing_images!listing_images_listing_id_fkey(id,storage_path,card_path,detail_path,storage_provider,sort_order)";
 const one = <T>(value: Related<T>): T | null =>
   Array.isArray(value) ? (value[0] ?? null) : value;
 
@@ -111,19 +114,13 @@ async function enrichRows(
   const selectedImages = new Map(
     rows.map((row) => [row.id, selectListingImagesForDelivery(row.images, imagePurpose)]),
   );
-  const imagePaths = [...new Set(
-    [...selectedImages.values()].flatMap((images) => images.map((image) => image.path)),
-  )];
+  const selections = [...selectedImages.values()].flatMap((images) => images.map(({ record, path }) => ({ path, provider: record.storage_provider })));
   const signedImages = new Map<string, string>();
-  if (imagePaths.length) {
-    const { data: signedResults, error: signedImagesError } = await supabase.storage
-      .from("listing-images")
-      .createSignedUrls(imagePaths, 3600);
-    if (signedImagesError || !signedResults) throw new DataAccessError("load listing images");
-    for (const result of signedResults) {
-      if (result.error || !result.path || !result.signedUrl) throw new DataAccessError("load listing images");
-      signedImages.set(result.path, result.signedUrl);
-    }
+  try {
+    const urls = await signAuthorizedListingImages(selections, (provider) => createMediaStorage(provider, supabase));
+    selections.forEach((selection, index) => signedImages.set(`${storedMediaProvider(selection.provider)}:${selection.path}`, urls[index]));
+  } catch {
+    throw new DataAccessError("load listing images");
   }
   const ratings = new Map<string, number[]>();
   for (const review of reviews ?? [])
@@ -158,7 +155,7 @@ async function enrichRows(
         path: record.storage_path,
         cardPath: record.card_path ?? undefined,
         detailPath: record.detail_path ?? undefined,
-        url: signedImages.get(path)!,
+        url: signedImages.get(`${storedMediaProvider(record.storage_provider)}:${path}`)!,
       }));
     const images = imageRecords.map((image) => image.url);
     return [

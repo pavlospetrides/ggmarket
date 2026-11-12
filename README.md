@@ -91,6 +91,8 @@ node --env-file=.env.local scripts/phase2-security-audit.mjs
 
 ## Architecture notes
 
+- Cloudflare R2 listing media is opt-in through server-only `MEDIA_STORAGE_PROVIDER=r2`; Supabase remains the default. See [R2 rollout, SQL migration, Vercel variables, backfill, and rollback](docs/operations/r2-listing-media-runbook.md). Apply the additive provider migration before deploying provider-aware application code. Existing Supabase images and paths are retained.
+
 - `app/` contains routes and server boundaries; reusable UI lives in `components/`.
 - `lib/` owns domain types, validation, auth helpers, Supabase clients, and database access.
 - The database uses relational columns for common filters and JSONB for category-specific attributes. GIN indexes support attributes and search; trigram matching handles imperfect terms such as `4070 supr`.

@@ -5,7 +5,7 @@ describe("listing image signing", () => {
   it("signs a listing page in one storage request", () => {
     const source = readFileSync("lib/data.ts", "utf8");
 
-    expect(source).toContain(".createSignedUrls(imagePaths, 3600)");
+    expect(source).toContain("signAuthorizedListingImages(selections");
     expect(source).not.toContain("imagePaths.map(async (path)");
     expect(source).toContain("selectListingImagesForDelivery(row.images, imagePurpose)");
   });

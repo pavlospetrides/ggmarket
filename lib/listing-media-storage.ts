@@ -32,8 +32,8 @@ export function listingImageObjectPaths(row: ImagePathRow): string[] {
 export async function reconcileListingImageMetadataFailure<
   T extends { listing_id: string; sort_order: number },
 >(
-  bucket: ListingMediaBucket,
-  paths: string[],
+  _bucket: ListingMediaBucket,
+  _paths: string[],
   lookup: { data: T | null; error: unknown | null },
   listingId: string,
   sortOrder: number,
@@ -49,8 +49,9 @@ export async function reconcileListingImageMetadataFailure<
       ? { status: "existing", image: lookup.data }
       : { status: "conflict" };
   }
-  const cleanup = await bucket.remove(paths);
-  return { status: "removed", cleanupPending: Boolean(cleanup.error) };
+  // A successful empty lookup cannot prove a concurrent request will not
+  // commit next. Retain private objects for stable retry/operator reconciliation.
+  return { status: "pending" };
 }
 
 export async function uploadListingImageArtifacts(
