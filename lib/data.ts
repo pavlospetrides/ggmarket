@@ -510,7 +510,7 @@ export const getProfileByUsername = cache(async function getProfileByUsername(
       .limit(1)
       .maybeSingle(),
     supabase.from("reviews").select("rating").eq("seller_id", profile.id).limit(1000),
-    supabase.from("gg_cards").select("slogan,theme_id,is_public").eq("user_id", profile.id).maybeSingle(),
+    supabase.from("gg_cards").select("slogan,theme_id,is_public,text_color,front_pattern_color").eq("user_id", profile.id).maybeSingle(),
   ]);
   if (listingError || reviewError || verificationError || ratingError || ggCardError)
     throw new DataAccessError("load seller activity");
@@ -573,7 +573,7 @@ export async function getOwnGGCard(userId: string): Promise<GGCardConfig> {
   if (!supabase) throw new DataAccessError("load your Lootriva Card");
   const { data, error } = await supabase
     .from("gg_cards")
-    .select("slogan,theme_id,is_public")
+    .select("slogan,theme_id,is_public,text_color,front_pattern_color")
     .eq("user_id", userId)
     .maybeSingle();
   if (error) throw new DataAccessError("load your Lootriva Card");

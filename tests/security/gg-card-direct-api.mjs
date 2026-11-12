@@ -58,10 +58,20 @@ try {
   result = await anonymous.from("gg_cards").select("user_id,slogan,theme_id,is_public").eq("user_id", accountA.id);
   check(!result.error && result.data?.length === 0, "anonymous API hides private card data");
 
-  result = await accountA.client.from("gg_cards").upsert({ user_id: accountA.id, slogan: "Public A", theme_id: "crimson", is_public: true });
+  result = await accountA.client.from("gg_cards").upsert({
+    user_id: accountA.id,
+    slogan: "Public A",
+    theme_id: "crimson",
+    is_public: true,
+    text_color: "#112233",
+    front_pattern_color: "#AaBbCc",
+  });
   check(!result.error, "direct API owner upsert succeeds without changing ownership");
-  result = await anonymous.from("gg_cards").select("user_id,slogan,theme_id,is_public").eq("user_id", accountA.id).single();
-  check(!result.error && result.data?.slogan === "Public A", "anonymous API exposes only approved public card fields");
+  result = await anonymous.from("gg_cards").select("user_id,slogan,theme_id,is_public,text_color,front_pattern_color").eq("user_id", accountA.id).single();
+  check(
+    !result.error && result.data?.slogan === "Public A" && result.data.text_color === "#112233" && result.data.front_pattern_color === "#AaBbCc",
+    "anonymous API exposes validated public card presentation fields",
+  );
   result = await anonymous.from("gg_cards").select("created_at").eq("user_id", accountA.id);
   check(Boolean(result.error), "anonymous API cannot select non-approved card columns");
   result = await anonymous.from("gg_cards").insert({ user_id: accountB.id, slogan: "Anonymous", theme_id: "gg-purple", is_public: true });
@@ -79,6 +89,8 @@ try {
     [{ theme_id: "url(javascript:alert(1))" }, "invalid theme"],
     [{ slogan: "x".repeat(81) }, "oversized slogan"],
     [{ slogan: "unsafe\ncontrol" }, "control-character slogan"],
+    [{ text_color: "red" }, "invalid text color"],
+    [{ front_pattern_color: "#123456;display:none" }, "invalid pattern color"],
   ]) {
     result = await accountA.client.from("gg_cards").update(value).eq("user_id", accountA.id);
     check(Boolean(result.error), `database constraint rejects ${label}`);
