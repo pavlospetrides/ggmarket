@@ -11,7 +11,7 @@ export default function GGCardExperience({ card, displayName, username, height =
 }) {
   const theme = getGGCardTheme(card.themeId);
   return (
-    <div className="overflow-hidden rounded-2xl bg-[#0b0e15]">
+    <div className="w-full overflow-hidden rounded-2xl bg-[#0b0e15]">
       <LanyardBadge
         title="Lootriva"
         subtitle={card.slogan}

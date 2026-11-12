@@ -41,7 +41,7 @@ export interface LanyardBadgeProps {
   inkColor?: string
   /** Built-in card typography colour. Does not rebuild the strap texture. */
   textColor?: string
-  /** Built-in front ornament colour. Does not rebuild the strap texture. */
+  /** Built-in front and back ornament colour. Does not rebuild the strap texture. */
   frontPatternColor?: string
   /** Built-in card stock colour. */
   cardColor?: string
@@ -683,14 +683,14 @@ export default function LanyardBadge({
   )
   const defaultBack = (
     <div className="relative h-full w-full" style={{ background: cardColor }}>
-      <Ornament className="absolute" style={{ width: 150 * s, right: -30 * s, top: 30 * s, color: inkColor, opacity: 0.6, maxWidth: "none" }} />
+      <Ornament className="absolute" style={{ width: 150 * s, right: -30 * s, top: 30 * s, color: frontPatternColor, opacity: 0.6, maxWidth: "none" }} />
       <div className="absolute" style={{ left: 22 * s, top: 70 * s, color: textColor }}>
-        <Ornament style={{ width: 26 * s, color: inkColor }} />
+        <Ornament style={{ width: 26 * s, color: frontPatternColor }} />
         <div style={{ width: 16 * s, height: 2 * s, background: strapColor, margin: (14 * s) + "px 0 " + (8 * s) + "px" }} />
         <div style={{ fontFamily: DISPLAY, fontWeight: 700, fontSize: 17 * s, lineHeight: 1.05, textTransform: "uppercase" }}>{name}</div>
         <div style={{ fontSize: 7 * s, marginTop: 3 * s, letterSpacing: "0.14em", textTransform: "uppercase", opacity: 0.7 }}>{role}</div>
       </div>
-      <div className="absolute overflow-hidden" style={{ left: 0, right: 0, bottom: 0, height: "44%", background: strapColor, borderTopLeftRadius: 40 * s, color: cardColor }}>
+      <div className="absolute overflow-hidden" style={{ left: 0, right: 0, bottom: 0, height: "44%", background: strapColor, borderTopLeftRadius: 40 * s, color: frontPatternColor }}>
         <Ornament className="absolute" style={{ width: 230 * s, left: -20 * s, top: -40 * s, opacity: 0.85, maxWidth: "none" }} />
         <Arrow className="absolute" style={{ width: 12 * s, height: 220 * s, left: 150 * s, top: -40 * s, transform: "rotate(62deg)", maxWidth: "none" }} />
       </div>
