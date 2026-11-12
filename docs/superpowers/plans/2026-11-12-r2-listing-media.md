@@ -1,6 +1,6 @@
 # Cloudflare R2 Listing Media Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** Add a secure, reversible R2 provider for new listing media while every legacy Supabase image continues to authorize, render, and delete correctly.
 
@@ -40,11 +40,11 @@
 **Interfaces:**
 - Produces: `MediaStorageProvider = "supabase" | "r2"`, `resolveMediaStorageProvider(env)`, and `resolveR2Config(env)`.
 
-- [ ] Write failing tests for the additive default, provider constraint, allowed flags, malformed account/bucket values, incomplete credentials, secret-safe errors, and Supabase operation without R2 variables.
-- [ ] Run the focused tests and verify the missing interfaces/migration fail.
-- [ ] Add the migration, environment examples, and pure validated config resolvers.
-- [ ] Run focused tests to green.
-- [ ] Commit.
+- [x] Write failing tests for the additive default, provider constraint, allowed flags, malformed account/bucket values, incomplete credentials, secret-safe errors, and Supabase operation without R2 variables.
+- [x] Run the focused tests and verify the missing interfaces/migration fail.
+- [x] Add the migration, environment examples, and pure validated config resolvers.
+- [x] Run focused tests to green.
+- [x] Commit.
 
 ### Task 2: Exact-key storage adapters
 
@@ -60,11 +60,11 @@
 **Interfaces:**
 - Produces: `MediaStorage` with `upload`, `remove`, `createSignedUrls`, `download`, and `head`; `createMediaStorage(provider, dependencies?)`.
 
-- [ ] Write failing behavioral tests for R2 endpoint/region/bucket inputs, WebP upload metadata, bounded signed GET expiry, exact batched delete keys, Supabase compatibility, invalid-key rejection, and provider-unavailable failure.
-- [ ] Run focused tests and verify red.
-- [ ] Install the modular AWS S3 client/presigner and implement server-only adapters with dependency injection for mocks.
-- [ ] Run focused tests to green and confirm no R2 module enters client imports.
-- [ ] Commit.
+- [x] Write failing behavioral tests for R2 endpoint/region/bucket inputs, WebP upload metadata, bounded signed GET expiry, exact batched delete keys, Supabase compatibility, invalid-key rejection, and provider-unavailable failure.
+- [x] Run focused tests and verify red.
+- [x] Install the modular AWS S3 client/presigner and implement server-only adapters with dependency injection for mocks.
+- [x] Run focused tests to green and confirm no R2 module enters client imports.
+- [x] Commit.
 
 ### Task 3: Provider-aware upload and cleanup
 
@@ -80,11 +80,11 @@
 - Consumes: `createMediaStorage`, provider config, and exact image paths.
 - Produces: metadata rows containing `storage_provider` and provider-grouped cleanup for image/listing deletion.
 
-- [ ] Write failing route tests for R2 selection, Supabase default, missing-R2 fail-closed behavior, metadata-after-three-writes, partial failure reconciliation, cross-provider isolation, and mixed-provider listing deletion.
-- [ ] Run focused tests and verify red.
-- [ ] Replace direct bucket access with the provider abstraction without moving existing authentication/RLS checks.
-- [ ] Run route, upload-security, API-integrity, and suspension tests to green.
-- [ ] Commit.
+- [x] Write failing route tests for R2 selection, Supabase default, missing-R2 fail-closed behavior, metadata-after-three-writes, partial failure reconciliation, cross-provider isolation, and mixed-provider listing deletion.
+- [x] Run focused tests and verify red.
+- [x] Replace direct bucket access with the provider abstraction without moving existing authentication/RLS checks.
+- [x] Run route, upload-security, API-integrity, and suspension tests to green.
+- [x] Commit.
 
 ### Task 4: RLS-gated provider-aware delivery
 
@@ -100,11 +100,11 @@
 **Interfaces:**
 - Produces: `signAuthorizedListingImages(supabase, selections, expiresIn)` which groups already-returned exact paths by provider and restores input order.
 
-- [ ] Write failing tests for mixed providers, exact-key grouping, legacy default fallback, order preservation, R2 config failure, one-hour expiry, and no bucket listing/proxy behavior.
-- [ ] Run focused tests and verify red.
-- [ ] Add `storage_provider` to existing RLS-backed selects and centralize signing after row authorization.
-- [ ] Run listing, profile, favorites, discovery, conversation, and delivery tests to green.
-- [ ] Commit.
+- [x] Write failing tests for mixed providers, exact-key grouping, legacy default fallback, order preservation, R2 config failure, one-hour expiry, and no bucket listing/proxy behavior.
+- [x] Run focused tests and verify red.
+- [x] Add `storage_provider` to existing RLS-backed selects and centralize signing after row authorization.
+- [x] Run listing, profile, favorites, discovery, conversation, and delivery tests to green.
+- [x] Commit.
 
 ### Task 5: Idempotent R2 backfill and capacity model
 
@@ -117,11 +117,11 @@
 **Interfaces:**
 - Produces: dry-run-default CLI with `--apply`, `--confirm-project-ref`, `--confirm-r2-bucket`, `--batch-size`, and `--cursor`; exact variant copy/head verification and sanitized JSON reports.
 
-- [ ] Write failing tests for dry-run safety, bounded cursor paging, Supabase-only candidate selection, completed-row skipping, retry idempotence, three-variant verification, metadata-last update, no source deletion, and sanitized errors.
-- [ ] Run focused tests and verify red.
-- [ ] Implement the backfill using the shared provider adapters and extend cost/request scenarios for 10k/50k/100k images.
-- [ ] Run focused tests plus credential-free `--help`; never invoke `--apply` against production.
-- [ ] Commit.
+- [x] Write failing tests for dry-run safety, bounded cursor paging, Supabase-only candidate selection, completed-row skipping, retry idempotence, three-variant verification, metadata-last update, no source deletion, and sanitized errors.
+- [x] Run focused tests and verify red.
+- [x] Implement the backfill using the shared provider adapters and extend cost/request scenarios for 10k/50k/100k images.
+- [x] Run focused tests plus credential-free `--help`; never invoke `--apply` against production.
+- [x] Commit.
 
 ### Task 6: Operations, rollout, and independent security review
 
@@ -133,8 +133,8 @@
 **Interfaces:**
 - Produces: exact Vercel configuration/deployment order, integration-test instructions, phased rollout, backfill/monitoring/reporting steps, rollback, and dated capacity assumptions.
 
-- [ ] Document all server-only variables, preview-first rollout, migration order, mocked versus real integration evidence, backfill commands, rollback, and explicit production approval gates.
-- [ ] Run TypeScript, ESLint, Vitest, production build, safe Playwright coverage, secret scan, npm audit, migration/security regressions, and `git diff --check`; record exact evidence and limitations.
-- [ ] Dispatch the explicitly requested independent security reviewer against the branch diff, fix Critical/Important findings with regression tests, and re-run affected/full verification.
-- [ ] Commit the final evidence, push `feat/r2-image-storage`, and open a PR against `main` without merging or deploying.
+- [x] Document all server-only variables, preview-first rollout, migration order, mocked versus real integration evidence, backfill commands, rollback, and explicit production approval gates.
+- [x] Run TypeScript, ESLint, Vitest, production build, safe Playwright coverage, secret scan, npm audit, migration/security regressions, and `git diff --check`; record exact evidence and limitations.
+- [x] Dispatch the explicitly requested independent security reviewer against the branch diff, fix Critical/Important findings with regression tests, and re-run affected/full verification.
+- [x] Commit the final evidence, push `feat/r2-image-storage`, and open a PR against `main` without merging or deploying.
 

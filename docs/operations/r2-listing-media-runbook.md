@@ -16,7 +16,7 @@ An expired image error causes a throttled `router.refresh()` to rerun the page's
 
 New migration: `supabase/migrations/202611120002_listing_image_storage_provider.sql`, after the existing `202611120001_gg_card_custom_colors.sql` and the established image-variants migration. Do not reapply or edit historical migrations.
 
-It adds a constrained, non-null provider column with default `supabase`, the server-only assignment table, and the provider-binding trigger. It does not update paths or existing provider values, change bucket visibility, or broaden any RLS policy. Existing rows retain Supabase as their provider. Adding the constant-default column is metadata-only on modern PostgreSQL, but the ALTER still requires a brief table lock: apply during a quiet window with an operator-chosen lock timeout and an inspected backup.
+It adds a constrained provider column defaulting to `supabase`, a server-only assignment table, the provider-binding trigger, and a transactional cleanup outbox. The outbox retains exact paths and provider without foreign keys so it survives listing/profile cascades. Completed rows remain permanent image-ID tombstones. Insertion and deletion serialize their tombstone check using a per-image PostgreSQL transaction advisory lock; a lock-order conflict may abort one transaction safely, and storage cleanup never follows a failed metadata delete. Existing listing/image authorization and suspension triggers still apply. The migration does not update paths or existing provider values, change bucket visibility, or broaden any RLS policy. Adding the constant-default column is metadata-only on modern PostgreSQL, but the ALTER still requires a brief table lock: apply during a quiet window with an operator-chosen lock timeout and an inspected backup.
 
 First validate in a disposable Supabase project, inspect migration history, run `supabase db push --dry-run` against that explicitly verified project, then apply only the intended pending migration there. The embedded PostgreSQL tests validate the new SQL and selected existing RLS/path policies; they do not replace a complete hosted Supabase migration test. Production SQL requires separate owner approval and verified project identity. Provider-aware application selects require this migration even while new uploads remain on Supabase.
 
@@ -76,13 +76,27 @@ node --conditions=react-server --import=tsx --env-file=C:/secure/media-test.env 
 
 Record the JSON reports in an access-controlled operator log. Add `--cursor IMAGE_UUID` using the prior report's `nextCursor`. Do not use `scanCursor` after a failure: `nextCursor` deliberately stops before the first failed row. Repeating a batch skips already migrated rows and compares existing R2 bytes before avoiding a PUT. The script copies each distinct recorded original/card/detail key unchanged, including legacy original formats; null variants retain the original fallback. It checks HEAD length plus a full SHA-256 GET readback. Metadata changes only after all variants verify and a compare-and-swap matches provider, listing ID, and all original path fields. Display order and listing relationships never change. Failed/CAS-conflicted copies remain private and can be reconciled on retry; source images are never removed.
 
-Stop on error spikes. Investigate failed row IDs using privileged operator tooling without logging credentials or signed URLs. A stale source row, missing object, or unsupported original format remains on Supabase. Do not advance a cursor past unresolved failures. Do not run the older Supabase variant backfill against R2 rows; complete required variant generation before the R2 migration.
+Stop on error spikes. Investigate failed row IDs using privileged operator tooling without logging credentials or signed URLs. A stale source row, missing object, or unsupported original format remains on Supabase. Do not advance a cursor past unresolved failures. The older Supabase variant backfill now explicitly filters Supabase rows and guards its update against concurrent provider/path changes, so it cannot attach Supabase-only variants to R2 rows. Complete desired variant generation before the R2 migration.
 
 ## Failure recovery and cleanup
 
 Storage and metadata are separate systems. Partial/ambiguous uploads retain private deterministic keys and their server reservation for safe retry; metadata is never created before all three objects succeed. A different payload with the same ID is rejected by its digest reservation. The application logs only listing/image IDs and counts for pending cleanup. Never delete keys merely because one concurrent metadata lookup returned no row.
 
-Authorized deletion confirms an affected database row before removing objects. Configuration errors fail before metadata deletion. An operational object-removal failure returns `202 { cleanupPending: true }`; preserve that row's original path/provider snapshot from an operator audit/backup and correlate the sanitized image/listing ID log. There is no automatic orphan cleanup worker. Operators must investigate ambiguous jobs/reservations, quiesce relevant uploads, verify no current row references the exact keys, and obtain approval before deleting unreferenced objects. Do not use bucket-wide deletion or a routine page-load bucket scan.
+Authorized deletion confirms an affected database row before removing objects. Configuration errors fail before metadata deletion. In that same deletion transaction, the database stores the actual deleted row's provider and every exact path in `listing_image_cleanup_jobs`. Object removal uses this durable snapshot, including rows captured by listing cascades, rather than an earlier application lookup. A crash or object-removal failure retains a pending job and returns `202 { cleanupPending: true }` when a response is possible. Successful cleanup marks `completed_at`; it never removes the tombstone. Both application reservations and the metadata trigger reject a deleted image ID, including outstanding retries. Replacement requires a fresh UUID.
+
+There is no automatic background cleanup worker. Inspect pending jobs using privileged tooling, obtain approval for the exact environment, and retry with the bounded operator CLI. Credential-free help:
+
+```powershell
+node scripts/retry-listing-media-cleanup.mjs --help
+```
+
+Dry-run uses the same trusted secret environment file and target as the backfill:
+
+```powershell
+node --conditions=react-server --import=tsx --env-file=C:/secure/media-test.env scripts/retry-listing-media-cleanup.mjs --batch-size 25
+```
+
+Only after approval, set `MEDIA_CLEANUP_ALLOW_APPLY=1` in that process environment and add `--apply --confirm-project-ref YOUR_APPROVED_REF --confirm-r2-bucket YOUR_APPROVED_BUCKET`. This command deletes only exact keys already committed by an authorized metadata deletion, and marks successful jobs complete. Stop on failures and resume from `nextCursor`; repeating a removal is idempotent. Never purge completed job rows: they fence old retry IDs. Ambiguous uploads without a metadata row remain separate from authorized-deletion jobs: investigate reservations, quiesce relevant uploads, verify no current row references those exact keys, and obtain separate approval before removing them. No bucket-wide deletion or page-load bucket scan is used.
 
 ## Rollback
 
@@ -119,7 +133,7 @@ Local mocked browser checks:
 
 ```powershell
 $env:E2E_UI_HARNESS='1'
-$env:PLAYWRIGHT_BASE_URL='http://127.0.0.1:3107'
+$env:PLAYWRIGHT_BASE_URL='http://127.0.0.1:3107/test-harness/sell'
 $env:PLAYWRIGHT_WEB_SERVER_COMMAND='npm run dev -- --port 3107'
 $env:PLAYWRIGHT_REUSE_SERVER='false'
 npx playwright test tests/e2e/media-refresh-safe.spec.ts tests/e2e/sell-touch-safe.spec.ts --project=chromium --project=webkit --reporter=line
