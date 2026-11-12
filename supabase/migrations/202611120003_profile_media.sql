@@ -67,6 +67,7 @@ begin
       and media_path is not null and not exists (
         select 1 from public.profile_media_reservations r
         where r.path = media_path and r.owner_id = new.id and r.kind = media_kind
+          and not exists (select 1 from public.profile_media_cleanup_jobs j where j.path = media_path)
           and r.path ~ ('^profile-media/' || new.id::text || '/' || media_kind || '/[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\.webp$')
       ) then
       raise exception 'unreserved profile media' using errcode = '42501';
@@ -81,6 +82,17 @@ create trigger profiles_validate_media before update of avatar_path, cover_path 
 create function public.enqueue_profile_media_cleanup()
 returns trigger language plpgsql security definer set search_path = '' as $$
 begin
+  if tg_op = 'DELETE' then
+    if old.avatar_path is not null and old.avatar_path like 'profile-media/%' then
+      insert into public.profile_media_cleanup_jobs(path, owner_id, kind)
+        values(old.avatar_path, old.id, 'avatar') on conflict (path) do nothing;
+    end if;
+    if old.cover_path is not null and old.cover_path like 'profile-media/%' then
+      insert into public.profile_media_cleanup_jobs(path, owner_id, kind)
+        values(old.cover_path, old.id, 'cover') on conflict (path) do nothing;
+    end if;
+    return old;
+  end if;
   if old.avatar_path is distinct from new.avatar_path and old.avatar_path is not null
     and old.avatar_path like 'profile-media/%' then
     insert into public.profile_media_cleanup_jobs(path, owner_id, kind)
@@ -94,7 +106,7 @@ begin
   return new;
 end; $$;
 revoke all on function public.enqueue_profile_media_cleanup() from public, anon, authenticated;
-create trigger profiles_enqueue_media_cleanup after update of avatar_path, cover_path on public.profiles
+create trigger profiles_enqueue_media_cleanup after update of avatar_path, cover_path or delete on public.profiles
   for each row execute function public.enqueue_profile_media_cleanup();
 
 grant select (id, username, display_name, bio, avatar_path, cover_path, location, seller_type, created_at, updated_at)

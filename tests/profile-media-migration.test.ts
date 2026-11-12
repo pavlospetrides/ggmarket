@@ -31,4 +31,10 @@ describe("profile media migration", () => {
     expect(sql).toMatch(/>= 10/i);
     expect(sql).toMatch(/revoke all on public\.profile_media_(reservations|cleanup_jobs|upload_claims)/i);
   });
+
+  it("records media for later cleanup when an account is deleted", () => {
+    const sql = readFileSync(path, "utf8");
+    expect(sql).toMatch(/if tg_op = 'DELETE' then[\s\S]*old\.avatar_path[\s\S]*old\.cover_path/i);
+    expect(sql).toMatch(/after update(?: of [\w, ]+)? or delete on public\.profiles/i);
+  });
 });
