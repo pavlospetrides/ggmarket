@@ -107,11 +107,14 @@ export const profileSchema = z.object({
 });
 
 const ggCardThemeIds = Object.keys(GG_CARD_THEMES) as [keyof typeof GG_CARD_THEMES, ...(keyof typeof GG_CARD_THEMES)[]];
+const ggCardColor = z.string().trim().regex(/^#[0-9A-Fa-f]{6}$/, "Enter a six-digit HEX color such as #8F7BFF.").transform((value) => value.toUpperCase());
 export const ggCardSchema = z
   .object({
     slogan: z.string().trim().min(1).max(80).refine((value) => !/[\u0000-\u001f\u007f]/.test(value), "Slogan cannot contain control characters."),
     themeId: z.enum(ggCardThemeIds),
     isPublic: z.boolean(),
+    textColor: ggCardColor,
+    frontPatternColor: ggCardColor,
   })
   .strict();
 
