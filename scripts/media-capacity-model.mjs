@@ -57,12 +57,26 @@ export function modelMediaCapacity(listings, assumptions = MEDIA_CAPACITY_ASSUMP
   };
 }
 
+export function modelR2ImageCapacity(sourceImages) {
+  if (!Number.isInteger(sourceImages) || sourceImages < 1) throw new Error("Images must be a positive integer.");
+  const storageGb = round(sourceImages * 890 / 1_000_000);
+  const monthlyClassAWrites = Math.ceil(sourceImages * 0.12) * 3;
+  const monthlyClassBReads = Math.ceil(sourceImages / 5 * 65 * 0.65);
+  // Standard prices verified 2026-11-12. Free allowances are shared per account;
+  // assume unused elsewhere and round billable units up as Cloudflare documents.
+  const storageUsd = Math.ceil(Math.max(0, storageGb - 10)) * 0.015;
+  const classAUsd = Math.ceil(Math.max(0, monthlyClassAWrites - 1_000_000) / 1_000_000) * 4.5;
+  const classBUsd = Math.ceil(Math.max(0, monthlyClassBReads - 10_000_000) / 1_000_000) * 0.36;
+  return { sourceImages, storedObjects: sourceImages * 3, storageGb, monthlyClassAWrites, monthlyClassBReads, initialUploadClassA: sourceImages * 3, backfillClassBUpperBound: sourceImages * 9, estimatedMonthlyR2Usd: round(storageUsd + classAUsd + classBUsd) };
+}
+
 export function buildMediaCapacityReport(listingCounts = [10_000, 50_000, 100_000]) {
   return {
     generatedAt: new Date().toISOString(),
     units: { storage: "decimal GB", sizes: "decimal KB", currency: "USD" },
     assumptions: MEDIA_CAPACITY_ASSUMPTIONS,
     scenarios: listingCounts.map((listings) => modelMediaCapacity(listings)),
+    r2ImageScenarios: [10_000, 50_000, 100_000].map(modelR2ImageCapacity),
   };
 }
 
