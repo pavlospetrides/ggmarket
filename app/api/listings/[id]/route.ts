@@ -6,6 +6,8 @@ import { readJson } from "@/lib/security";
 import { mergeListingAttributes, sanitizeTaxonomyAttributesForWrite, validateTaxonomyAttributes } from "@/lib/gaming-taxonomy";
 import type { ListingAttributes } from "@/lib/types";
 import { listingImageObjectPaths } from "@/lib/listing-media-storage";
+import { createMediaStorage } from "@/lib/media-storage";
+import { prepareStoredListingImageRemoval } from "@/lib/listing-media-delivery";
 
 type AttributeRule = { type?: "string" | "number" | "boolean" };
 function validAttributes(attributes: ListingAttributes, schema: unknown) {
@@ -78,17 +80,20 @@ export async function DELETE(_request: Request, { params }: { params: Promise<{ 
   if (!supabase || !admin) return NextResponse.json({ error: "Listing deletion is unavailable." }, { status: 503 });
   const { data: listing } = await supabase
     .from("listings")
-    .select("id,status,listing_images(storage_path,card_path,detail_path)")
+    .select("id,status,listing_images(storage_path,card_path,detail_path,storage_provider)")
     .eq("id", id)
     .eq("seller_id", user.id)
     .maybeSingle();
   if (!listing) return NextResponse.json({ error: "Listing not found." }, { status: 404 });
   const paths = (listing.listing_images ?? []).flatMap(listingImageObjectPaths);
+  let cleanup;
+  try { cleanup = prepareStoredListingImageRemoval(listing.listing_images ?? [], (provider) => createMediaStorage(provider, admin)); }
+  catch { return NextResponse.json({ error: "Listing deletion is unavailable." }, { status: 503 }); }
 
-  const { error } = await supabase.from("listings").delete().eq("id", id).eq("seller_id", user.id);
-  if (error) return NextResponse.json({ error: "Listing could not be deleted." }, { status: 400 });
+  const { data: deleted, error } = await supabase.from("listings").delete().eq("id", id).eq("seller_id", user.id).select("id").maybeSingle();
+  if (error || !deleted) return NextResponse.json({ error: "Listing could not be deleted." }, { status: 400 });
   if (paths.length) {
-    const { error: storageError } = await admin.storage.from("listing-images").remove(paths);
+    const { error: storageError } = await cleanup();
     if (storageError) {
       console.error("Listing media cleanup pending", { listingId: id, objectCount: paths.length });
       return NextResponse.json({ ok: true, cleanupPending: true }, { status: 202 });

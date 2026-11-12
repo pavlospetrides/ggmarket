@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { createHash } from "node:crypto";
 import { getUser } from "@/lib/auth";
 import { buildListingImagePaths, processListingImage } from "@/lib/listing-media";
 import {
@@ -9,6 +10,8 @@ import {
 import { readLimitedMultipartForm } from "@/lib/security";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
+import { createMediaStorage } from "@/lib/media-storage";
+import { reserveUploadProvider } from "@/lib/media-storage/uploads";
 
 type RouteContext = { params: Promise<{ id: string }> };
 
@@ -39,14 +42,17 @@ export async function POST(request: Request, { params }: RouteContext) {
     .in("status", ["draft", "active"])
     .maybeSingle();
   if (!listing) return NextResponse.json({ error: "Listing not found." }, { status: 404 });
+  const active = await supabase.rpc("is_active_user");
+  if (active.error || active.data !== true) return NextResponse.json({ error: "Image uploads are not permitted." }, { status: active.error ? 503 : 403 });
 
   const imageId = uploadId;
-  const imageSelect = "id,listing_id,storage_path,card_path,detail_path,sort_order,width,height";
-  const { data: existingImage } = await supabase
+  const imageSelect = "id,listing_id,storage_path,card_path,detail_path,storage_provider,sort_order,width,height";
+  const { data: existingImage, error: existingError } = await supabase
     .from("listing_images")
     .select(imageSelect)
     .eq("id", imageId)
     .maybeSingle();
+  if (existingError) return NextResponse.json({ error: "Image uploads are unavailable." }, { status: 503 });
   if (existingImage) {
     if (existingImage.listing_id === id && existingImage.sort_order === sortOrder) {
       return NextResponse.json(existingImage);
@@ -62,7 +68,14 @@ export async function POST(request: Request, { params }: RouteContext) {
   }
 
   const paths = buildListingImagePaths(user.id, id, imageId);
-  const bucket = admin.storage.from("listing-images");
+  let provider;
+  let bucket;
+  try {
+    provider = await reserveUploadProvider(admin, imageId, id, user.id, createHash("sha256").update(image.original.bytes).digest("hex"));
+    bucket = createMediaStorage(provider, admin);
+  } catch {
+    return NextResponse.json({ error: "Image uploads are unavailable." }, { status: 503 });
+  }
   let createdPaths: string[];
   try {
     createdPaths = await uploadListingImageArtifacts(bucket, paths, image);
@@ -82,6 +95,7 @@ export async function POST(request: Request, { params }: RouteContext) {
     .insert({
       id: imageId,
       listing_id: id,
+      storage_provider: provider,
       storage_path: paths.original,
       card_path: paths.card,
       detail_path: paths.detail,
