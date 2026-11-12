@@ -89,4 +89,3 @@ end; $$;
 revoke all on function public.bind_listing_image_storage_provider() from public, anon, authenticated;
 create trigger listing_images_bind_provider before insert or update on public.listing_images
   for each row execute function public.bind_listing_image_storage_provider();
-

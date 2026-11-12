@@ -42,4 +42,3 @@ Routine reads do not list either bucket and sign only selected thumbnail/detail 
 - Do not expose direct R2 writes, credentials, unrestricted presigned operations, public bucket access, custom-domain presigning assumptions, or caller-selected object keys.
 - Do not change listing visibility, suspension, moderation, ownership, image counts, image dimensions, quality, display order, or Vercel image handling.
 - Real R2 integration tests require credentials supplied only through an approved environment; unit and route tests use mocks.
-

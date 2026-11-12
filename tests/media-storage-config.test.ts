@@ -52,4 +52,3 @@ describe("media storage configuration", () => {
     expect(message).not.toContain(environment.R2_SECRET_ACCESS_KEY ?? "secret-key-value");
   });
 });
-

@@ -55,4 +55,3 @@ export function resolveR2Config(environment: MediaStorageEnvironment): R2Config 
     endpoint: `https://${accountId}.r2.cloudflarestorage.com`,
   };
 }
-

@@ -22,4 +22,3 @@ describe("listing image storage provider migration", () => {
     expect(sql).not.toMatch(/storage\.objects/i);
   });
 });
-

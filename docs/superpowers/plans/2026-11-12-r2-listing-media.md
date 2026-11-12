@@ -137,4 +137,3 @@
 - [x] Run TypeScript, ESLint, Vitest, production build, safe Playwright coverage, secret scan, npm audit, migration/security regressions, and `git diff --check`; record exact evidence and limitations.
 - [x] Dispatch the explicitly requested independent security reviewer against the branch diff, fix Critical/Important findings with regression tests, and re-run affected/full verification.
 - [x] Commit the final evidence, push `feat/r2-image-storage`, and open a PR against `main` without merging or deploying.
-
