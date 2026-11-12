@@ -233,10 +233,10 @@ function usePrefersReducedMotion() {
   )
 }
 
-function Ornament({ className = "", style }: { className?: string; style?: React.CSSProperties }) {
+function Ornament({ className = "", style, testId }: { className?: string; style?: React.CSSProperties; testId?: string }) {
   const ring = Array.from({ length: 16 }, (_, i) => i * 22.5)
   return (
-    <svg viewBox="-100 -100 200 200" fill="none" stroke="currentColor" strokeWidth={1.4} className={className} style={style} aria-hidden="true">
+    <svg data-testid={testId} viewBox="-100 -100 200 200" fill="none" stroke="currentColor" strokeWidth={1.4} className={className} style={style} aria-hidden="true">
       <circle r={96} />
       <circle r={86} />
       <circle r={60} />
@@ -667,8 +667,8 @@ export default function LanyardBadge({
   const s = cw / 240 // built-in faces are laid out at 240px and scale with the card
 
   const defaultFront = (
-    <div className="relative h-full w-full" style={{ background: cardColor, color: textColor }}>
-      <Ornament className="absolute" style={{ width: 300 * s, right: -130 * s, top: 100 * s, color: frontPatternColor, maxWidth: "none" }} />
+    <div data-testid="gg-card-front" className="relative h-full w-full" style={{ background: cardColor, color: textColor }}>
+      <Ornament testId="gg-card-front-pattern" className="absolute" style={{ width: 300 * s, right: -130 * s, top: 100 * s, color: frontPatternColor, maxWidth: "none" }} />
       <Ornament className="absolute" style={{ width: 210 * s, left: -40 * s, bottom: -70 * s, color: frontPatternColor, maxWidth: "none", opacity: 0.8 }} />
       <Arrow className="absolute" style={{ width: 14 * s, height: 250 * s, left: 26 * s, top: 110 * s, color: frontPatternColor, transform: "rotate(-14deg)", maxWidth: "none" }} />
       <div className="absolute" style={{ left: 22 * s, top: 34 * s, right: 22 * s }}>

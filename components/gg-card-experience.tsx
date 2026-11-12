@@ -3,10 +3,11 @@
 import LanyardBadge from "@/components/ui/lanyard-badge";
 import { getGGCardTheme, type GGCardConfig } from "@/lib/gg-card";
 
-export default function GGCardExperience({ card, displayName, username }: {
+export default function GGCardExperience({ card, displayName, username, height = "min(68svh, 620px)" }: {
   card: GGCardConfig;
   displayName: string;
   username: string;
+  height?: string;
 }) {
   const theme = getGGCardTheme(card.themeId);
   return (
@@ -25,7 +26,7 @@ export default function GGCardExperience({ card, displayName, username }: {
         cardColor={theme.cardColor}
         flipButtonPosition="top-left"
         cardWidth={220}
-        height="min(68svh, 620px)"
+        height={height}
       />
     </div>
   );
