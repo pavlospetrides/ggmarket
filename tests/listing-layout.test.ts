@@ -20,7 +20,7 @@ describe("listing presentation contracts", () => {
     expect(source).toMatch(/<h1 className="[^"]*\[overflow-wrap:anywhere\]/);
     expect(source).toMatch(/className="[^"]*\[overflow-wrap:anywhere\][^"]*">\s*\{item\.seller\.displayName\}/);
     expect(source).toMatch(/<p className="[^"]*\[overflow-wrap:anywhere\][^"]*">\s*\{item\.description\}/);
-    expect(source).toMatch(/<span className="[^"]*shrink-0[^"]*"[^>]*>\s*\{item\.seller\.displayName\[0\]/);
+    expect(source).toMatch(/<ProfileAvatar name=\{item\.seller\.displayName\} url=\{item\.seller\.avatarUrl\} className="size-12/);
   });
 
   it("integrates one compact seller chat action without a fixed mobile overlay", () => {
