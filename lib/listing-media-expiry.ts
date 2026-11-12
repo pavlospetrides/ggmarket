@@ -1,6 +1,6 @@
 export function signedMediaExpiresAt(source: string): number | null {
   try {
-    const url = new URL(source);
+    const url = new URL(source, "https://media.invalid");
     const stamp = url.searchParams.get("X-Amz-Date");
     const seconds = Number(url.searchParams.get("X-Amz-Expires"));
     if (stamp && /^\d{8}T\d{6}Z$/.test(stamp) && Number.isFinite(seconds) && seconds > 0) {

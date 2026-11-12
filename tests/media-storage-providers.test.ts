@@ -7,6 +7,17 @@ const config = resolveR2Config({ R2_ACCOUNT_ID: "a".repeat(32), R2_BUCKET_NAME: 
 const path = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb/cccccccc-cccc-4ccc-8ccc-cccccccccccc/card.webp";
 
 describe("R2 storage (mock transport, real commands)", () => {
+  it("generates a real offline SigV4 GET URL on the R2 S3 endpoint", async () => {
+    const result = await createR2Storage(config).createSignedUrls([path], 3600);
+    expect(result.error).toBeNull();
+    const url = new URL(result.data![0].signedUrl);
+    expect(url.hostname).toBe(`lootriva-images.${"a".repeat(32)}.r2.cloudflarestorage.com`);
+    expect(url.pathname).toBe(`/${path}`);
+    expect(url.searchParams.get("X-Amz-Expires")).toBe("3600");
+    expect(url.searchParams.get("X-Amz-Credential")).toContain("/auto/s3/aws4_request");
+    expect(url.searchParams.get("X-Amz-Signature")).toMatch(/^[a-f0-9]{64}$/);
+    expect(url.toString()).not.toContain("fake-secret");
+  });
   it("uploads exact keys with content length and private bounded cache headers", async () => {
     const send = vi.fn().mockResolvedValue({});
     const storage = createR2Storage(config, { send });

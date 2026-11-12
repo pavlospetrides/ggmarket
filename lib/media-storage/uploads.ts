@@ -7,6 +7,8 @@ export async function reserveUploadProvider(admin: SupabaseClient, imageId: stri
   const desired = resolveMediaStorageProvider(process.env);
   // Validate before reserving, so a broken rollout does not pin new IDs to R2.
   if (desired === "r2") resolveR2Config(process.env);
+  const deleted = await admin.from("listing_image_cleanup_jobs").select("image_id").eq("image_id", imageId).maybeSingle();
+  if (deleted.error || deleted.data) throw new Error("Media assignment unavailable.");
   const { error } = await admin.from("listing_image_storage_assignments").upsert({ id: imageId, listing_id: listingId, seller_id: sellerId, storage_provider: desired, sha256 }, { onConflict: "id", ignoreDuplicates: true });
   if (error) throw new Error("Media assignment unavailable.");
   const { data, error: lookupError } = await admin.from("listing_image_storage_assignments").select("listing_id,seller_id,storage_provider,sha256").eq("id", imageId).single();

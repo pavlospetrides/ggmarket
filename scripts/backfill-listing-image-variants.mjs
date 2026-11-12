@@ -85,6 +85,7 @@ function buildVariantPaths(ownerId, listingId, imageId) {
 
 export function buildBackfillPlan(rows) {
   return rows.flatMap((row) => {
+    if (row.storage_provider && row.storage_provider !== "supabase") return [];
     if (row.card_path && row.detail_path) return [];
     const listing = relatedListing(row);
     if (!listing || !UUID.test(row.id) || !UUID.test(listing.id) || !UUID.test(listing.seller_id)) return [];
@@ -123,7 +124,8 @@ export function summarizeBackfillBatch(candidates, plans) {
 async function loadCandidates(client, options) {
   let query = client
     .from("listing_images")
-    .select("id,storage_path,card_path,detail_path,listing:listings!inner(id,seller_id)")
+    .select("id,storage_path,card_path,detail_path,storage_provider,listing:listings!inner(id,seller_id)")
+    .eq("storage_provider", "supabase")
     .or("card_path.is.null,detail_path.is.null")
     .order("id", { ascending: true })
     .limit(options.batchSize);
@@ -133,7 +135,7 @@ async function loadCandidates(client, options) {
   return data ?? [];
 }
 
-async function applyPlan(client, bucket, plan, processListingImage) {
+export async function applyVariantPlan(client, bucket, plan, processListingImage) {
   const { data: source, error: downloadError } = await bucket.download(plan.row.storage_path);
   if (downloadError || !source) throw new Error("source-download-failed");
   const sourceBytes = new Uint8Array(await source.arrayBuffer());
@@ -162,8 +164,10 @@ async function applyPlan(client, bucket, plan, processListingImage) {
       detail_bytes: processed.detail.byteSize,
     }),
   };
-  const { error: updateError } = await client.from("listing_images").update(patch).eq("id", plan.row.id);
-  if (updateError) throw new Error("metadata-update-failed");
+  let mutation = client.from("listing_images").update(patch).eq("id", plan.row.id).eq("storage_provider", "supabase").eq("storage_path", plan.row.storage_path);
+  for (const key of ["card_path", "detail_path"]) mutation = plan.row[key] ? mutation.eq(key, plan.row[key]) : mutation.is(key, null);
+  const { data: updated, error: updateError } = await mutation.select("id").maybeSingle();
+  if (updateError || !updated) throw new Error("metadata-update-failed");
 }
 
 export async function runBackfill(options, environment = process.env, output = console) {
@@ -196,7 +200,7 @@ export async function runBackfill(options, environment = process.env, output = c
       continue;
     }
     try {
-      await applyPlan(client, bucket, plan, mediaModule.processListingImage);
+      await applyVariantPlan(client, bucket, plan, mediaModule.processListingImage);
       result.applied += 1;
       output.log(formatBackfillLog("applied", plan));
     } catch (error) {

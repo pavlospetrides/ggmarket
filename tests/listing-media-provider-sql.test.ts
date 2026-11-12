@@ -27,7 +27,7 @@ describe("provider migration in disposable embedded PostgreSQL", () => {
       create function public.is_admin() returns boolean language sql stable as $$ select false $$;
       create table public.profiles(id uuid primary key, suspended_at timestamptz);
       create table public.listings(id uuid primary key, seller_id uuid references public.profiles(id), status text);
-      create table public.listing_images(id uuid primary key, listing_id uuid references public.listings(id), storage_path text unique not null, sort_order int default 0, width int, height int);
+      create table public.listing_images(id uuid primary key, listing_id uuid references public.listings(id) on delete cascade, storage_path text unique not null, sort_order int default 0, width int, height int);
       create schema storage; create table storage.buckets(id text primary key, public boolean); create table storage.objects(name text, bucket_id text);
       alter table public.listings enable row level security;
       alter table public.listing_images enable row level security;
@@ -63,13 +63,33 @@ describe("provider migration in disposable embedded PostgreSQL", () => {
     await expect(asOwner(`update public.listing_images set storage_path='${prefix}/foreign.webp' where id='${image}'`)).rejects.toThrow("protected image metadata");
   });
   it("does not permit another seller to attach or reassign a reserved namespace", async () => {
-    await db.exec(`update public.listing_image_storage_assignments set seller_id='${foreign}' where id='${image}'; delete from public.listing_images where id='${image}'`);
-    await expect(asOwner(insert("supabase"))).rejects.toThrow("invalid image assignment");
+    const collision = "ffffffff-ffff-4fff-8fff-ffffffffffff";
+    await db.exec(`insert into public.listing_image_storage_assignments(id,listing_id,seller_id,storage_provider,sha256) values('${collision}','${listing}','${foreign}','r2','${"a".repeat(64)}')`);
+    await expect(asOwner(insert("supabase", collision))).rejects.toThrow("invalid image assignment");
   });
   it("keeps a legacy Supabase path intact and blocks client provider changes", async () => {
     const legacy = "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee";
     await asOwner(`insert into public.listing_images(id,listing_id,storage_path) values('${legacy}','${listing}','${owner}/${listing}/legacy.jpg')`);
     expect((await asOwner(`select storage_provider,storage_path from public.listing_images where id='${legacy}'`)).rows).toEqual([{ storage_provider: "supabase", storage_path: `${owner}/${listing}/legacy.jpg` }]);
     await expect(asOwner(`update public.listing_images set storage_provider='r2' where id='${legacy}'`)).rejects.toThrow("protected image metadata");
+  });
+  it("retains exact provider cleanup metadata after deletion and fences same-ID resurrection", async () => {
+    const legacy = "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee";
+    await asOwner(`delete from public.listing_images where id='${legacy}'`);
+    const jobs = await db.query("select image_id,storage_provider,paths from public.listing_image_cleanup_jobs");
+    expect(jobs.rows).toContainEqual({ image_id: legacy, storage_provider: "supabase", paths: [`${owner}/${listing}/legacy.jpg`] });
+    await expect(asOwner(insert("supabase", legacy))).rejects.toThrow("image identifier has been deleted");
+    await expect(asOwner("select * from public.listing_image_cleanup_jobs")).rejects.toThrow("permission denied");
+  });
+  it("rolls cleanup jobs back with the authorized deletion transaction", async () => {
+    await db.exec(`begin; delete from public.listing_images where id='${image}'; rollback;`);
+    expect((await db.query(`select image_id from public.listing_image_cleanup_jobs where image_id='${image}'`)).rows).toEqual([]);
+    expect((await db.query(`select id from public.listing_images where id='${image}'`)).rows).toEqual([{ id: image }]);
+  });
+  it("preserves exact R2 cleanup evidence after the listing and reservations cascade away", async () => {
+    await db.exec(`delete from public.listings where id='${listing}'`);
+    expect((await db.query("select id from public.listing_image_storage_assignments")).rows).toEqual([]);
+    const jobs = await db.query("select image_id,storage_provider,paths from public.listing_image_cleanup_jobs");
+    expect(jobs.rows).toContainEqual({ image_id: image, storage_provider: "r2", paths: expect.arrayContaining([`${prefix}/original.webp`, `${prefix}/card.webp`, `${prefix}/detail.webp`]) });
   });
 });

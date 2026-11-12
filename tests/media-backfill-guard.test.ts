@@ -2,6 +2,7 @@ import { execFileSync } from "node:child_process";
 import { describe, expect, it } from "vitest";
 import {
   assertApplyAuthorized,
+  applyVariantPlan,
   buildBackfillPlan,
   formatBackfillLog,
   parseBackfillArgs,
@@ -23,6 +24,18 @@ const row = {
 };
 
 describe("legacy media backfill guards", () => {
+  it("does not attach Supabase variants if the row migrates to R2 while processing", async () => {
+    const filters: Record<string, unknown> = {};
+    const client = { from: () => {
+      const query = { update: () => query, eq: (key: string, value: unknown) => { filters[key] = value; return query; }, is: () => query, select: () => query,
+        maybeSingle: async () => ({ data: filters.storage_provider === "supabase" ? null : { id: row.id }, error: null }),
+      }; return query;
+    } };
+    const bucket = { download: async () => ({ data: new Blob([new Uint8Array([1])]), error: null }), upload: async () => ({ error: null }) };
+    const artifact = { bytes: new Uint8Array([1]), byteSize: 1 };
+    await expect(applyVariantPlan(client, bucket, buildBackfillPlan([row])[0], async () => ({ mimeType: "image/webp", card: artifact, detail: artifact }))).rejects.toThrow("metadata-update-failed");
+    expect(filters.storage_path).toBe("owner/listing/legacy.jpg");
+  });
   it("defaults to a bounded dry run and rejects batches above 100", () => {
     expect(parseBackfillArgs([])).toMatchObject({ apply: false, batchSize: 25, cursor: null });
     expect(parseBackfillArgs(["--batch-size", "100"]).batchSize).toBe(100);
@@ -39,6 +52,7 @@ describe("legacy media backfill guards", () => {
   });
 
   it("skips completed rows and plans only missing deterministic variants", () => {
+    expect(buildBackfillPlan([{ ...row, storage_provider: "r2" }])).toEqual([]);
     expect(buildBackfillPlan([{ ...row, card_path: "card.webp", detail_path: "detail.webp" }])).toEqual([]);
     const partialRow = { ...row, card_path: "existing-card.webp" };
     expect(buildBackfillPlan([partialRow])).toEqual([{

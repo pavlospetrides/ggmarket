@@ -84,7 +84,7 @@ test("Sell wizard accepts touch through every step and recovers from a mocked pu
   const publish = page.getByRole("button", { name: "Publish", exact: true });
   await publish.scrollIntoViewIfNeeded();
   await page.screenshot({
-    path: `.taste-skill/ios-functional-audit/${testInfo.project.name}-390-sell-preview.png`,
+    path: testInfo.outputPath("sell-preview.png"),
     fullPage: true,
     animations: "disabled",
   });

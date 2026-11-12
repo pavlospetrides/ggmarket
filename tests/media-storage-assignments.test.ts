@@ -3,18 +3,23 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 vi.mock("server-only", () => ({}));
 import { reserveUploadProvider } from "../lib/media-storage/uploads";
 
-function database() {
+function database(deleted = false) {
   let row: Record<string, unknown> | undefined;
-  return { from: () => {
+  return { from: (table: string) => {
     const query = {
       upsert: async (payload: Record<string, unknown>) => { row ??= payload; return { error: null }; },
       select: () => query, eq: () => query,
       single: async () => ({ data: row, error: null }),
+      maybeSingle: async () => ({ data: table === "listing_image_cleanup_jobs" && deleted ? { image_id: "image" } : null, error: null }),
     }; return query;
   } } as unknown as SupabaseClient;
 }
 afterEach(() => vi.unstubAllEnvs());
 describe("trusted upload provider reservation", () => {
+  it("rejects deleted image ids before any object write can begin", async () => {
+    vi.stubEnv("MEDIA_STORAGE_PROVIDER", "supabase");
+    await expect(reserveUploadProvider(database(true), "image", "listing", "seller", "digest")).rejects.toThrow();
+  });
   it("pins retries to the first provider across rollout flag changes", async () => {
     const admin = database();
     vi.stubEnv("MEDIA_STORAGE_PROVIDER", "supabase");

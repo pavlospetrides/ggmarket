@@ -8,6 +8,7 @@ import type { ListingAttributes } from "@/lib/types";
 import { listingImageObjectPaths } from "@/lib/listing-media-storage";
 import { createMediaStorage } from "@/lib/media-storage";
 import { prepareStoredListingImageRemoval } from "@/lib/listing-media-delivery";
+import { completeMediaCleanup } from "@/lib/media-storage/cleanup";
 
 type AttributeRule = { type?: "string" | "number" | "boolean" };
 function validAttributes(attributes: ListingAttributes, schema: unknown) {
@@ -86,14 +87,13 @@ export async function DELETE(_request: Request, { params }: { params: Promise<{ 
     .maybeSingle();
   if (!listing) return NextResponse.json({ error: "Listing not found." }, { status: 404 });
   const paths = (listing.listing_images ?? []).flatMap(listingImageObjectPaths);
-  let cleanup;
-  try { cleanup = prepareStoredListingImageRemoval(listing.listing_images ?? [], (provider) => createMediaStorage(provider, admin)); }
+  try { prepareStoredListingImageRemoval(listing.listing_images ?? [], (provider) => createMediaStorage(provider, admin)); }
   catch { return NextResponse.json({ error: "Listing deletion is unavailable." }, { status: 503 }); }
 
   const { data: deleted, error } = await supabase.from("listings").delete().eq("id", id).eq("seller_id", user.id).select("id").maybeSingle();
   if (error || !deleted) return NextResponse.json({ error: "Listing could not be deleted." }, { status: 400 });
-  if (paths.length) {
-    const { error: storageError } = await cleanup();
+  {
+    const { error: storageError } = await completeMediaCleanup(admin, { listingId: id });
     if (storageError) {
       console.error("Listing media cleanup pending", { listingId: id, objectCount: paths.length });
       return NextResponse.json({ ok: true, cleanupPending: true }, { status: 202 });

@@ -4,6 +4,10 @@ vi.mock("server-only", () => ({}));
 vi.mock("@/lib/auth", () => ({ getUser: async () => ({ id: "seller" }) }));
 vi.mock("@/lib/listing-media-storage", async () => import("../lib/listing-media-storage"));
 vi.mock("@/lib/listing-media-delivery", async () => import("../lib/listing-media-delivery"));
+vi.mock("@/lib/media-storage/cleanup", () => ({ completeMediaCleanup: async () => {
+  state.removed.push("owner/listing/image/original.webp", "owner/listing/image/card.webp");
+  return { error: null };
+} }));
 vi.mock("@/lib/media-storage", () => ({ storedMediaProvider: (value: string | null) => value ?? "supabase", createMediaStorage: () => {
   if (state.unavailable) throw new Error("unavailable");
   return { remove: async (paths: string[]) => { state.removed.push(...paths); return { error: null }; } };

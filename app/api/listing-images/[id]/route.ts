@@ -5,6 +5,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { createMediaStorage } from "@/lib/media-storage";
 import { prepareStoredListingImageRemoval } from "@/lib/listing-media-delivery";
+import { completeMediaCleanup } from "@/lib/media-storage/cleanup";
 
 export async function DELETE(
   _request: Request,
@@ -37,8 +38,7 @@ export async function DELETE(
     return NextResponse.json({ error: "An active listing must keep at least one photo." }, { status: 400 });
   }
 
-  let cleanup;
-  try { cleanup = prepareStoredListingImageRemoval([image], (provider) => createMediaStorage(provider, admin)); }
+  try { prepareStoredListingImageRemoval([image], (provider) => createMediaStorage(provider, admin)); }
   catch { return NextResponse.json({ error: "Image deletion is unavailable." }, { status: 503 }); }
 
   // The RLS-bound mutation is the authorization gate. Suspended or
@@ -49,7 +49,7 @@ export async function DELETE(
   }
 
   const paths = listingImageObjectPaths(image);
-  const { error: storageError } = await cleanup();
+  const { error: storageError } = await completeMediaCleanup(admin, { imageId: id });
   if (storageError) {
     console.error("Listing image cleanup pending", { imageId: id, objectCount: paths.length });
     return NextResponse.json({ ok: true, cleanupPending: true }, { status: 202 });

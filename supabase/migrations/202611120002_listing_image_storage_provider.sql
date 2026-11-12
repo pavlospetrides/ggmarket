@@ -18,10 +18,46 @@ alter table public.listing_image_storage_assignments enable row level security;
 revoke all on public.listing_image_storage_assignments from public, anon, authenticated;
 grant all on public.listing_image_storage_assignments to service_role;
 
+-- Transactional outbox and permanent image-ID tombstone. No foreign keys:
+-- cleanup evidence must survive listing/profile cascades and process crashes.
+create table public.listing_image_cleanup_jobs (
+  image_id uuid primary key,
+  listing_id uuid not null,
+  storage_provider text not null check (storage_provider in ('supabase', 'r2')),
+  paths text[] not null check (cardinality(paths) between 1 and 3),
+  created_at timestamptz not null default now(),
+  completed_at timestamptz
+);
+alter table public.listing_image_cleanup_jobs enable row level security;
+revoke all on public.listing_image_cleanup_jobs from public, anon, authenticated;
+grant all on public.listing_image_cleanup_jobs to service_role;
+create index listing_image_cleanup_pending_idx on public.listing_image_cleanup_jobs(listing_id)
+  where completed_at is null;
+
+create function public.enqueue_listing_image_cleanup()
+returns trigger language plpgsql security definer set search_path = '' as $$
+begin
+  perform pg_catalog.pg_advisory_xact_lock(pg_catalog.hashtextextended(old.id::text, 0));
+  insert into public.listing_image_cleanup_jobs(image_id,listing_id,storage_provider,paths)
+  values(old.id,old.listing_id,old.storage_provider,
+    array(select distinct p from unnest(array[old.storage_path,old.card_path,old.detail_path]) p where p is not null));
+  return old;
+end; $$;
+revoke all on function public.enqueue_listing_image_cleanup() from public, anon, authenticated;
+create trigger listing_images_enqueue_cleanup after delete on public.listing_images
+  for each row execute function public.enqueue_listing_image_cleanup();
+
 create function public.bind_listing_image_storage_provider()
 returns trigger language plpgsql security definer set search_path = '' as $$
 declare assignment public.listing_image_storage_assignments%rowtype;
 begin
+  -- Serialize the deletion tombstone with a retry's provider check. If row and
+  -- advisory lock acquisition conflict, PostgreSQL aborts one transaction;
+  -- callers never clean objects after a failed metadata mutation.
+  perform pg_catalog.pg_advisory_xact_lock(pg_catalog.hashtextextended(new.id::text, 0));
+  if exists(select 1 from public.listing_image_cleanup_jobs where image_id = new.id) then
+    raise exception 'image identifier has been deleted' using errcode = '42501';
+  end if;
   if auth.role() is distinct from 'service_role' then
     if tg_op = 'UPDATE' then
       if new.storage_provider is distinct from old.storage_provider
