@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
 const readMigration = () => readFileSync("supabase/migrations/202610300001_my_gg_card.sql", "utf8");
+const readColorMigration = () => readFileSync("supabase/migrations/202611120001_gg_card_custom_colors.sql", "utf8");
 
 describe("Lootriva Card migration security contract", () => {
   it("constrains stored presentation data and enables RLS", () => {
@@ -32,5 +33,25 @@ describe("Lootriva Card migration security contract", () => {
     expect(sql).not.toMatch(/grant all/i);
     expect(sql).not.toMatch(/storage\.(?:objects|buckets)/i);
     expect(sql).not.toMatch(/create\s+policy[\s\S]+on\s+storage\./i);
+  });
+});
+
+describe("Lootriva Card custom color migration contract", () => {
+  it("adds nullable constrained color columns for staged compatibility", () => {
+    const sql = readColorMigration();
+    expect(sql).toMatch(/add column text_color text/i);
+    expect(sql).toMatch(/add column front_pattern_color text/i);
+    expect(sql).toMatch(/text_color is null or text_color ~ '\^#\[0-9A-Fa-f\]\{6\}\$'/i);
+    expect(sql).toMatch(/front_pattern_color is null or front_pattern_color ~ '\^#\[0-9A-Fa-f\]\{6\}\$'/i);
+    expect(sql).not.toMatch(/not null/i);
+  });
+
+  it("extends only the existing presentation column grants", () => {
+    const sql = readColorMigration();
+    expect(sql).toMatch(/grant select \(text_color, front_pattern_color\) on public\.gg_cards to anon, authenticated/i);
+    expect(sql).toMatch(/grant insert \(text_color, front_pattern_color\), update \(text_color, front_pattern_color\) on public\.gg_cards to authenticated/i);
+    expect(sql).not.toMatch(/grant all/i);
+    expect(sql).not.toMatch(/disable row level security/i);
+    expect(sql).not.toMatch(/create policy/i);
   });
 });

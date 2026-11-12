@@ -4,7 +4,8 @@ import dynamic from "next/dynamic";
 import { CreditCard, Eye, Palette } from "lucide-react";
 import { useState } from "react";
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogTitle, DialogTrigger } from "./ui/dialog";
-import { DEFAULT_GG_CARD, GG_CARD_THEMES, getGGCardTheme, type GGCardConfig, type GGCardThemeId } from "@/lib/gg-card";
+import { GGCardColorControl } from "./gg-card-color-control";
+import { DEFAULT_GG_CARD, GG_CARD_THEMES, getGGCardTheme, normalizeHexColor, type GGCardConfig, type GGCardThemeId } from "@/lib/gg-card";
 
 const GGCardExperience = dynamic(() => import("./gg-card-experience"), {
   ssr: false,
@@ -22,19 +23,28 @@ export function GGCardSection({ own, identity, card }: {
   const [draft, setDraft] = useState(card);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
-  const draftTheme = draft ? getGGCardTheme(draft.themeId) : null;
 
   if (!current) return null;
 
+  const draftTheme = draft ? getGGCardTheme(draft.themeId) : null;
+  const normalizedTextColor = draft ? normalizeHexColor(draft.textColor) : null;
+  const normalizedPatternColor = draft ? normalizeHexColor(draft.frontPatternColor) : null;
+  const previewCard = draft ? {
+    ...draft,
+    textColor: normalizedTextColor ?? current.textColor,
+    frontPatternColor: normalizedPatternColor ?? current.frontPatternColor,
+  } : null;
+  const canSave = Boolean(draft?.slogan.trim() && normalizedTextColor && normalizedPatternColor);
+
   async function save() {
-    if (!draft || busy) return;
+    if (!draft || !normalizedTextColor || !normalizedPatternColor || busy) return;
     setBusy(true);
     setMessage("");
     try {
       const response = await fetch("/api/gg-card", {
         method: "PATCH",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify(draft),
+        body: JSON.stringify({ ...draft, textColor: normalizedTextColor, frontPatternColor: normalizedPatternColor }),
       });
       const body = await response.json() as { card?: GGCardConfig; error?: string };
       if (!response.ok || !body.card) throw new Error(body.error || "Your Lootriva Card could not be saved.");
@@ -71,17 +81,39 @@ export function GGCardSection({ own, identity, card }: {
           {own ? (
             <Dialog open={customizeOpen} onOpenChange={(open) => { setCustomizeOpen(open); setMessage(""); if (open) setDraft(current); }}>
               <DialogTrigger asChild><button type="button" className="btn-secondary min-h-11"><Palette className="size-4" aria-hidden="true" />Customize Card</button></DialogTrigger>
-              <DialogContent className="overscroll-contain">
-                <DialogTitle>Customize My Lootriva Card</DialogTitle>
-                <DialogDescription>Choose a safe Lootriva theme, add a short slogan, and decide whether visitors can view your card.</DialogDescription>
-                {draft ? <fieldset className="mt-5 space-y-5" disabled={busy}>
-                  <div><label className="label" htmlFor="gg-card-slogan">Slogan</label><input id="gg-card-slogan" name="gg-card-slogan" autoComplete="off" className="input" maxLength={80} value={draft.slogan} onChange={(event) => setDraft({ ...draft, slogan: event.target.value })} required /><p className="mt-1 text-right text-xs tabular-nums text-[var(--muted)]">{draft.slogan.length}/80</p></div>
-                  <div><div className="flex items-center justify-between gap-3"><span className="label">Theme</span><button type="button" className="min-h-11 text-sm font-bold text-[#bca6ff] underline-offset-4 hover:underline" onClick={() => setDraft({ ...draft, ...DEFAULT_GG_CARD, isPublic: draft.isPublic })}>Restore defaults</button></div><div className="mt-2 grid grid-cols-2 gap-2" role="radiogroup" aria-label="Lootriva Card theme">{Object.values(GG_CARD_THEMES).map((theme) => <button key={theme.id} type="button" role="radio" aria-checked={draft.themeId === theme.id} className={`min-h-12 rounded-xl border px-3 text-left text-sm font-bold ${draft.themeId === theme.id ? "border-[var(--primary-hover)] ring-2 ring-[var(--primary-hover)]" : "border-[var(--border)]"}`} style={{ background: theme.cardColor, color: theme.inkColor }} onClick={() => setDraft({ ...draft, themeId: theme.id as GGCardThemeId })}>{theme.label}</button>)}</div></div>
-                  {draftTheme ? <div className="overflow-hidden rounded-xl border border-[var(--border)]" style={{ background: draftTheme.cardColor, color: draftTheme.inkColor }} aria-label="Card preview"><div className="h-2" style={{ background: draftTheme.strapColor }} /><div className="p-4"><p className="text-xs font-black uppercase tracking-[0.2em]">Lootriva</p><p className="mt-5 break-words text-xl font-black uppercase tracking-tight">{identity.displayName}</p><p className="mt-1 break-words text-sm opacity-80">{draft.slogan || "Your slogan"}</p></div></div> : null}
-                  <label className="flex min-h-12 cursor-pointer items-start gap-3 rounded-xl border border-[var(--border)] p-3"><input type="checkbox" className="mt-1 size-4 accent-[var(--primary)]" checked={draft.isPublic} onChange={(event) => setDraft({ ...draft, isPublic: event.target.checked })} /><span><strong className="block text-sm">Show on my public profile</strong><span className="mt-1 block text-xs leading-5 text-[var(--muted)]">Off by default. When enabled, anyone visiting your profile can view this card.</span></span></label>
-                </fieldset> : null}
-                {message ? <p className={`mt-4 text-sm ${message.includes("saved") ? "text-[var(--success)]" : "text-[#ff9ca6]"}`} role={message.includes("saved") ? "status" : "alert"}>{message}</p> : null}
-                <div className="mt-5 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end"><DialogClose asChild><button type="button" className="btn-secondary min-h-11" disabled={busy}>Close</button></DialogClose><button type="button" className="btn-primary min-h-11" disabled={busy || !draft?.slogan.trim()} onClick={save}>{busy ? "Saving…" : "Save Card"}</button></div>
+              <DialogContent className="w-[min(calc(100%-1rem),72rem)] overscroll-contain bg-[#111620] p-0" closeLabel="Close card customization">
+                <div className="p-5 pr-16 sm:p-6 sm:pr-20">
+                  <DialogTitle>Customize My Lootriva Card</DialogTitle>
+                  <DialogDescription>Choose independent typography and front-pattern colors, then preview them on your live card.</DialogDescription>
+                </div>
+                {draft && draftTheme && previewCard ? <div className="grid min-w-0 lg:grid-cols-[minmax(22rem,1.1fr)_minmax(20rem,.9fr)]">
+                  <div className="min-w-0 border-y border-[var(--border)] bg-[#0b0e15] lg:border-b-0 lg:border-r" aria-label="Card preview" data-testid="gg-card-live-preview">
+                    {customizeOpen ? <GGCardExperience card={previewCard} displayName={identity.displayName} username={identity.username} height="min(52svh, 520px)" /> : null}
+                  </div>
+                  <div className="min-w-0 p-5 sm:p-6">
+                    <fieldset className="space-y-5" disabled={busy}>
+                      <div>
+                        <label className="label" htmlFor="gg-card-slogan">Slogan</label>
+                        <input id="gg-card-slogan" name="gg-card-slogan" autoComplete="off" className="input" maxLength={80} value={draft.slogan} onChange={(event) => setDraft({ ...draft, slogan: event.target.value })} required />
+                        <p className="mt-1 text-right text-xs tabular-nums text-[var(--muted)]">{draft.slogan.length}/80</p>
+                      </div>
+                      <div>
+                        <div className="flex items-center justify-between gap-3">
+                          <span className="label">Theme</span>
+                          <button type="button" className="min-h-11 text-sm font-bold text-[#bca6ff] underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary-hover)]" onClick={() => setDraft({ ...DEFAULT_GG_CARD })}>Reset to Defaults</button>
+                        </div>
+                        <div className="mt-2 grid grid-cols-2 gap-2" role="radiogroup" aria-label="Lootriva Card theme">
+                          {Object.values(GG_CARD_THEMES).map((theme) => <button key={theme.id} type="button" role="radio" aria-checked={draft.themeId === theme.id} className={`min-h-12 rounded-xl border px-3 text-left text-sm font-bold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary-hover)] ${draft.themeId === theme.id ? "border-[var(--primary-hover)] ring-2 ring-[var(--primary-hover)]" : "border-[var(--border)]"}`} style={{ background: theme.cardColor, color: theme.inkColor }} onClick={() => setDraft({ ...draft, themeId: theme.id as GGCardThemeId })}>{theme.label}</button>)}
+                        </div>
+                      </div>
+                      <GGCardColorControl id="gg-card-text-color" label="Text Color" value={draft.textColor} background={draftTheme.cardColor} contrastThreshold={4.5} contrastName="text" onChange={(textColor) => setDraft({ ...draft, textColor })} />
+                      <GGCardColorControl id="gg-card-pattern-color" label="Front Pattern Color" value={draft.frontPatternColor} background={draftTheme.cardColor} contrastThreshold={3} contrastName="pattern" onChange={(frontPatternColor) => setDraft({ ...draft, frontPatternColor })} />
+                      <label className="flex min-h-12 cursor-pointer items-start gap-3 rounded-xl border border-[var(--border)] p-3"><input type="checkbox" className="mt-1 size-4 accent-[var(--primary)]" checked={draft.isPublic} onChange={(event) => setDraft({ ...draft, isPublic: event.target.checked })} /><span><strong className="block text-sm">Show on my public profile</strong><span className="mt-1 block text-xs leading-5 text-[var(--muted)]">Off by default. When enabled, anyone visiting your profile can view this card.</span></span></label>
+                    </fieldset>
+                    {message ? <p className={`mt-4 text-sm ${message.includes("saved") ? "text-[var(--success)]" : "text-[#ff9ca6]"}`} role={message.includes("saved") ? "status" : "alert"} aria-live="polite">{message}</p> : null}
+                    <div className="mt-5 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end"><DialogClose asChild><button type="button" className="btn-secondary min-h-11" disabled={busy}>Close</button></DialogClose><button type="button" className="btn-primary min-h-11" disabled={busy || !canSave} onClick={save}>{busy ? "Saving…" : "Save Changes"}</button></div>
+                  </div>
+                </div> : null}
               </DialogContent>
             </Dialog>
           ) : null}

@@ -20,7 +20,11 @@ function DialogContent({ className, children, closeLabel = "Close", ...props }: 
       {...props}
     >
       {children}
-      <DialogPrimitive.Close className="icon-btn absolute right-4 top-4" aria-label={closeLabel}>
+      <DialogPrimitive.Close
+        className="icon-btn absolute z-20"
+        style={{ right: "max(1rem, env(safe-area-inset-right))", top: "max(1rem, env(safe-area-inset-top))" }}
+        aria-label={closeLabel}
+      >
         <X aria-hidden="true" />
       </DialogPrimitive.Close>
     </DialogPrimitive.Content>

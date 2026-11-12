@@ -39,10 +39,16 @@ export interface LanyardBadgeProps {
   strapColor?: string
   /** Ornament and print colour, on the strap and the built-in card. */
   inkColor?: string
+  /** Built-in card typography colour. Does not rebuild the strap texture. */
+  textColor?: string
+  /** Built-in front ornament colour. Does not rebuild the strap texture. */
+  frontPatternColor?: string
   /** Built-in card stock colour. */
   cardColor?: string
   /** Show the "Show back / Show front" button in the top corner. */
   flipButton?: boolean
+  /** Keep viewer controls clear of the dialog close control. */
+  flipButtonPosition?: "top-left" | "top-right"
   /** Card width in px. Height follows at 3:2, strap width at a tenth. */
   cardWidth?: number
   /** Root height. A definite length â€” never a percentage. */
@@ -227,10 +233,10 @@ function usePrefersReducedMotion() {
   )
 }
 
-function Ornament({ className = "", style }: { className?: string; style?: React.CSSProperties }) {
+function Ornament({ className = "", style, testId }: { className?: string; style?: React.CSSProperties; testId?: string }) {
   const ring = Array.from({ length: 16 }, (_, i) => i * 22.5)
   return (
-    <svg viewBox="-100 -100 200 200" fill="none" stroke="currentColor" strokeWidth={1.4} className={className} style={style} aria-hidden="true">
+    <svg data-testid={testId} viewBox="-100 -100 200 200" fill="none" stroke="currentColor" strokeWidth={1.4} className={className} style={style} aria-hidden="true">
       <circle r={96} />
       <circle r={86} />
       <circle r={60} />
@@ -268,8 +274,11 @@ export default function LanyardBadge({
   strapLabel = "DESIGN WEEK 2026",
   strapColor = "#141312",
   inkColor = "#b59a6c",
+  textColor = inkColor,
+  frontPatternColor = inkColor,
   cardColor = "#e8dfcc",
   flipButton = true,
+  flipButtonPosition = "top-right",
   cardWidth = 240,
   height = "100svh",
   className = "",
@@ -658,10 +667,10 @@ export default function LanyardBadge({
   const s = cw / 240 // built-in faces are laid out at 240px and scale with the card
 
   const defaultFront = (
-    <div className="relative h-full w-full" style={{ background: cardColor, color: inkColor }}>
-      <Ornament className="absolute" style={{ width: 300 * s, right: -130 * s, top: 100 * s, maxWidth: "none" }} />
-      <Ornament className="absolute" style={{ width: 210 * s, left: -40 * s, bottom: -70 * s, maxWidth: "none", opacity: 0.8 }} />
-      <Arrow className="absolute" style={{ width: 14 * s, height: 250 * s, left: 26 * s, top: 110 * s, transform: "rotate(-14deg)", maxWidth: "none" }} />
+    <div data-testid="gg-card-front" className="relative h-full w-full" style={{ background: cardColor, color: textColor }}>
+      <Ornament testId="gg-card-front-pattern" className="absolute" style={{ width: 300 * s, right: -130 * s, top: 100 * s, color: frontPatternColor, maxWidth: "none" }} />
+      <Ornament className="absolute" style={{ width: 210 * s, left: -40 * s, bottom: -70 * s, color: frontPatternColor, maxWidth: "none", opacity: 0.8 }} />
+      <Arrow className="absolute" style={{ width: 14 * s, height: 250 * s, left: 26 * s, top: 110 * s, color: frontPatternColor, transform: "rotate(-14deg)", maxWidth: "none" }} />
       <div className="absolute" style={{ left: 22 * s, top: 34 * s, right: 22 * s }}>
         <div style={{ fontFamily: DISPLAY, fontWeight: 700, fontSize: 25 * s, lineHeight: 1, textTransform: "uppercase", letterSpacing: "0.01em" }}>
           {title}
@@ -675,7 +684,7 @@ export default function LanyardBadge({
   const defaultBack = (
     <div className="relative h-full w-full" style={{ background: cardColor }}>
       <Ornament className="absolute" style={{ width: 150 * s, right: -30 * s, top: 30 * s, color: inkColor, opacity: 0.6, maxWidth: "none" }} />
-      <div className="absolute" style={{ left: 22 * s, top: 70 * s, color: strapColor }}>
+      <div className="absolute" style={{ left: 22 * s, top: 70 * s, color: textColor }}>
         <Ornament style={{ width: 26 * s, color: inkColor }} />
         <div style={{ width: 16 * s, height: 2 * s, background: strapColor, margin: (14 * s) + "px 0 " + (8 * s) + "px" }} />
         <div style={{ fontFamily: DISPLAY, fontWeight: 700, fontSize: 17 * s, lineHeight: 1.05, textTransform: "uppercase" }}>{name}</div>
@@ -752,7 +761,7 @@ export default function LanyardBadge({
           type="button"
           onClick={() => flipRef.current()}
           aria-pressed={showBack}
-          className="absolute right-4 top-4 z-10 inline-flex items-center gap-2 rounded-full border border-[var(--color-border)] bg-[var(--color-background)]/80 px-4 py-2 text-sm font-medium text-[var(--color-foreground)] shadow-sm backdrop-blur transition-colors hover:bg-[var(--color-muted)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]"
+          className={`absolute top-4 z-10 inline-flex min-h-11 items-center gap-2 rounded-full border border-[var(--color-border)] bg-[var(--color-background)]/80 px-4 py-2 text-sm font-medium text-[var(--color-foreground)] shadow-sm backdrop-blur transition-colors hover:bg-[var(--color-muted)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] ${flipButtonPosition === "top-left" ? "left-4" : "right-4"}`}
         >
           <svg viewBox="0 0 24 24" width={16} height={16} fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="transition-transform duration-500 motion-reduce:transition-none" style={{ transform: showBack ? "scaleX(-1)" : "none" }}>
             <path d="M3 12a9 9 0 0 1 15.5-6.2L21 8" />

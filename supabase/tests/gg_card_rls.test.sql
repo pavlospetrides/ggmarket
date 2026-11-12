@@ -3,7 +3,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set search_path = public, extensions;
 
-select plan(26);
+select plan(31);
 
 insert into auth.users (id, email, raw_user_meta_data)
 values
@@ -50,6 +50,23 @@ select lives_ok(
     where user_id = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'$$,
   'SQL-like slogan is stored as data'
 );
+select lives_ok(
+  $$update public.gg_cards set text_color = '#001122', front_pattern_color = '#AaBbCc'
+    where user_id = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'$$,
+  'owner can save independent valid card colors'
+);
+select throws_ok(
+  $$update public.gg_cards set text_color = 'url(javascript:alert(1))'
+    where user_id = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'$$,
+  '23514', null,
+  'database rejects malformed text colors'
+);
+select throws_ok(
+  $$update public.gg_cards set front_pattern_color = '#123456;display:none'
+    where user_id = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'$$,
+  '23514', null,
+  'database rejects malformed pattern colors'
+);
 select is(
   (select slogan from public.gg_cards where user_id = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'),
   $payload$'); drop table public.gg_cards; --$payload$,
@@ -79,10 +96,15 @@ select is(
   'owner can read their own private card'
 );
 select results_eq(
-  $$update public.gg_cards set slogan = 'Cross-account update'
+  $$update public.gg_cards set slogan = 'Cross-account update', text_color = '#FFFFFF'
     where user_id = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa' returning user_id$$,
   $$values (null::uuid) limit 0$$,
   'another account cannot update an owner card'
+);
+select is(
+  (select text_color from public.gg_cards where user_id = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb'),
+  null::text,
+  'legacy rows retain null colors for theme-safe application fallback'
 );
 select throws_ok(
   $$delete from public.gg_cards where user_id = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb'$$,
@@ -109,6 +131,12 @@ select is(
   (select count(*) from public.gg_cards where user_id = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'),
   1::bigint,
   'anonymous visitor can read a public card'
+);
+select results_eq(
+  $$select text_color, front_pattern_color from public.gg_cards
+    where user_id = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'$$,
+  $$values ('#001122'::text, '#AaBbCc'::text)$$,
+  'anonymous visitors can read validated presentation colors on a public card'
 );
 select is(
   (select count(*) from public.gg_cards where user_id = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb'),

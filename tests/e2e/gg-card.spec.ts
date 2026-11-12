@@ -54,8 +54,48 @@ test("customization is bounded, themed, previewed, and private by default", asyn
   await dialog.getByRole("radio", { name: "Crimson" }).click();
   await expect(dialog.getByLabel("Card preview")).toContainText("Keyboard warrior");
   await expect(dialog.getByRole("radio", { name: "Crimson" })).toHaveAttribute("aria-checked", "true");
-  await dialog.getByRole("button", { name: "Restore defaults" }).click();
+  await dialog.getByRole("button", { name: "Reset to Defaults" }).click();
   await expect(slogan).toHaveValue("Play. Trade. Belong.");
+});
+
+test("custom text and front-pattern colors preview and save independently", async ({ page }) => {
+  let saved: Record<string, unknown> | null = null;
+  await page.route("**/api/gg-card", async (route) => {
+    saved = route.request().postDataJSON() as Record<string, unknown>;
+    await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ card: saved }) });
+  });
+
+  await page.getByTestId("owner-card").getByRole("button", { name: "Customize Card" }).click();
+  const dialog = page.getByRole("dialog", { name: "Customize My Lootriva Card" });
+  const textHex = dialog.getByLabel("Text Color HEX");
+  const patternHex = dialog.getByLabel("Front Pattern Color HEX");
+  await textHex.fill("#001122");
+  await patternHex.fill("#AABBCC");
+
+  await expect(textHex).toHaveValue("#001122");
+  await expect(patternHex).toHaveValue("#AABBCC");
+  await expect(dialog.getByTestId("gg-card-front")).toHaveCSS("color", "rgb(0, 17, 34)");
+  await expect(dialog.getByTestId("gg-card-front-pattern").first()).toHaveCSS("color", "rgb(170, 187, 204)");
+
+  await dialog.getByRole("button", { name: "Save Changes" }).click();
+  await expect(dialog.getByText("Your Lootriva Card was saved.")).toBeVisible();
+  expect(saved).toMatchObject({ textColor: "#001122", frontPatternColor: "#AABBCC" });
+});
+
+test("invalid HEX blocks save while low contrast warns without blocking reset", async ({ page }) => {
+  await page.getByTestId("owner-card").getByRole("button", { name: "Customize Card" }).click();
+  const dialog = page.getByRole("dialog", { name: "Customize My Lootriva Card" });
+  const textHex = dialog.getByLabel("Text Color HEX");
+  await textHex.fill("red");
+  await expect(textHex).toHaveAttribute("aria-invalid", "true");
+  await expect(dialog.getByText("Enter a six-digit HEX color")).toBeVisible();
+  await expect(dialog.getByRole("button", { name: "Save Changes" })).toBeDisabled();
+
+  await textHex.fill("#171329");
+  await expect(dialog.getByText(/low text contrast/i)).toBeVisible();
+  await expect(dialog.getByRole("button", { name: "Save Changes" })).toBeEnabled();
+  await dialog.getByRole("button", { name: "Reset to Defaults" }).click();
+  await expect(textHex).toHaveValue("#F5F1FF");
 });
 
 test("normal motion animates while reduced motion settles to a static pose", async ({ page }) => {
@@ -143,4 +183,36 @@ test("mobile viewer remains inside the viewport with usable controls", async ({ 
   const closeBox = await close.boundingBox();
   expect(closeBox?.width).toBeGreaterThanOrEqual(44);
   expect(closeBox?.height).toBeGreaterThanOrEqual(44);
+  const flip = dialog.getByRole("button", { name: /Show (?:back|front)/ });
+  const flipBox = await flip.boundingBox();
+  expect(flipBox?.height).toBeGreaterThanOrEqual(44);
+  expect(closeBox && flipBox && (
+    closeBox.x + closeBox.width <= flipBox.x ||
+    flipBox.x + flipBox.width <= closeBox.x ||
+    closeBox.y + closeBox.height <= flipBox.y ||
+    flipBox.y + flipBox.height <= closeBox.y
+  )).toBe(true);
+  await flip.click();
+  await expect(flip).toHaveAccessibleName("Show front");
+  await close.click();
+  await expect(dialog).toBeHidden();
+});
+
+test("viewer controls remain disjoint on tablet and desktop on both faces", async ({ page }) => {
+  for (const viewport of [{ width: 768, height: 900 }, { width: 1440, height: 900 }]) {
+    await page.setViewportSize(viewport);
+    await page.getByTestId("public-card").getByRole("button", { name: "View Lootriva Card" }).click();
+    const dialog = page.getByRole("dialog", { name: "Synthetic Player's Lootriva Card" });
+    const close = dialog.getByRole("button", { name: "Close Lootriva Card" });
+    const flip = dialog.getByRole("button", { name: /Show (?:back|front)/ });
+    const closeBox = await close.boundingBox();
+    const flipBox = await flip.boundingBox();
+    expect(closeBox).toBeTruthy();
+    expect(flipBox).toBeTruthy();
+    expect(closeBox && flipBox && closeBox.x >= flipBox.x + flipBox.width).toBe(true);
+    await flip.click();
+    await expect(flip).toHaveAccessibleName("Show front");
+    await close.click();
+    await expect(dialog).toBeHidden();
+  }
 });

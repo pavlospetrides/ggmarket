@@ -8,7 +8,13 @@ import { GGCardSection } from "../components/gg-card-section";
 import GGCardExperience from "../components/gg-card-experience";
 
 const identity = { displayName: "Ada Player", username: "ada" };
-const card = { slogan: "Ready player", themeId: "gg-purple" as const, isPublic: false };
+const card = {
+  slogan: "Ready player",
+  themeId: "gg-purple" as const,
+  isPublic: false,
+  textColor: "#123456",
+  frontPatternColor: "#ABCDEF",
+};
 const render = (props: Parameters<typeof GGCardSection>[0]) => renderToStaticMarkup(createElement(GGCardSection, props));
 
 describe("Lootriva Card profile section", () => {
@@ -33,7 +39,7 @@ describe("Lootriva Card profile section", () => {
 
   it("renders hostile display names and slogans as escaped text", () => {
     const html = renderToStaticMarkup(createElement(GGCardExperience, {
-      card: { slogan: "<img src=x onerror=alert(1)>", themeId: "gg-purple", isPublic: true },
+      card: { ...card, slogan: "<img src=x onerror=alert(1)>", isPublic: true },
       displayName: "<script>alert(1)</script>",
       username: "safe-user",
     }));
@@ -41,5 +47,18 @@ describe("Lootriva Card profile section", () => {
     expect(html).toContain("&lt;script&gt;alert(1)&lt;/script&gt;");
     expect(html).not.toContain("<script>alert(1)</script>");
     expect(html).not.toContain("<img src=x onerror=alert(1)>");
+  });
+
+  it("renders typography and front geometry with independent colors", () => {
+    const html = renderToStaticMarkup(createElement(GGCardExperience, {
+      card,
+      displayName: identity.displayName,
+      username: identity.username,
+    }));
+    expect(html).toContain("background:#171329;color:#123456");
+    expect(html).toContain("color:#ABCDEF");
+    expect(html).toMatch(/color:#123456[^>]*><svg[^>]+/);
+    expect(html).toMatch(/class="[^"]*top-4[^"]*left-4[^"]*"/);
+    expect(html).not.toMatch(/class="[^"]*top-4[^"]*right-4[^"]*"/);
   });
 });

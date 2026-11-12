@@ -22,8 +22,10 @@ export async function PATCH(request: Request) {
       slogan: parsed.data.slogan,
       theme_id: parsed.data.themeId,
       is_public: parsed.data.isPublic,
+      text_color: parsed.data.textColor,
+      front_pattern_color: parsed.data.frontPatternColor,
     })
-    .select("slogan,theme_id,is_public")
+    .select("slogan,theme_id,is_public,text_color,front_pattern_color")
     .single();
 
   if (error || !data) {
@@ -35,6 +37,12 @@ export async function PATCH(request: Request) {
   }
 
   return NextResponse.json({
-    card: { slogan: data.slogan, themeId: data.theme_id, isPublic: data.is_public },
+    card: {
+      slogan: data.slogan,
+      themeId: data.theme_id,
+      isPublic: data.is_public,
+      textColor: data.text_color,
+      frontPatternColor: data.front_pattern_color,
+    },
   });
 }
