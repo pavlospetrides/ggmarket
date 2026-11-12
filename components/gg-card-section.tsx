@@ -87,8 +87,8 @@ export function GGCardSection({ own, identity, card }: {
                   <DialogDescription>Choose independent typography and front-pattern colors, then preview them on your live card.</DialogDescription>
                 </div>
                 {draft && draftTheme && previewCard ? <div className="grid min-w-0 lg:grid-cols-[minmax(22rem,1.1fr)_minmax(20rem,.9fr)]">
-                  <div className="min-w-0 border-y border-[var(--border)] bg-[#0b0e15] lg:border-b-0 lg:border-r" aria-label="Card preview" data-testid="gg-card-live-preview">
-                    {customizeOpen ? <GGCardExperience card={previewCard} displayName={identity.displayName} username={identity.username} height="min(52svh, 520px)" /> : null}
+                  <div className="grid min-w-0 place-items-center border-y border-[var(--border)] bg-[#0b0e15] lg:border-b-0 lg:border-r" aria-label="Card preview" data-testid="gg-card-live-preview">
+                    {customizeOpen ? <GGCardExperience card={previewCard} displayName={identity.displayName} username={identity.username} height="clamp(32rem, 68svh, 620px)" /> : null}
                   </div>
                   <div className="min-w-0 p-5 sm:p-6">
                     <fieldset className="space-y-5" disabled={busy}>

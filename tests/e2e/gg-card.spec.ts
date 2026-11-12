@@ -77,9 +77,54 @@ test("custom text and front-pattern colors preview and save independently", asyn
   await expect(dialog.getByTestId("gg-card-front")).toHaveCSS("color", "rgb(0, 17, 34)");
   await expect(dialog.getByTestId("gg-card-front-pattern").first()).toHaveCSS("color", "rgb(170, 187, 204)");
 
+  await dialog.getByRole("button", { name: "Show back" }).click();
+  const backFace = dialog.getByTestId("gg-card-inner").locator(":scope > div").nth(1);
+  const backPatterns = backFace.locator("svg");
+  await expect(backPatterns).toHaveCount(4);
+  expect(await backPatterns.evaluateAll((patterns) => patterns.map((pattern) => getComputedStyle(pattern).color))).toEqual([
+    "rgb(170, 187, 204)",
+    "rgb(170, 187, 204)",
+    "rgb(170, 187, 204)",
+    "rgb(170, 187, 204)",
+  ]);
+  await expect(backFace.getByText("Synthetic Player", { exact: true })).toHaveCSS("color", "rgb(0, 17, 34)");
+
   await dialog.getByRole("button", { name: "Save Changes" }).click();
   await expect(dialog.getByText("Your Lootriva Card was saved.")).toBeVisible();
   expect(saved).toMatchObject({ textColor: "#001122", frontPatternColor: "#AABBCC" });
+});
+
+test("customization preview contains the complete card on both faces at responsive widths", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
+
+  for (const viewport of [
+    { width: 320, height: 720 },
+    { width: 390, height: 844 },
+    { width: 768, height: 900 },
+    { width: 1440, height: 900 },
+  ]) {
+    await page.setViewportSize(viewport);
+    await page.getByTestId("owner-card").getByRole("button", { name: "Customize Card" }).click();
+    const dialog = page.getByRole("dialog", { name: "Customize My Lootriva Card" });
+    const preview = dialog.getByTestId("gg-card-live-preview");
+    const card = dialog.getByTestId("gg-card-inner");
+
+    const cardIsContained = async () => {
+      const [previewBox, cardBox] = await Promise.all([preview.boundingBox(), card.boundingBox()]);
+      if (!previewBox || !cardBox) return false;
+      return cardBox.x >= previewBox.x
+        && cardBox.y >= previewBox.y
+        && cardBox.x + cardBox.width <= previewBox.x + previewBox.width
+        && cardBox.y + cardBox.height <= previewBox.y + previewBox.height;
+    };
+
+    await expect.poll(cardIsContained).toBe(true);
+    await dialog.getByRole("button", { name: "Show back" }).click();
+    await expect(dialog.getByTestId("gg-card-badge")).toHaveAttribute("aria-pressed", "true");
+    await expect.poll(cardIsContained).toBe(true);
+    await dialog.getByRole("button", { name: "Close card customization" }).click();
+    await expect(dialog).toBeHidden();
+  }
 });
 
 test("invalid HEX blocks save while low contrast warns without blocking reset", async ({ page }) => {
