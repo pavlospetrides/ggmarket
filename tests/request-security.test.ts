@@ -202,6 +202,50 @@ describe("mutation origin validation", () => {
 });
 
 describe("content security policy", () => {
+  afterEach(() => vi.unstubAllEnvs());
+
+  it("allows only the configured bucket-hosted R2 image origin alongside Supabase", async () => {
+    vi.stubEnv("R2_ACCOUNT_ID", "0123456789abcdef0123456789abcdef");
+    vi.stubEnv("R2_BUCKET_NAME", "lootriva-images");
+    vi.stubEnv("R2_ACCESS_KEY_ID", "test-key");
+    vi.stubEnv("R2_SECRET_ACCESS_KEY", "test-secret");
+
+    const response = await proxy(new NextRequest("https://lootriva.com/listings/example"));
+    const policy = response.headers.get("content-security-policy") ?? "";
+    const imageSources = policy.split(";").find((directive) => directive.trim().startsWith("img-src "))?.trim().split(/\s+/);
+
+    expect(imageSources).toEqual([
+      "img-src", "'self'", "blob:", "data:", "https://images.unsplash.com", "https://*.supabase.co",
+      "https://lootriva-images.0123456789abcdef0123456789abcdef.r2.cloudflarestorage.com",
+    ]);
+    expect(imageSources).not.toContain("https://r2.cloudflarestorage.com");
+    expect(imageSources).not.toContain("https://*.r2.cloudflarestorage.com");
+    expect(imageSources).not.toContain("https://attacker.example");
+  });
+
+  it("does not add an R2 image source for invalid server configuration", () => {
+    vi.stubEnv("R2_ACCOUNT_ID", "0123456789abcdef0123456789abcdef.evil.example");
+    vi.stubEnv("R2_BUCKET_NAME", "lootriva-images");
+    vi.stubEnv("R2_ACCESS_KEY_ID", "test-key");
+    vi.stubEnv("R2_SECRET_ACCESS_KEY", "test-secret");
+
+    const policy = buildContentSecurityPolicy(false);
+    expect(policy).toContain("img-src 'self' blob: data: https://images.unsplash.com https://*.supabase.co;");
+    expect(policy).not.toContain("r2.cloudflarestorage.com");
+    expect(policy).not.toContain("evil.example");
+  });
+
+  it("allows the account host used by signed URLs for a dotted bucket", () => {
+    vi.stubEnv("R2_ACCOUNT_ID", "0123456789abcdef0123456789abcdef");
+    vi.stubEnv("R2_BUCKET_NAME", "lootriva.images");
+    vi.stubEnv("R2_ACCESS_KEY_ID", "test-key");
+    vi.stubEnv("R2_SECRET_ACCESS_KEY", "test-secret");
+
+    const imageSources = buildContentSecurityPolicy(false).split(";").find((directive) => directive.trim().startsWith("img-src "))?.trim().split(/\s+/);
+    expect(imageSources).toContain("https://0123456789abcdef0123456789abcdef.r2.cloudflarestorage.com");
+    expect(imageSources).not.toContain("https://lootriva.images.0123456789abcdef0123456789abcdef.r2.cloudflarestorage.com");
+  });
+
   it("covers executable, network, image, framing, and navigation sources", () => {
     const policy = buildContentSecurityPolicy(false);
 

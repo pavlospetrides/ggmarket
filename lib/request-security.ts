@@ -1,4 +1,5 @@
 import { CANONICAL_SITE_ORIGIN, getApplicationOrigin } from "./site-url";
+import { MediaStorageConfigurationError, resolveR2Config } from "./media-storage/config";
 
 function firstHeaderValue(value: string | null) {
   return value?.split(",", 1)[0]?.trim() || "";
@@ -7,6 +8,14 @@ function firstHeaderValue(value: string | null) {
 export const PRODUCTION_SITE_ORIGIN = CANONICAL_SITE_ORIGIN;
 
 export function buildContentSecurityPolicy(isDevelopment: boolean) {
+  let r2ImageSource = "";
+  try {
+    const config = resolveR2Config(process.env);
+    const endpointHost = new URL(config.endpoint).hostname;
+    r2ImageSource = ` https://${config.bucketName.includes(".") ? endpointHost : `${config.bucketName}.${endpointHost}`}`;
+  } catch (error) {
+    if (!(error instanceof MediaStorageConfigurationError)) throw error;
+  }
   const localSources = isDevelopment
     ? " http://127.0.0.1:* ws://127.0.0.1:* http://localhost:* ws://localhost:*"
     : "";
@@ -14,7 +23,7 @@ export function buildContentSecurityPolicy(isDevelopment: boolean) {
     "default-src 'self'",
     `script-src 'self' 'unsafe-inline'${isDevelopment ? " 'unsafe-eval'" : ""}`,
     "style-src 'self' 'unsafe-inline'",
-    "img-src 'self' blob: data: https://images.unsplash.com https://*.supabase.co",
+    `img-src 'self' blob: data: https://images.unsplash.com https://*.supabase.co${r2ImageSource}`,
     "font-src 'self' data:",
     `connect-src 'self' https://*.supabase.co wss://*.supabase.co${localSources}`,
     "worker-src 'self' blob:",
