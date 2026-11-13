@@ -7,12 +7,12 @@ import { TaxonomyAttributeFields } from "../components/taxonomy-attribute-fields
 
 describe("simplified collectibles seller flow", () => {
   it("keeps collector details optional and collapsed", () => {
-    const html = renderToStaticMarkup(createElement(TaxonomyAttributeFields, { categorySlug: "collectibles", selectionAttributes: { subcategory: "pokemon-tcg" }, values: { product_type: "graded-card", grading_status: "graded" }, onChange: () => undefined, collapsible: true }));
+    const html = renderToStaticMarkup(createElement(TaxonomyAttributeFields, { categorySlug: "collectibles", selectionAttributes: { family: "cards", item_type: "graded-cards", subcategory: "graded-cards" }, values: { grading_status: "graded" }, onChange: () => undefined, collapsible: true }));
     expect(html).toContain("Additional details (optional)");
-    expect(html).toContain("Product type");
-    expect(html).toContain("Certification number");
+    expect(html).toContain("Card Game / Collection");
+    expect(html).toContain("Grading Company");
     expect(html).toContain("seller-provided information");
-    expect(html).toContain("required=\"\"");
+    expect(html).not.toContain("Product type");
   });
 
   it("does not require a duplicate product/model value and uses city-only location", () => {

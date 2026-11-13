@@ -327,12 +327,12 @@ export function SellWizard({ categories }: { categories: Category[] }) {
                   {error("categoryId")}
                 </p>
               )}
-              {category ? <TaxonomySelector selection={taxonomySelection} onChange={(next) => { setTaxonomySelection(next); setTaxonomyError(""); }} error={taxonomyError} /> : null}
+              {category ? <TaxonomySelector selection={taxonomySelection} onChange={(next) => { if (category.slug === "collectibles" && (next.family !== taxonomySelection.family || next.subcategory !== taxonomySelection.subcategory)) setTaxonomyAttributes({}); setTaxonomySelection(next); setTaxonomyError(""); }} error={taxonomyError} /> : null}
             </fieldset>
           )}
           {step === 1 && (
             <div>
-              <h2 className="text-2xl font-black">{category?.slug === "collectibles" ? "Choose a product type" : "Which product or model?"}</h2>
+              <h2 className="text-2xl font-black">{category?.slug === "collectibles" ? "Add item details" : "Which product or model?"}</h2>
               <p className="mt-2 text-sm text-[var(--muted)]">
                 {category?.slug === "collectibles" ? "Additional collector details are optional. Add only what you know." : "We'll link it to the product catalog when an exact match exists."}
               </p>

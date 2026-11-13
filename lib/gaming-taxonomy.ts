@@ -9,7 +9,7 @@ import {
   updatePcHardwareAttribute,
   validatePcHardwareAttributes,
 } from "./pc-hardware-taxonomy";
-import { COLLECTIBLE_FIELDS, COLLECTIBLES_ROOT, getCollectiblesFields, validateCollectiblesAttributes } from "./collectibles-taxonomy";
+import { COLLECTIBLE_FIELDS, COLLECTIBLES_ROOT, classifyCollectible, getCollectiblesFields, validateCollectiblesAttributes } from "./collectibles-taxonomy";
 
 export type TaxonomyOption = Readonly<{ value: string; label: string; description?: string }>;
 export type TaxonomyField = Readonly<{ key: string; label: string; type: "text" | "number" | "select" | "multiselect" | "boolean"; options?: readonly TaxonomyOption[]; required?: boolean; placeholder?: string; min?: number; max?: number }>;
@@ -78,6 +78,15 @@ function findNode(root: TaxonomyNode, id: string): TaxonomyNode | undefined { re
 function findParent(root: TaxonomyNode, childId: string): TaxonomyNode | undefined { return allNodes(root).find((candidate) => candidate.children?.some((child) => child.id === childId)); }
 export function getTaxonomyPath(categorySlug: string, attributes: ListingAttributes): TaxonomyNode[] {
   const root = getTaxonomyRoot(categorySlug); if (!root) return [];
+  if (categorySlug === "collectibles") {
+    if (!attributes.family && !attributes.item_type && !attributes.subcategory) return [root];
+    const classified = classifyCollectible(attributes);
+    const selectedFamily = root.children?.find((item) => item.id === (attributes.family || classified.family));
+    const selectedType = attributes.item_type || attributes.subcategory
+      ? selectedFamily?.children?.find((item) => item.id === (attributes.item_type || classified.item_type))
+      : undefined;
+    return [root, ...(selectedFamily ? [selectedFamily] : []), ...(selectedType ? [selectedType] : [])];
+  }
   const targetId = typeof attributes.model === "string" && findNode(root, attributes.model) ? attributes.model : typeof attributes.platform === "string" && findNode(root, attributes.platform) ? attributes.platform : typeof attributes.subcategory === "string" && findNode(root, attributes.subcategory) ? attributes.subcategory : typeof attributes.family === "string" && findNode(root, attributes.family) ? attributes.family : undefined;
   if (!targetId) return [root]; const target = findNode(root, targetId)!; const parent = findParent(root, target.id); return [root, ...(parent && parent.id !== root.id ? [parent] : []), ...(target.id !== root.id ? [target] : [])];
 }
@@ -87,7 +96,7 @@ const legacyValueAliases: Record<string, string> = { "playstation 5": "ps5", "ps
 const legacyKeyAliases: Record<string, string> = { compatible_platforms: "compatibility", console: "platform" };
 export function normalizeTaxonomyAttributes(_categorySlug: string, attributes: ListingAttributes): ListingAttributes { return Object.fromEntries(Object.entries(attributes).map(([rawKey, rawValue]) => { const key = legacyKeyAliases[rawKey.toLowerCase()] ?? rawKey; const normalizeValue = (value: string) => legacyValueAliases[value.trim().toLowerCase()] ?? value; return [key, Array.isArray(rawValue) ? rawValue.map(normalizeValue) : typeof rawValue === "string" ? normalizeValue(rawValue) : rawValue]; })); }
 
-const structuralKeys = new Set(["taxonomy_version", "subcategory", "family", "platform", "model", "compatibility"]);
+const structuralKeys = new Set(["taxonomy_version", "subcategory", "family", "item_type", "platform", "model", "compatibility"]);
 export function validateTaxonomyAttributes(categorySlug: string, input: ListingAttributes): { success: true } | { success: false; error: string } {
   const root = getTaxonomyRoot(categorySlug); if (!root) return { success: true }; const attributes = normalizeTaxonomyAttributes(categorySlug, input); const allowedFields = new Map(getTaxonomyFields(categorySlug, attributes).map((field) => [field.key, field]));
   if (attributes.taxonomy_version !== "1") return { success: false, error: "Choose a complete product category." };
@@ -107,14 +116,14 @@ export function validateTaxonomyAttributes(categorySlug: string, input: ListingA
   } else if (categorySlug === "consoles") {
     const family = typeof attributes.family === "string" ? root.children?.find((item) => item.id === attributes.family) : undefined;
     if (!family || typeof attributes.model !== "string" || !family.children?.some((item) => item.id === attributes.model)) return { success: false, error: "Choose a valid console family and model." };
-  } else if (root.children?.length && (typeof attributes.subcategory !== "string" || !root.children.some((item) => item.id === attributes.subcategory))) return { success: false, error: `Choose a valid ${root.label.toLowerCase()} product type.` };
+  } else if (categorySlug !== "collectibles" && root.children?.length && (typeof attributes.subcategory !== "string" || !root.children.some((item) => item.id === attributes.subcategory))) return { success: false, error: `Choose a valid ${root.label.toLowerCase()} product type.` };
   for (const [key, value] of Object.entries(attributes)) {
     if (Array.isArray(value) && key !== "compatibility") return { success: false, error: `${key.replaceAll("_", " ")} cannot contain multiple values.` };
-    if (TAXONOMY_FIELD_KEYS.has(key) && !allowedFields.has(key)) return { success: false, error: `${key.replaceAll("_", " ")} is not valid for this product type.` };
+    if (TAXONOMY_FIELD_KEYS.has(key) && !structuralKeys.has(key) && !allowedFields.has(key)) return { success: false, error: `${key.replaceAll("_", " ")} is not valid for this product type.` };
     if (!structuralKeys.has(key) && !allowedFields.has(key)) continue;
     if (key === "taxonomy_version" && value !== "1") return { success: false, error: "Unsupported taxonomy version." };
     const isCanonicalGameType = categorySlug === "games" && key === "subcategory" && value === "game";
-    if (["subcategory", "family", "platform", "model"].includes(key) && !isCanonicalGameType && (typeof value !== "string" || !findNode(root, value))) return { success: false, error: `Invalid ${key.replaceAll("_", " ")} for ${root.label}.` };
+    if (["subcategory", "family", "item_type", "platform", "model"].includes(key) && !isCanonicalGameType && (typeof value !== "string" || !(categorySlug === "collectibles" && key === "subcategory" && classifyCollectible(attributes).item_type === attributes.item_type) && !findNode(root, value))) return { success: false, error: `Invalid ${key.replaceAll("_", " ")} for ${root.label}.` };
     const field = allowedFields.get(key);
     if (key === "compatibility" || field?.type === "multiselect") { if (!Array.isArray(value) || value.length === 0 || value.some((item) => !COMPATIBILITY_OPTIONS.some((allowed) => allowed.value === item))) return { success: false, error: "Choose valid compatible platforms." }; }
     else if (field?.type === "text" && typeof value !== "string") return { success: false, error: `Enter a valid ${field.label.toLowerCase()}.` };
@@ -129,6 +138,7 @@ export function validateTaxonomyAttributes(categorySlug: string, input: ListingA
   return { success: true };
 }
 const FIELD_LABELS = new Map([...GAMING_TAXONOMY.flatMap((root) => allNodes(root).flatMap((item) => item.fields ?? [])), ...PC_HARDWARE_FIELDS, ...COLLECTIBLE_FIELDS].map((field) => [field.key, field.label]));
+FIELD_LABELS.set("item_type", "Item type");
 const OPTION_LABELS_BY_FIELD = new Map<string, Map<string, string>>();
 for (const field of [...GAMING_TAXONOMY.flatMap((root) => allNodes(root).flatMap((item) => item.fields ?? [])), ...PC_HARDWARE_FIELDS, ...COLLECTIBLE_FIELDS]) {
   if (!field.options) continue;
@@ -188,11 +198,14 @@ export function formatTaxonomyAttribute(
         ? new Intl.NumberFormat("en").format(value)
         : formatString(value);
 
-  return { label: field?.label ?? FIELD_LABELS.get(key) ?? humanize(key), value: displayValue };
+  const collectibleType = categorySlug === "collectibles" && key === "item_type"
+    ? getTaxonomyRoot("collectibles")?.children?.flatMap((family) => family.children ?? []).find((node) => node.id === value)?.label
+    : undefined;
+  return { label: field?.label ?? (key === "manufacturer" && !categorySlug ? manufacturerField.label : FIELD_LABELS.get(key)) ?? humanize(key), value: collectibleType ?? displayValue };
 }
 
 export type TaxonomyFilter = { key: string; value: string | number | boolean; mode: "scalar" | "array" };
-const FILTER_KEYS = [...new Set(["subcategory", "family", "platform", "model", "exact_model", "compatibility", "manufacturer", "genre", "edition", "packaging", "region", "pegi", "connection", "keyboard_type", "layout", "switch_type", "dpi", "pedals_included", "force_feedback", "product_type", "card_game", "grading_status", "grading_company", "grading_score", "sealed_condition", "language", ...PC_HARDWARE_FILTER_KEYS])];
+const FILTER_KEYS = [...new Set(["subcategory", "family", "item_type", "platform", "model", "exact_model", "compatibility", "manufacturer", "genre", "edition", "packaging", "region", "pegi", "connection", "keyboard_type", "layout", "switch_type", "dpi", "pedals_included", "force_feedback", "product_type", "card_game", "grading_status", "grading_company", "grading_score", "sealed_condition", "language", ...PC_HARDWARE_FILTER_KEYS])];
 const NUMERIC_FILTER_KEYS = new Set<string>(["dpi", ...PC_HARDWARE_FIELDS.filter((field) => field.type === "number").map((field) => field.key)]);
 const BOOLEAN_FILTER_KEYS = new Set<string>(["pedals_included", "force_feedback", ...PC_HARDWARE_FIELDS.filter((field) => field.type === "boolean").map((field) => field.key)]);
 const ARRAY_FILTER_KEYS = new Set<string>(["compatibility", ...PC_HARDWARE_FIELDS.filter((field) => field.type === "multiselect").map((field) => field.key)]);
@@ -235,6 +248,14 @@ export function updateTaxonomyFilterParams(
   if (key === "family") {
     delete next.platform;
     delete next.model;
+    if (params.category === "collectibles") {
+      delete next.item_type;
+      delete next.subcategory;
+      delete next.card_game;
+      delete next.grading_status;
+      delete next.grading_company;
+      delete next.grading_score;
+    }
   }
   return next;
 }
@@ -251,11 +272,25 @@ export function inferTaxonomyIntent(query: string): { category?: string; attribu
   const pcIntent = inferPcHardwareIntent(normalized);
   if (pcIntent) return pcIntent;
   const lower = normalized.toLowerCase();
+  if (/^collectibles\s*(?:&|and)\s*cards$/i.test(normalized)) return { category: "collectibles", attributes: {}, residualQuery: "" };
+  if (/^cards$/i.test(normalized)) return { category: "collectibles", attributes: { family: "cards" }, residualQuery: "" };
   const isGames = /\b(games?|video games?)\b/.test(lower);
   const isController = /\b(controllers?|gamepads?)\b/.test(lower);
   const isAccessory = /\b(accessory|accessories|peripherals?)\b/.test(lower);
-  const collectiblePatterns: Array<[RegExp, string?]> = [
-    [/\bpok[eé]mon\s+(?:tcg|cards?)\b/i, "pokemon-tcg"], [/\byu-?gi-?oh!?\s+(?:tcg|cards?)\b/i, "yugioh-tcg"], [/\bmagic(?::\s*the gathering|\s+cards?)\b/i, "magic-the-gathering"], [/\bone piece\s+(?:card game|cards?)\b/i, "one-piece-card-game"], [/\bfunko(?:\s+pop)?s?\b/i, "funko-collectible-figures"], [/\b(?:gaming|anime)\s+(?:figures?|statues?)\b/i, "gaming-anime-figures"], [/\b(?:trading\s+cards?|collectibles?)\b/i, undefined],
+  const collectiblePatterns: Array<[RegExp, string?, string?]> = [
+    [/\bpok[eé]mon\s+(?:tcg|cards?)\b/i, "cards", "pokemon-cards"],
+    [/\byu-?gi-?oh!?\s+(?:tcg|cards?)\b/i, "cards", "yugioh-cards"],
+    [/\bmagic(?::\s*the gathering|\s+cards?)\b/i, "cards", "magic-the-gathering"],
+    [/\bsports?\s+cards?\b/i, "cards", "sports-cards"],
+    [/\bgraded\s+cards?\b/i, "cards", "graded-cards"],
+    [/\bone piece\s+(?:card game|cards?)\b/i, "cards", "other-trading-cards"],
+    [/\bfunko(?:\s+pop)?s?\b/i, "collectibles", "funko-pop"],
+    [/\banime\s+collectibles?\b/i, "collectibles", "anime-collectibles"],
+    [/\baction\s+figures?(?:\s*(?:&|and)\s*statues?)?\b/i, "collectibles", "action-figures-statues"],
+    [/\bgaming\s+memorabilia\b/i, "collectibles", "gaming-memorabilia"],
+    [/\blimited\s+editions?\b/i, "collectibles", "limited-editions"],
+    [/\btrading\s+cards?\b/i, "cards"],
+    [/\bcollectibles?\b/i, "collectibles"],
   ];
   const collectibleMatch = collectiblePatterns.find(([pattern]) => pattern.test(normalized));
   const platforms: Array<[RegExp, string, string]> = [
@@ -266,7 +301,7 @@ export function inferTaxonomyIntent(query: string): { category?: string; attribu
     const insensitivePattern = new RegExp(pattern.source, pattern.flags.includes("i") ? pattern.flags : `${pattern.flags}i`);
     return value.replace(insensitivePattern, " ");
   }, normalized).replace(/\s+/g, " ").trim();
-  if (collectibleMatch) return { category: "collectibles", attributes: collectibleMatch[1] ? { subcategory: collectibleMatch[1] } : {}, residualQuery: residualAfter([collectibleMatch[0]]) };
+  if (collectibleMatch) return { category: "collectibles", attributes: { ...(collectibleMatch[1] ? { family: collectibleMatch[1] } : {}), ...(collectibleMatch[2] ? { item_type: collectibleMatch[2] } : {}) }, residualQuery: residualAfter([collectibleMatch[0]]) };
   if (isGames && match) return { category: "games", attributes: { family: match[2], platform: match[1] === "xbox-series" ? "xbox-series-xs" : match[1] }, residualQuery: residualAfter([match[0], /\b(?:video\s+)?games?\b/i]) };
   if (isController && match) return { category: "controllers", attributes: { compatibility: match[1] }, residualQuery: residualAfter([match[0], /\b(?:controllers?|gamepads?)\b/i]) };
   if (isAccessory && match) return { category: "peripherals", attributes: { compatibility: match[1] }, residualQuery: residualAfter([match[0], /\b(?:accessory|accessories|peripherals?)\b/i]) };
@@ -283,11 +318,16 @@ export function resolveTaxonomyQuery(params: Record<string, string | string[] | 
   const compatibleInference = !explicitCategory || !intent.category || explicitCategory === intent.category ? intent.attributes : {};
   const explicitByKey = new Map(explicitFilters.map((filter) => [filter.key, filter]));
   const selectedCategory = explicitCategory || intent.category;
+  const explicitFamily = queryValue(params, "family");
+  const explicitItemType = queryValue(params, "item_type");
+  const leafFamily = selectedCategory === "collectibles" && !explicitFamily && explicitItemType
+    ? getTaxonomyRoot("collectibles")?.children?.find((family) => family.children?.some((item) => item.id === explicitItemType))?.id
+    : undefined;
   const allowedKeys = selectedCategory ? new Set([
-    ...(selectedCategory === "games" ? ["subcategory", "family", "platform"] : selectedCategory === "consoles" ? ["family", "model"] : ["subcategory"]),
+    ...(selectedCategory === "games" ? ["subcategory", "family", "platform"] : selectedCategory === "consoles" ? ["family", "model"] : selectedCategory === "collectibles" ? ["family", "item_type"] : ["subcategory"]),
     ...getTaxonomyFields(selectedCategory, { ...(params as ListingAttributes), ...compatibleInference }).map((field) => field.key),
   ]) : undefined;
-  const candidateFilters = taxonomyFilterEntries({ ...compatibleInference, ...Object.fromEntries(explicitFilters.map((filter) => [filter.key, String(filter.value)])) })
+  const candidateFilters = taxonomyFilterEntries({ ...compatibleInference, ...(leafFamily ? { family: leafFamily } : {}), ...Object.fromEntries(explicitFilters.map((filter) => [filter.key, String(filter.value)])) })
     .map((filter) => explicitByKey.get(filter.key) ?? filter)
     .filter((filter) => !allowedKeys || allowedKeys.has(filter.key));
   const root = selectedCategory ? getTaxonomyRoot(selectedCategory) : undefined;
@@ -326,13 +366,14 @@ export function resolveTaxonomyQuery(params: Record<string, string | string[] | 
   const mergedFilters = selectedCategory === "pc-components" ? pcFilters() : candidateFilters.filter((filter) => {
     if (!root || typeof filter.value !== "string") return true;
     if (filter.key === "family") return root.children?.some((item) => item.kind === "family" && item.id === filter.value) ?? false;
+    if (filter.key === "item_type") return selectedCategory === "collectibles" && (selectedFamily?.children?.some((item) => item.id === filter.value) ?? false);
     if (filter.key === "platform" || filter.key === "model") return selectedFamily?.children?.some((item) => item.kind === filter.key && item.id === filter.value) ?? false;
     if (filter.key === "subcategory") return selectedCategory === "games" ? filter.value === "game" : root.children?.some((item) => item.kind === "subcategory" && item.id === filter.value) ?? false;
     return true;
   });
   return {
     ...(explicitCategory || intent.category ? { category: explicitCategory || intent.category } : {}),
-    residualQuery: intent.residualQuery,
+    residualQuery: selectedCategory === "collectibles" && ((explicitFamily && intent.attributes.family && explicitFamily !== intent.attributes.family) || (explicitItemType && intent.attributes.item_type && explicitItemType !== intent.attributes.item_type)) ? query : intent.residualQuery,
     inferred: !hasExplicit && Boolean(intent.category || Object.keys(intent.attributes).length),
     filters: mergedFilters,
   };

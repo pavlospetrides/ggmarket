@@ -30,7 +30,7 @@ import { buildCanonicalUrl } from "@/lib/site-url";
 import { buildSocialMetadata } from "@/lib/site-metadata";
 
 const LISTING_ATTRIBUTE_ORDER = [
-  "product_name", "subcategory", "family", "platform", "model", "compatibility",
+  "product_name", "family", "item_type", "subcategory", "platform", "model", "compatibility",
   "manufacturer", "gpu_chipset_vendor", "gpu_series", "gpu_model", "series", "exact_model",
   "platform_vendor", "socket", "cpu_family", "cpu_generation", "cpu_architecture", "cpu_model", "chipset",
   "memory_use", "ram_form_factor", "ram_type", "capacity_gb", "module_count", "module_capacity_gb", "speed_mts", "cas_latency",
@@ -80,7 +80,7 @@ export default async function ListingPage({
   const budgetMin = Number(item.attributes.wanted_budget_min || 0);
   const priceLabel = item.attributes.intent === "wanted" && budgetMin > 0 ? `${formatPrice(budgetMin, item.currency)}–${formatPrice(item.price, item.currency)}` : formatPrice(item.price, item.currency);
   const orderedAttributes = Object.entries(item.attributes)
-    .filter(([key]) => !key.startsWith("_") && key !== "taxonomy_version" && !isDeprecatedTaxonomyAttribute(key))
+    .filter(([key]) => !key.startsWith("_") && key !== "taxonomy_version" && !(item.category.slug === "collectibles" && key === "subcategory" && item.attributes.item_type) && !isDeprecatedTaxonomyAttribute(key))
     .sort(([left], [right]) => (listingAttributeRank.get(left) ?? Number.MAX_SAFE_INTEGER) - (listingAttributeRank.get(right) ?? Number.MAX_SAFE_INTEGER) || left.localeCompare(right));
   return (
     <div className="mobile-listing-page container-page min-w-0 pt-5 md:pt-10 md:pb-12">

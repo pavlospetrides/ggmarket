@@ -26,6 +26,21 @@ describe("seller taxonomy payloads", () => {
     expect(isTaxonomySelectionComplete({ categorySlug: "games", family: "playstation" })).toBe(false);
     expect(isTaxonomySelectionComplete({ categorySlug: "controllers" })).toBe(false);
     expect(isTaxonomySelectionComplete({ categorySlug: "controllers", subcategory: "gamepad" })).toBe(true);
+    expect(isTaxonomySelectionComplete({ categorySlug: "collectibles" })).toBe(false);
+    expect(isTaxonomySelectionComplete({ categorySlug: "collectibles", family: "cards" })).toBe(false);
+    expect(isTaxonomySelectionComplete({ categorySlug: "collectibles", family: "cards", subcategory: "pokemon-cards" })).toBe(true);
+    expect(isTaxonomySelectionComplete({ categorySlug: "collectibles", family: "cards", subcategory: "funko-pop" })).toBe(false);
+  });
+
+  it("writes the same canonical item type used by buyer filters and clears stale card fields", () => {
+    expect(buildListingTaxonomyAttributes(
+      { categorySlug: "collectibles", family: "collectibles", subcategory: "funko-pop" },
+      { manufacturer: "Funko", character: "Link", original_box: true, limited_edition: true, card_name: "Stale" },
+    )).toEqual({ taxonomy_version: "1", family: "collectibles", subcategory: "funko-pop", item_type: "funko-pop", manufacturer: "Funko", character: "Link", original_box: true, limited_edition: true });
+    expect(buildListingTaxonomyAttributes(
+      { categorySlug: "collectibles", family: "cards", subcategory: "pokemon-cards" },
+      { card_name: "Pikachu", grading_status: "graded", grading_company: "psa", grading_score: "10", manufacturer: "Stale" },
+    )).toEqual({ taxonomy_version: "1", family: "cards", subcategory: "pokemon-cards", item_type: "pokemon-cards", card_name: "Pikachu", grading_status: "graded", grading_company: "psa", grading_score: "10" });
   });
 
   it("keeps multiple verified controller compatibility values", () => {

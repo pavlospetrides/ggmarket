@@ -7,7 +7,7 @@ const categories = [
   { label: "PC hardware", note: "Components and complete builds", href: "/marketplace?category=pc-components", Icon: Cpu, tone: "ink" },
   { label: "Video games", note: "New releases and classics", href: "/marketplace?category=games", Icon: Disc3, tone: "blue" },
   { label: "Accessories", note: "Audio, input and setup gear", href: "/marketplace?category=peripherals", Icon: Headphones, tone: "slate" },
-  { label: "Collectibles & Trading Cards", note: "Trading cards, figures and collector editions", href: "/marketplace?category=collectibles", Icon: Trophy, tone: "plum" },
+  { label: "Collectibles & Cards", note: "Trading cards, figures and collector editions", href: "/marketplace?category=collectibles", Icon: Trophy, tone: "plum" },
 ] as const;
 
 export function CategorySwitchboard({ compact = false }: { compact?: boolean }) {

@@ -45,22 +45,25 @@ export function MarketplaceBrowser({
   const query = value(params, "q");
   const resolvedTaxonomy = useMemo(() => resolveTaxonomyQuery(params), [params]);
   const selectedCategorySlug = value(params, "category") || resolvedTaxonomy.category || "";
+  const isCollectibles = selectedCategorySlug === "collectibles";
   const selectedRoot = getTaxonomyRoot(selectedCategorySlug);
   const taxonomyDisplayParams = useMemo(() => ({
-    ...params,
+    ...Object.fromEntries(Object.entries(params).filter(([key]) => !isCollectibles || !isTaxonomyFilterKey(key))),
     ...(selectedCategorySlug ? { category: selectedCategorySlug } : {}),
     ...Object.fromEntries(resolvedTaxonomy.filters.map((filter) => [filter.key, String(filter.value)])),
-  }), [params, resolvedTaxonomy, selectedCategorySlug]);
-  const resolvedTaxonomyValue = (key: string) => value(params, key) || String(resolvedTaxonomy.filters.find((filter) => filter.key === key)?.value ?? "");
+  }), [params, resolvedTaxonomy, selectedCategorySlug, isCollectibles]);
+  const resolvedTaxonomyValue = (key: string) => isCollectibles
+    ? String(resolvedTaxonomy.filters.find((filter) => filter.key === key)?.value ?? "")
+    : value(params, key) || String(resolvedTaxonomy.filters.find((filter) => filter.key === key)?.value ?? "");
   const activeFilters = useMemo(() => [...filterKeys.flatMap((key) => {
     const current = value(params, key);
     if (!current) return [];
     const label = key === "category" ? categories.find((item) => item.slug === current)?.name ?? current : current.replaceAll("_", " ");
     return [{ key, label }];
-  }), ...taxonomyFilterEntries(params).map((filter) => ({
+  }), ...(isCollectibles ? resolvedTaxonomy.filters.filter((filter) => value(params, filter.key)) : taxonomyFilterEntries(params)).map((filter) => ({
     key: filter.key,
     label: formatTaxonomyAttribute(filter.key, filter.value, selectedCategorySlug, taxonomyDisplayParams as ListingAttributes).value,
-  }))], [categories, params, selectedCategorySlug, taxonomyDisplayParams]);
+  }))], [categories, params, selectedCategorySlug, taxonomyDisplayParams, isCollectibles, resolvedTaxonomy.filters]);
   const activeFilterCount = activeFilters.length;
   const hasStructuredFilters = taxonomyFilterEntries(taxonomyDisplayParams).length > 0;
   const categoryHref = (category: string) => {
@@ -81,6 +84,13 @@ export function MarketplaceBrowser({
     if (key === "family") {
       delete next.platform;
       delete next.model;
+      if (isCollectibles) {
+        delete next.item_type;
+        delete next.card_game;
+        delete next.grading_status;
+        delete next.grading_company;
+        delete next.grading_score;
+      }
     }
     delete next.page;
     return pageHref(actionPath, next, 1);
@@ -102,7 +112,7 @@ export function MarketplaceBrowser({
     });
     return () => cancelAnimationFrame(frame);
   }, [filterFormKey, filterNavigationPending]);
-  const updateHierarchy = (prefix: "desktop" | "mobile", key: "family" | "platform" | "model", nextValue: string) => {
+  const updateHierarchy = (prefix: "desktop" | "mobile", key: "family" | "platform" | "model" | "item_type", nextValue: string) => {
     pendingFilterFocus.current = key === "family" && nextValue ? `${prefix}-taxonomy-secondary` : `${prefix}-taxonomy-${key === "family" ? "primary" : "secondary"}`;
     const href = pageHref(actionPath, updateTaxonomyFilterParams(params, key, nextValue), 1);
     startFilterNavigation(() => router.push(href, { scroll: false }));
@@ -144,15 +154,15 @@ export function MarketplaceBrowser({
       </div>
       {selectedRoot?.children?.length ? <>
         <div>
-          <label className="label" htmlFor={`${prefix}-taxonomy-primary`}>{selectedCategorySlug === "games" || selectedCategorySlug === "consoles" ? "Platform family" : selectedCategorySlug === "collectibles" ? "Collectible category" : "Product type"}</label>
-          <select className="input" id={`${prefix}-taxonomy-primary`} name={selectedCategorySlug === "games" || selectedCategorySlug === "consoles" ? "family" : "subcategory"} defaultValue={resolvedTaxonomyValue(selectedCategorySlug === "games" || selectedCategorySlug === "consoles" ? "family" : "subcategory")} disabled={filterNavigationPending} onChange={selectedCategorySlug === "games" || selectedCategorySlug === "consoles" ? (event) => updateHierarchy(prefix, "family", event.currentTarget.value) : selectedCategorySlug === "pc-components" ? (event) => updatePcFilter(prefix, "subcategory", event.currentTarget.value) : undefined}>
-            <option value="">All {selectedCategorySlug === "games" || selectedCategorySlug === "consoles" ? "families" : selectedCategorySlug === "collectibles" ? "collectible categories" : "product types"}</option>
+          <label className="label" htmlFor={`${prefix}-taxonomy-primary`}>{selectedCategorySlug === "games" || selectedCategorySlug === "consoles" ? "Platform family" : selectedCategorySlug === "collectibles" ? "Collectibles or Cards" : "Product type"}</label>
+          <select className="input" id={`${prefix}-taxonomy-primary`} name={selectedCategorySlug === "games" || selectedCategorySlug === "consoles" || isCollectibles ? "family" : "subcategory"} defaultValue={resolvedTaxonomyValue(selectedCategorySlug === "games" || selectedCategorySlug === "consoles" || isCollectibles ? "family" : "subcategory")} disabled={filterNavigationPending} onChange={selectedCategorySlug === "games" || selectedCategorySlug === "consoles" || isCollectibles ? (event) => updateHierarchy(prefix, "family", event.currentTarget.value) : selectedCategorySlug === "pc-components" ? (event) => updatePcFilter(prefix, "subcategory", event.currentTarget.value) : undefined}>
+            <option value="">All {selectedCategorySlug === "games" || selectedCategorySlug === "consoles" ? "families" : isCollectibles ? "Collectibles & Cards" : "product types"}</option>
             {selectedRoot.children.map((item) => <option value={item.id} key={item.id}>{item.label}</option>)}
           </select>
         </div>
-        {(selectedCategorySlug === "games" || selectedCategorySlug === "consoles") && selectedRoot.children.find((item) => item.id === resolvedTaxonomyValue("family"))?.children?.length ? <div>
-          <label className="label" htmlFor={`${prefix}-taxonomy-secondary`}>{selectedCategorySlug === "games" ? "Console / Platform" : "Exact console model"}</label>
-          <select className="input" id={`${prefix}-taxonomy-secondary`} name={selectedCategorySlug === "games" ? "platform" : "model"} defaultValue={resolvedTaxonomyValue(selectedCategorySlug === "games" ? "platform" : "model")} disabled={filterNavigationPending} onChange={(event) => updateHierarchy(prefix, selectedCategorySlug === "games" ? "platform" : "model", event.currentTarget.value)}>
+        {(selectedCategorySlug === "games" || selectedCategorySlug === "consoles" || isCollectibles) && selectedRoot.children.find((item) => item.id === resolvedTaxonomyValue("family"))?.children?.length ? <div>
+          <label className="label" htmlFor={`${prefix}-taxonomy-secondary`}>{isCollectibles ? "Item type" : selectedCategorySlug === "games" ? "Console / Platform" : "Exact console model"}</label>
+          <select className="input" id={`${prefix}-taxonomy-secondary`} name={isCollectibles ? "item_type" : selectedCategorySlug === "games" ? "platform" : "model"} defaultValue={resolvedTaxonomyValue(isCollectibles ? "item_type" : selectedCategorySlug === "games" ? "platform" : "model")} disabled={filterNavigationPending} onChange={(event) => updateHierarchy(prefix, isCollectibles ? "item_type" : selectedCategorySlug === "games" ? "platform" : "model", event.currentTarget.value)}>
             <option value="">All {selectedRoot.children.find((item) => item.id === resolvedTaxonomyValue("family"))?.label ?? (selectedCategorySlug === "games" ? "platforms" : "models")}</option>
             {selectedRoot.children.find((item) => item.id === resolvedTaxonomyValue("family"))?.children?.map((item) => <option value={item.id} key={item.id}>{item.label}</option>)}
           </select>
@@ -281,7 +291,7 @@ export function MarketplaceBrowser({
       </header>
       {!query && !params.category && (
         <div className="mb-9">
-          <CategoryGrid categories={categories} limit={8} />
+          <CategoryGrid categories={categories} />
         </div>
       )}
       {selectedCategorySlug ? <div className="mb-7"><TaxonomyNavigation actionPath={actionPath} categorySlug={selectedCategorySlug} params={taxonomyDisplayParams} /></div> : null}

@@ -12,13 +12,14 @@ export type TaxonomySelection = {
   model?: string;
 };
 
-const structuralKeys = new Set(["taxonomy_version", "subcategory", "family", "platform", "model", "compatibility"]);
+const structuralKeys = new Set(["taxonomy_version", "subcategory", "family", "item_type", "platform", "model", "compatibility"]);
 
 export function isTaxonomySelectionComplete(selection: TaxonomySelection): boolean {
   const root = getTaxonomyRoot(selection.categorySlug);
   if (!root || !root.children?.length) return true;
   if (selection.categorySlug === "games") return Boolean(selection.family && selection.platform);
   if (selection.categorySlug === "consoles") return Boolean(selection.family && selection.model);
+  if (selection.categorySlug === "collectibles") return Boolean(selection.family && root.children.some((family) => family.id === selection.family && family.children?.some((item) => item.id === selection.subcategory)));
   return Boolean(selection.subcategory);
 }
 
@@ -27,7 +28,7 @@ export function buildListingTaxonomyAttributes(
   fields: ListingAttributes,
   preserved: ListingAttributes = {},
 ): ListingAttributes {
-  const selectionAttributes: ListingAttributes = { ...(selection.subcategory ? { subcategory: selection.subcategory } : {}), ...(selection.family ? { family: selection.family } : {}), ...(selection.platform ? { platform: selection.platform } : {}), ...(selection.model ? { model: selection.model } : {}) };
+  const selectionAttributes: ListingAttributes = { ...(selection.subcategory ? { subcategory: selection.subcategory, ...(selection.categorySlug === "collectibles" ? { item_type: selection.subcategory } : {}) } : {}), ...(selection.family ? { family: selection.family } : {}), ...(selection.platform ? { platform: selection.platform } : {}), ...(selection.model ? { model: selection.model } : {}) };
   const allowedFieldKeys = new Set(getTaxonomyFields(selection.categorySlug, { ...fields, ...selectionAttributes }).map((field) => field.key));
   const next: ListingAttributes = {};
   for (const [key, value] of Object.entries(preserved)) {
@@ -36,6 +37,7 @@ export function buildListingTaxonomyAttributes(
   next.taxonomy_version = "1";
   if (selection.categorySlug === "games") next.subcategory = "game";
   if (selection.subcategory) next.subcategory = selection.subcategory;
+  if (selection.categorySlug === "collectibles" && selection.subcategory) next.item_type = selection.subcategory;
   if (selection.family) next.family = selection.family;
   if (selection.platform) next.platform = selection.platform;
   if (selection.model) next.model = selection.model;
@@ -48,7 +50,8 @@ export function buildListingTaxonomyAttributes(
 export function TaxonomySelector({ selection, onChange, error }: { selection: TaxonomySelection; onChange: (selection: TaxonomySelection) => void; error?: string }) {
   const root = getTaxonomyRoot(selection.categorySlug);
   if (!root?.children?.length) return null;
-  const isFamilyTree = selection.categorySlug === "games" || selection.categorySlug === "consoles";
+  const isCollectibles = selection.categorySlug === "collectibles";
+  const isFamilyTree = selection.categorySlug === "games" || selection.categorySlug === "consoles" || isCollectibles;
   const chosenParent = isFamilyTree ? root.children.find((item) => item.id === selection.family) : undefined;
   const pathAttributes: ListingAttributes = { ...(selection.family ? { family: selection.family } : {}), ...(selection.subcategory ? { subcategory: selection.subcategory } : {}), ...(selection.platform ? { platform: selection.platform } : {}), ...(selection.model ? { model: selection.model } : {}) };
   const path = getTaxonomyPath(selection.categorySlug, pathAttributes);
@@ -57,7 +60,7 @@ export function TaxonomySelector({ selection, onChange, error }: { selection: Ta
     : undefined;
   return <div className="mt-6 space-y-5">
     <div>
-      <label className="label" htmlFor="taxonomy-level-one">{isFamilyTree ? "Platform family" : selection.categorySlug === "collectibles" ? "Collectible category" : "Product type"}</label>
+      <label className="label" htmlFor="taxonomy-level-one">{isCollectibles ? "Collectibles or Cards" : isFamilyTree ? "Platform family" : "Product type"}</label>
       <select
         id="taxonomy-level-one"
         className="input"
@@ -68,21 +71,21 @@ export function TaxonomySelector({ selection, onChange, error }: { selection: Ta
           ? { categorySlug: selection.categorySlug, family: event.target.value || undefined }
           : { categorySlug: selection.categorySlug, subcategory: event.target.value || undefined })}
       >
-        <option value="">Choose {isFamilyTree ? "a family" : selection.categorySlug === "collectibles" ? "a collectible category" : "a product type"}</option>
+        <option value="">Choose {isCollectibles ? "Collectibles or Cards" : isFamilyTree ? "a family" : "a product type"}</option>
         {root.children.map((item) => <option value={item.id} key={item.id}>{item.label}</option>)}
       </select>
     </div>
     {chosenParent?.children?.length ? <div>
-      <label className="label" htmlFor="taxonomy-level-two">{selection.categorySlug === "games" ? "Console / Platform" : "Exact console model"}</label>
+      <label className="label" htmlFor="taxonomy-level-two">{isCollectibles ? "Item type" : selection.categorySlug === "games" ? "Console / Platform" : "Exact console model"}</label>
       <select
         id="taxonomy-level-two"
         className="input"
-        value={selection.categorySlug === "games" ? selection.platform ?? "" : selection.model ?? ""}
+        value={isCollectibles ? selection.subcategory ?? "" : selection.categorySlug === "games" ? selection.platform ?? "" : selection.model ?? ""}
         aria-invalid={missingLevel === "two"}
         aria-describedby={missingLevel === "two" ? "taxonomy-error" : undefined}
-        onChange={(event) => onChange({ ...selection, ...(selection.categorySlug === "games" ? { platform: event.target.value || undefined } : { model: event.target.value || undefined }) })}
+        onChange={(event) => onChange({ ...selection, ...(isCollectibles ? { subcategory: event.target.value || undefined } : selection.categorySlug === "games" ? { platform: event.target.value || undefined } : { model: event.target.value || undefined }) })}
       >
-        <option value="">Choose {selection.categorySlug === "games" ? "a platform" : "a model"}</option>
+        <option value="">Choose {isCollectibles ? "an item type" : selection.categorySlug === "games" ? "a platform" : "a model"}</option>
         {chosenParent.children.map((item) => <option value={item.id} key={item.id}>{item.label}</option>)}
       </select>
     </div> : null}
