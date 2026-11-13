@@ -5,7 +5,7 @@ insert into public.categories (name, slug, icon, sort_order, attribute_schema) v
 ('Games','games','Disc3',40,'{}'),('Peripherals','peripherals','Mouse',50,'{}'),('Controllers','controllers','Joystick',60,'{}'),
 ('Monitors','monitors','Monitor',70,'{"size":{"type":"number"},"resolution":{"type":"string"},"refresh_rate":{"type":"number"},"panel_type":{"type":"string"}}'),
 ('Retro','retro','Ghost',80,'{}'),('VR','vr','Glasses',90,'{}'),('Gaming Setup','gaming-setup','Armchair',100,'{}'),
-('Collectibles','collectibles','Trophy',110,'{}'),('Broken / For Parts','for-parts','Wrench',120,'{}') on conflict (slug) do nothing;
+('Collectibles & Trading Cards','collectibles','Trophy',110,'{}'),('Broken / For Parts','for-parts','Wrench',120,'{}') on conflict (slug) do nothing;
 
 insert into public.brands (name, slug) values ('Sony','sony'),('Microsoft','microsoft'),('Nintendo','nintendo'),('NVIDIA','nvidia'),('AMD','amd'),('MSI','msi'),('ASUS','asus'),('Valve','valve'),('LG','lg') on conflict (slug) do nothing;
 
