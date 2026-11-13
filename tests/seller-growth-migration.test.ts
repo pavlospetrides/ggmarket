@@ -8,6 +8,12 @@ const sql = readFileSync(
 ).toLowerCase();
 
 describe("seller growth migration security contract", () => {
+  it("converts the legacy verification enum safely and defaults every program off in the database", () => {
+    expect(sql).toMatch(/alter column status drop default[\s\S]+alter column status type text[\s\S]+alter column status set default 'pending'/);
+    expect(sql).toContain("create table public.seller_growth_feature_config");
+    expect(sql).toContain("values ('seller_verification', false), ('founding_sellers', false), ('featured_listings', false), ('referral_rewards', false)");
+    expect(sql).toContain("seller growth feature is disabled");
+  });
   it("serializes and caps deterministic founding seller allocation", () => {
     expect(sql).toContain("pg_advisory_xact_lock");
     expect(sql).toContain("between 1 and 100");

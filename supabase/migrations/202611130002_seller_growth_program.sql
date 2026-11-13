@@ -2,7 +2,11 @@
 -- No identity documents are collected or stored by this migration.
 
 alter table public.seller_verifications
+  alter column status drop default;
+alter table public.seller_verifications
   alter column status type text using status::text;
+alter table public.seller_verifications
+  alter column status set default 'pending';
 alter table public.seller_verifications
   add constraint seller_verifications_status_check
   check (status in ('pending','verified','rejected','expired','more_info','revoked'));
@@ -179,6 +183,21 @@ create table public.seller_growth_admin_audit (
 );
 create index seller_growth_admin_audit_entity_idx on public.seller_growth_admin_audit(entity_type, entity_id, created_at desc);
 
+create table public.seller_growth_feature_config (
+  feature text primary key check (feature in ('seller_verification','founding_sellers','featured_listings','referral_rewards')),
+  enabled boolean not null default false,
+  updated_at timestamptz not null default now(),
+  updated_by uuid references public.profiles(id) on delete set null
+);
+insert into public.seller_growth_feature_config(feature, enabled)
+values ('seller_verification', false), ('founding_sellers', false), ('featured_listings', false), ('referral_rewards', false);
+
+create or replace function public.seller_growth_feature_enabled(feature_name text)
+returns boolean
+language sql stable security definer set search_path = '' as $$
+  select coalesce((select enabled from public.seller_growth_feature_config where feature = feature_name), false);
+$$;
+
 create view public.seller_trust_signals
 with (security_barrier = true) as
 select signal.seller_id,
@@ -282,6 +301,7 @@ begin
   if actor is null or not public.is_active_user() then
     raise exception 'active account required' using errcode = '42501';
   end if;
+  if not public.seller_growth_feature_enabled('seller_verification') then raise exception 'seller growth feature is disabled' using errcode = '42501'; end if;
   application_text := btrim(coalesce(application_text, ''));
   if char_length(application_text) not between 20 and 2000 then
     raise exception 'application must be between 20 and 2000 characters' using errcode = '22023';
@@ -398,6 +418,7 @@ begin
   if auth.uid() is null or not public.is_active_user() then
     raise exception 'active account required' using errcode = '42501';
   end if;
+  if not public.seller_growth_feature_enabled('founding_sellers') then raise exception 'seller growth feature is disabled' using errcode = '42501'; end if;
   perform pg_catalog.pg_advisory_xact_lock(1280265961);
   with approved as (
     select distinct on (sv.seller_id) sv.seller_id,
@@ -443,6 +464,7 @@ declare
   campaign_end timestamptz;
 begin
   if actor is null or not public.is_active_user() then raise exception 'active account required' using errcode = '42501'; end if;
+  if not public.seller_growth_feature_enabled('featured_listings') then raise exception 'seller growth feature is disabled' using errcode = '42501'; end if;
   if not exists (select 1 from public.listings where id = target_listing and seller_id = actor and status = 'active') then
     raise exception 'eligible owned listing required' using errcode = '42501';
   end if;
@@ -537,6 +559,7 @@ language plpgsql security definer set search_path = '' as $$
 declare actor uuid := auth.uid(); result public.referral_codes; candidate text;
 begin
   if actor is null or not public.is_active_user() then raise exception 'active account required' using errcode = '42501'; end if;
+  if not public.seller_growth_feature_enabled('referral_rewards') then raise exception 'seller growth feature is disabled' using errcode = '42501'; end if;
   select * into result from public.referral_codes where user_id = actor;
   if result.id is not null then return result; end if;
   loop
@@ -555,6 +578,7 @@ returns uuid
 language plpgsql security definer set search_path = '' as $$
 declare code_row public.referral_codes; visit_id uuid;
 begin
+  if not public.seller_growth_feature_enabled('referral_rewards') then raise exception 'seller growth feature is disabled' using errcode = '42501'; end if;
   select * into code_row from public.referral_codes where code = upper(btrim(referral_code)) and active;
   if code_row.id is null then raise exception 'referral code not found' using errcode = 'P0002'; end if;
   if (select count(*) from public.referral_visits where referral_code_id = code_row.id and created_at >= now() - interval '1 hour') >= 1000 then
@@ -571,6 +595,7 @@ language plpgsql security definer set search_path = '' as $$
 declare actor uuid := auth.uid(); visit public.referral_visits; code_row public.referral_codes; result public.referrals; created timestamptz;
 begin
   if actor is null or not public.is_active_user() then raise exception 'active account required' using errcode = '42501'; end if;
+  if not public.seller_growth_feature_enabled('referral_rewards') then raise exception 'seller growth feature is disabled' using errcode = '42501'; end if;
   select * into visit from public.referral_visits where id = referral_visit for update;
   if visit.id is null or visit.expires_at <= now() then raise exception 'referral visit unavailable' using errcode = '42501'; end if;
   if visit.claimed_by = actor then
@@ -603,6 +628,7 @@ begin
   if auth.uid() is null or not public.is_admin() then
     raise exception 'administrator required' using errcode = '42501';
   end if;
+  if not public.seller_growth_feature_enabled('referral_rewards') then raise exception 'seller growth feature is disabled' using errcode = '42501'; end if;
   perform pg_catalog.pg_advisory_xact_lock(1280265962);
   for item in
     select r.* from public.referrals r
@@ -648,6 +674,7 @@ language plpgsql security definer set search_path = '' as $$
 declare actor uuid := auth.uid(); reward public.promotion_reward_ledger; campaign public.featured_listing_campaigns;
 begin
   if actor is null or not public.is_active_user() then raise exception 'active account required' using errcode = '42501'; end if;
+  if not public.seller_growth_feature_enabled('referral_rewards') then raise exception 'seller growth feature is disabled' using errcode = '42501'; end if;
   select * into reward from public.promotion_reward_ledger where id = target_reward and referrer_id = actor for update;
   if reward.id is null or reward.status <> 'earned' then raise exception 'reward unavailable' using errcode = '42501'; end if;
   campaign := public.activate_featured_listing(target_listing, reward.entitlement_id);
@@ -667,6 +694,7 @@ alter table public.referrals enable row level security;
 alter table public.referral_audit enable row level security;
 alter table public.promotion_reward_ledger enable row level security;
 alter table public.seller_growth_admin_audit enable row level security;
+alter table public.seller_growth_feature_config enable row level security;
 
 drop policy if exists "verifications own or admin read" on public.seller_verifications;
 create policy "verifications admin read" on public.seller_verifications
@@ -689,16 +717,23 @@ create policy "reward ledger owner or admin read" on public.promotion_reward_led
   for select to authenticated using (referrer_id = auth.uid() or public.is_admin());
 create policy "seller growth admin audit read" on public.seller_growth_admin_audit
   for select to authenticated using (public.is_admin());
+create policy "seller growth feature config admin read" on public.seller_growth_feature_config
+  for select to authenticated using (public.is_admin());
 
 revoke all on public.seller_verification_audit, public.founding_sellers, public.promotion_entitlements,
   public.featured_listing_campaigns, public.referral_codes, public.referral_visits, public.referral_listing_eligibility, public.referrals, public.referral_audit,
-  public.promotion_reward_ledger, public.seller_growth_admin_audit from anon, authenticated;
+  public.promotion_reward_ledger, public.seller_growth_admin_audit, public.seller_growth_feature_config from anon, authenticated;
 revoke all on public.seller_trust_signals, public.active_featured_listings from public, anon, authenticated;
 grant select on public.seller_trust_signals, public.active_featured_listings to anon, authenticated;
 grant select on public.founding_sellers, public.featured_listing_campaigns to authenticated;
 grant select on public.seller_verification_audit, public.promotion_entitlements, public.referral_codes,
   public.referrals, public.referral_audit, public.promotion_reward_ledger to authenticated;
 grant select on public.seller_growth_admin_audit to authenticated;
+grant select on public.seller_growth_feature_config to authenticated;
+
+revoke all on function public.seller_growth_feature_enabled(text) from public, anon, authenticated;
+revoke all on function public.pause_ineligible_featured_campaigns() from public, anon, authenticated;
+revoke all on function public.track_referral_listing_eligibility() from public, anon, authenticated;
 
 revoke all on function public.submit_seller_verification(text) from public, anon;
 revoke all on function public.get_my_seller_verification() from public, anon;

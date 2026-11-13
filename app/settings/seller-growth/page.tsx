@@ -14,7 +14,7 @@ export const metadata: Metadata = { title: "Seller growth", robots: { index: fal
 export default async function SellerGrowthSettingsPage() {
   const user = await requireUser("/settings/seller-growth");
   const flags = sellerGrowthFlags();
-  const [application, promotion, listings, referral] = await Promise.all([getLatestSellerVerification(user.id), getSellerPromotionState(user.id), getOwnListings(user.id), flags.referralRewards ? getReferralDashboard() : Promise.resolve({ code: null, referrals: [], rewards: [] })]);
+  const [application, promotion, listings, referral] = await Promise.all([getLatestSellerVerification(user.id), getSellerPromotionState(user.id), getOwnListings(user.id), flags.referralRewards ? getReferralDashboard(user.id) : Promise.resolve({ code: null, referrals: [], rewards: [] })]);
   return <main className="container-page min-w-0 pb-28 pt-8 md:pb-12 md:pt-12">
     <Link href="/settings" className="btn-ghost mb-6"><ArrowLeft className="size-4" /> Settings</Link>
     <div className="max-w-3xl"><h1 className="text-balance text-4xl font-black tracking-tight sm:text-5xl">Build trust. Earn reach.</h1><p className="mt-4 text-lg leading-8 text-[var(--text-secondary)]">Manage seller review, founding benefits, and referral boosts without mixing them with ratings or identity claims.</p></div>

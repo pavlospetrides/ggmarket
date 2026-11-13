@@ -10,6 +10,18 @@ export const metadata: Metadata = {
 
 const rows = [
   {
+    name: <code>lootriva-signup-confirmation-pending</code>,
+    purpose: "Stages an email-confirmation token until the user deliberately submits the confirmation form, preventing link scanners from consuming it.",
+    duration: "Ten minutes or until the confirmation attempt completes.",
+    data: "A provider-issued confirmation token hash. It is HttpOnly, SameSite=Lax, and Secure in production.",
+  },
+  {
+    name: <code>lootriva-referral-visit</code>,
+    purpose: "Preserves a referral visit across a requested signup and email-confirmation or OAuth flow without placing a private token in a URL.",
+    duration: "Seven days or until successful referral attribution.",
+    data: "A random server-issued visit UUID. It is HttpOnly, SameSite=Lax, and Secure in production; it is not an advertising identifier.",
+  },
+  {
     name: <code>sb-&lt;project-ref&gt;-auth-token</code>,
     purpose: "Keeps a requested Lootriva account signed in and lets Supabase refresh the session. Large values may be split into numbered cookies such as .0 and .1.",
     duration: "Persistent, with a library maximum age of 400 days. Server expiry, refresh-token rotation, logout, or account security actions may end it earlier.",
@@ -41,7 +53,7 @@ export default function CookiePolicyPage() {
       <h1>Cookie policy</h1>
       <p className="policy-status">Essential only</p>
       <p>Lootriva currently uses browser storage only to provide account sessions, secure authentication callbacks, and a minimal offline shell. It uses no analytics, advertising, or marketing cookies.</p>
-      <p className="policy-updated">Last updated: 20 October 2026</p>
+      <p className="policy-updated">Last updated: 13 November 2026</p>
     </header>
 
     <div className="policy-layout">
