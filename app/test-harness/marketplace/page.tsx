@@ -6,6 +6,7 @@ export const dynamic = "force-dynamic";
 
 const categories: Category[] = [
   { id: "11111111-1111-4111-8111-111111111111", name: "Games", slug: "games", icon: "gamepad" },
+  { id: "55555555-5555-4555-8555-555555555555", name: "Collectibles & Cards", slug: "collectibles", icon: "Trophy" },
 ];
 
 const listing: Listing = {
@@ -30,7 +31,7 @@ const listing: Listing = {
 
 const result: PaginatedListings = { items: [listing], total: 1, page: 1, pageSize: 24 };
 
-export default function MarketplaceInteractionHarnessPage() {
+export default async function MarketplaceInteractionHarnessPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   if (process.env.NODE_ENV === "production" && process.env.E2E_UI_HARNESS !== "1") notFound();
-  return <MarketplaceBrowser result={result} params={{}} categories={categories} favoriteIds={[]} viewerId="aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa" actionPath="/marketplace" />;
+  return <MarketplaceBrowser result={result} params={await searchParams} categories={categories} favoriteIds={[]} viewerId="aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa" actionPath="/marketplace" />;
 }

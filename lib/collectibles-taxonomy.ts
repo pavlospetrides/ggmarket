@@ -2,102 +2,113 @@ import type { ListingAttributes } from "./types";
 import type { TaxonomyField, TaxonomyNode, TaxonomyOption } from "./gaming-taxonomy";
 
 const option = (value: string, label: string): TaxonomyOption => ({ value, label });
-const subcategory = (id: string, label: string): TaxonomyNode => ({ id, label, kind: "subcategory", categorySlug: "collectibles" });
+const item = (id: string, label: string): TaxonomyNode => ({ id, label, kind: "subcategory", categorySlug: "collectibles" });
+const family = (id: string, label: string, children: readonly TaxonomyNode[]): TaxonomyNode => ({ id, label, kind: "family", categorySlug: "collectibles", children });
 
-export const COLLECTIBLE_SUBCATEGORIES = [
-  subcategory("pokemon-tcg", "Pokémon TCG"),
-  subcategory("yugioh-tcg", "Yu-Gi-Oh! TCG"),
-  subcategory("magic-the-gathering", "Magic: The Gathering"),
-  subcategory("one-piece-card-game", "One Piece Card Game"),
-  subcategory("other-trading-card-games", "Other Trading Card Games"),
-  subcategory("gaming-anime-figures", "Gaming & Anime Figures"),
-  subcategory("funko-collectible-figures", "Funko Pop & Collectible Figures"),
-  subcategory("collectors-editions-merchandise", "Collector's Editions & Gaming Merchandise"),
-  subcategory("other-collectibles", "Other Collectibles"),
+export const COLLECTIBLE_FAMILIES = [
+  family("collectibles", "Collectibles", [
+    item("action-figures-statues", "Action Figures & Statues"),
+    item("funko-pop", "Funko Pop"),
+    item("anime-collectibles", "Anime Collectibles"),
+    item("gaming-memorabilia", "Gaming Memorabilia"),
+    item("limited-editions", "Limited Editions"),
+    item("other-collectibles", "Other Collectibles"),
+  ]),
+  family("cards", "Cards", [
+    item("pokemon-cards", "Pokémon Cards"),
+    item("yugioh-cards", "Yu-Gi-Oh! Cards"),
+    item("magic-the-gathering", "Magic: The Gathering"),
+    item("sports-cards", "Sports Cards"),
+    item("graded-cards", "Graded Cards"),
+    item("other-trading-cards", "Other Trading Cards"),
+  ]),
 ] as const;
 
-export const COLLECTIBLE_PRODUCT_TYPE_OPTIONS = [
-  option("single-card", "Single Card"), option("graded-card", "Graded Card"), option("booster-pack", "Booster Pack"), option("booster-box", "Booster Box"), option("sealed-product", "Sealed Product"), option("deck", "Deck"), option("figure", "Figure"), option("statue", "Statue"), option("collection", "Collection"), option("bundle", "Bundle"), option("other", "Other"),
-] as const;
+export const COLLECTIBLES_ROOT: TaxonomyNode = {
+  id: "collectibles", label: "Collectibles & Cards", kind: "root", categorySlug: "collectibles", children: COLLECTIBLE_FAMILIES,
+};
 
-export const COLLECTIBLES_MARKETPLACE_FILTER_KEYS = [
-  "product_type", "card_game", "grading_status", "grading_company",
-  "grading_score", "sealed_condition", "language",
-] as const;
-const collectiblesMarketplaceFilterKeys = new Set<string>(COLLECTIBLES_MARKETPLACE_FILTER_KEYS);
+const legacyTypes: Record<string, { family: string; item_type: string }> = {
+  "pokemon-tcg": { family: "cards", item_type: "pokemon-cards" },
+  "yugioh-tcg": { family: "cards", item_type: "yugioh-cards" },
+  "one-piece-card-game": { family: "cards", item_type: "other-trading-cards" },
+  "other-trading-card-games": { family: "cards", item_type: "other-trading-cards" },
+  "gaming-anime-figures": { family: "collectibles", item_type: "anime-collectibles" },
+  "funko-collectible-figures": { family: "collectibles", item_type: "funko-pop" },
+  "collectors-editions-merchandise": { family: "collectibles", item_type: "limited-editions" },
+};
 
-export function isCollectiblesMarketplaceFilterKey(key: string): boolean {
-  return collectiblesMarketplaceFilterKeys.has(key);
+export function classifyCollectible(attributes: ListingAttributes): { family: string; item_type: string } {
+  const subcategory = typeof attributes.subcategory === "string" ? attributes.subcategory : "";
+  const legacy = legacyTypes[subcategory];
+  const type = typeof attributes.item_type === "string" ? attributes.item_type : "";
+  const matchedFamily = COLLECTIBLE_FAMILIES.find((candidate) => candidate.children?.some((child) => child.id === type));
+  if (matchedFamily) return { family: matchedFamily.id, item_type: type };
+  if (attributes.family === "cards" && !subcategory) return { family: "cards", item_type: "other-trading-cards" };
+  if (attributes.product_type === "graded-card" && (legacy?.family === "cards" || subcategory === "magic-the-gathering" || !subcategory)) return { family: "cards", item_type: "graded-cards" };
+  if (legacy) return legacy;
+  if (subcategory === "magic-the-gathering") return { family: "cards", item_type: subcategory };
+  const canonicalFamily = COLLECTIBLE_FAMILIES.find((candidate) => candidate.children?.some((child) => child.id === subcategory));
+  if (canonicalFamily) return { family: canonicalFamily.id, item_type: subcategory };
+  if (["single-card", "booster-pack", "booster-box", "sealed-product", "deck"].includes(String(attributes.product_type ?? ""))) return { family: "cards", item_type: "other-trading-cards" };
+  return { family: "collectibles", item_type: "other-collectibles" };
 }
 
-const cardTypes = new Set(["single-card", "graded-card", "booster-pack", "booster-box", "sealed-product", "deck"]);
-const figureTypes = new Set(["figure", "statue"]);
-const sealedTypes = new Set(["booster-pack", "booster-box", "sealed-product"]);
-const cardSubcategories = new Set(["pokemon-tcg", "yugioh-tcg", "magic-the-gathering", "one-piece-card-game", "other-trading-card-games"]);
-const figureSubcategories = new Set(["gaming-anime-figures", "funko-collectible-figures"]);
-
-function productTypesFor(subcategoryId: unknown) {
-  if (typeof subcategoryId !== "string" || subcategoryId === "other-collectibles") return COLLECTIBLE_PRODUCT_TYPE_OPTIONS;
-  const allowed = cardSubcategories.has(subcategoryId)
-    ? new Set([...cardTypes, "collection", "bundle", "other"])
-    : figureSubcategories.has(subcategoryId)
-      ? new Set([...figureTypes, "collection", "bundle", "other"])
-      : new Set(["sealed-product", ...figureTypes, "collection", "bundle", "other"]);
-  return COLLECTIBLE_PRODUCT_TYPE_OPTIONS.filter((item) => allowed.has(item.value));
-}
-
-const productTypeField = (attributes: ListingAttributes): TaxonomyField => ({ key: "product_type", label: "Product type", type: "select", required: true, options: productTypesFor(attributes.subcategory) });
+const collectibleFields: readonly TaxonomyField[] = [
+  { key: "manufacturer", label: "Brand / Franchise", type: "text" },
+  { key: "character", label: "Character / Series", type: "text" },
+  { key: "original_box", label: "Original Packaging", type: "boolean" },
+  { key: "limited_edition", label: "Limited Edition", type: "boolean" },
+];
 const cardFields: readonly TaxonomyField[] = [
-  { key: "card_game", label: "Card game", type: "select", options: [option("pokemon", "Pokémon"), option("yugioh", "Yu-Gi-Oh!"), option("magic", "Magic: The Gathering"), option("one-piece", "One Piece Card Game"), option("other", "Other")] },
-  { key: "card_name", label: "Card name", type: "text", placeholder: "e.g. Pikachu" },
-  { key: "set_name", label: "Set / Expansion", type: "text", placeholder: "e.g. Base Set" },
-  { key: "card_number", label: "Card number", type: "text", placeholder: "e.g. 4/102" },
-  { key: "rarity", label: "Rarity", type: "text" },
-  { key: "language", label: "Language", type: "select", options: [option("english", "English"), option("japanese", "Japanese"), option("greek", "Greek"), option("german", "German"), option("french", "French"), option("italian", "Italian"), option("spanish", "Spanish"), option("other", "Other")] },
-  { key: "edition", label: "Edition", type: "text" },
-  { key: "grading_status", label: "Is this card graded?", type: "select", options: [option("graded", "Yes"), option("ungraded", "No")] },
+  { key: "card_game", label: "Card Game / Collection", type: "select", options: [option("pokemon", "Pokémon"), option("yugioh", "Yu-Gi-Oh!"), option("magic", "Magic: The Gathering"), option("sports", "Sports"), option("one-piece", "One Piece"), option("other", "Other")] },
+  { key: "card_name", label: "Card Name", type: "text" },
+  { key: "set_name", label: "Set / Edition", type: "text" },
+  { key: "card_number", label: "Card Number (optional)", type: "text" },
+  { key: "grading_status", label: "Graded / Ungraded", type: "select", options: [option("graded", "Graded"), option("ungraded", "Ungraded")] },
 ];
 const gradingFields: readonly TaxonomyField[] = [
-  { key: "grading_company", label: "Grading company", type: "select", options: [option("psa", "PSA"), option("bgs", "BGS"), option("cgc", "CGC"), option("other", "Other")] },
-  { key: "grading_score", label: "Grade", type: "text", placeholder: "Use the value shown by the grading company" },
+  { key: "grading_company", label: "Grading Company", type: "select", options: [option("psa", "PSA"), option("bgs", "BGS"), option("cgc", "CGC"), option("other", "Other")] },
+  { key: "grading_score", label: "Grade", type: "text", placeholder: "Value shown by the grading company" },
+];
+const legacyFields: readonly TaxonomyField[] = [
+  { key: "product_type", label: "Original product type", type: "text" },
+  { key: "figure_series", label: "Figure series", type: "text" },
+  { key: "edition", label: "Edition", type: "text" },
+  { key: "packaging_condition", label: "Packaging condition", type: "text" },
+  { key: "sealed_condition", label: "Sealed condition", type: "text" },
   { key: "grading_certification_number", label: "Certification number", type: "text" },
-];
-const figureFields: readonly TaxonomyField[] = [
-  { key: "manufacturer", label: "Manufacturer", type: "text" }, { key: "figure_series", label: "Figure series", type: "text" }, { key: "character", label: "Character", type: "text" }, { key: "edition", label: "Edition", type: "text" },
-  { key: "packaging_condition", label: "Packaging condition", type: "select", options: [option("sealed", "Factory sealed"), option("excellent", "Excellent"), option("good", "Good"), option("worn", "Worn"), option("none", "No packaging")] },
-  { key: "original_box", label: "Original box available", type: "boolean" },
-];
-const sealedField: TaxonomyField = { key: "sealed_condition", label: "Sealed condition", type: "select", options: [option("factory-sealed", "Factory sealed"), option("opened-complete", "Opened, complete"), option("opened-incomplete", "Opened, incomplete")] };
-const customFields: readonly TaxonomyField[] = [
-  { key: "product_type_other", label: "Other product type", type: "text" }, { key: "card_game_other", label: "Other card game", type: "text" }, { key: "grading_company_other", label: "Other grading company", type: "text" }, { key: "language_other", label: "Other language", type: "text" },
+  { key: "card_game_other", label: "Other card game", type: "text" },
+  { key: "language", label: "Language", type: "text" },
+  { key: "language_other", label: "Other language", type: "text" },
+  { key: "grading_company_other", label: "Other grading company", type: "text" },
+  { key: "product_type_other", label: "Other product type", type: "text" },
+  { key: "rarity", label: "Rarity", type: "text" },
 ];
 
-export const COLLECTIBLE_FIELDS: readonly TaxonomyField[] = [productTypeField({}), ...cardFields, ...gradingFields, ...figureFields, sealedField, ...customFields];
-
-export const COLLECTIBLES_ROOT: TaxonomyNode = { id: "collectibles", label: "Collectibles & Trading Cards", kind: "root", categorySlug: "collectibles", children: COLLECTIBLE_SUBCATEGORIES };
+export const COLLECTIBLE_FIELDS: readonly TaxonomyField[] = [...collectibleFields, ...cardFields, ...gradingFields, ...legacyFields];
+export const COLLECTIBLES_MARKETPLACE_FILTER_KEYS = ["card_game", "grading_status", "grading_company"] as const;
+const marketplaceFilterKeys = new Set<string>(COLLECTIBLES_MARKETPLACE_FILTER_KEYS);
+export function isCollectiblesMarketplaceFilterKey(key: string): boolean { return marketplaceFilterKeys.has(key); }
 
 export function getCollectiblesFields(attributes: ListingAttributes): readonly TaxonomyField[] {
-  const fields: TaxonomyField[] = [productTypeField(attributes)];
-  const productType = typeof attributes.product_type === "string" ? attributes.product_type : "";
-  if (cardTypes.has(productType)) fields.push(...cardFields);
-  if (productType === "graded-card" || attributes.grading_status === "graded") fields.push(...gradingFields);
-  if (figureTypes.has(productType)) fields.push(...figureFields);
-  if (sealedTypes.has(productType)) fields.push(sealedField);
-  if (productType === "other") fields.push(customFields[0]);
-  if (attributes.card_game === "other") fields.push(customFields[1]);
-  if (attributes.grading_company === "other") fields.push(customFields[2]);
-  if (attributes.language === "other") fields.push(customFields[3]);
-  return [...new Map(fields.map((field) => [field.key, field])).values()];
+  if (!attributes.family && !attributes.item_type && !attributes.subcategory) return [];
+  const type = classifyCollectible(attributes);
+  const fields = type.family === "cards" ? [...cardFields] : [...collectibleFields];
+  if (type.family === "cards" && (type.item_type === "graded-cards" || attributes.grading_status === "graded")) fields.push(...gradingFields);
+  // Old listing values remain readable and editable without exposing old fields to new sellers.
+  if (typeof attributes.subcategory === "string" && legacyTypes[attributes.subcategory]) fields.push(...legacyFields);
+  return fields;
 }
 
 export function validateCollectiblesAttributes(attributes: ListingAttributes): { success: true } | { success: false; error: string } {
-  if (typeof attributes.subcategory !== "string" || !COLLECTIBLE_SUBCATEGORIES.some((item) => item.id === attributes.subcategory)) return { success: false, error: "Choose a valid collectible subcategory." };
-  const allowedTypes = productTypesFor(attributes.subcategory);
-  if (typeof attributes.product_type !== "string" || !allowedTypes.some((item) => item.value === attributes.product_type)) return { success: false, error: "Choose a valid collectible product type." };
-  if (attributes.grading_status === "ungraded" && ["grading_company", "grading_score", "grading_certification_number", "grading_company_other"].some((key) => attributes[key] !== undefined)) return { success: false, error: "Grading details are not valid for an ungraded card." };
-  const certification = attributes.grading_certification_number;
-  if (certification !== undefined && (typeof certification !== "string" || !/^[A-Za-z0-9 .-]{1,80}$/.test(certification))) return { success: false, error: "Enter a valid seller-provided certification number." };
-  const score = attributes.grading_score;
-  if (score !== undefined && (typeof score !== "string" || !/^[A-Za-z0-9.+\/-]{1,20}$/.test(score))) return { success: false, error: "Enter the grade exactly as shown by the grading company." };
+  const selected = COLLECTIBLE_FAMILIES.find((candidate) => candidate.id === attributes.family);
+  if (!selected) return { success: false, error: "Choose Collectibles or Cards." };
+  if (typeof attributes.item_type !== "string" || !selected.children?.some((child) => child.id === attributes.item_type)) return { success: false, error: "Choose a valid item type." };
+  const legacySubcategory = typeof attributes.subcategory === "string" && Boolean(legacyTypes[attributes.subcategory]);
+  if (!legacySubcategory && attributes.subcategory !== attributes.item_type) return { success: false, error: "Choose a matching item type." };
+  if (selected.id === "cards" && attributes.item_type === "graded-cards" && attributes.grading_status === "ungraded") return { success: false, error: "A graded card cannot be marked ungraded." };
+  if (attributes.grading_status === "ungraded" && (attributes.grading_company !== undefined || attributes.grading_score !== undefined)) return { success: false, error: "Remove grading details from an ungraded card." };
+  if (attributes.grading_score !== undefined && (typeof attributes.grading_score !== "string" || !/^[A-Za-z0-9.+\/-]{1,20}$/.test(attributes.grading_score))) return { success: false, error: "Enter a valid seller-provided grade." };
   return { success: true };
 }

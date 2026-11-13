@@ -5,6 +5,7 @@ import { useEffect, useRef, useState, type FormEvent } from "react";
 import { Trash2 } from "lucide-react";
 import { conditions } from "@/lib/constants";
 import { normalizeTaxonomyAttributes } from "@/lib/gaming-taxonomy";
+import { classifyCollectible } from "@/lib/collectibles-taxonomy";
 import type { Category, Listing, ListingAttributes } from "@/lib/types";
 import { TaxonomyAttributeFields } from "./taxonomy-attribute-fields";
 import { buildListingTaxonomyAttributes, TaxonomySelector, type TaxonomySelection } from "./taxonomy-selector";
@@ -22,13 +23,14 @@ export function ManageListingForm({ listing, categories }: { listing: Listing; c
   const [dirty, setDirty] = useState(false);
   const [taxonomyDirty, setTaxonomyDirty] = useState(false);
   const normalizedAttributes = normalizeTaxonomyAttributes(listing.category.slug, listing.attributes);
+  const collectibleClassification = listing.category.slug === "collectibles" ? classifyCollectible(normalizedAttributes) : undefined;
   const initialProductName = typeof listing.attributes.product_name === "string" ? listing.attributes.product_name : listing.title;
   const [categoryId, setCategoryId] = useState(listing.category.id);
   const selectedCategory = categories.find((category) => category.id === categoryId) ?? listing.category;
   const [taxonomySelection, setTaxonomySelection] = useState<TaxonomySelection>({
     categorySlug: listing.category.slug,
-    family: typeof normalizedAttributes.family === "string" ? normalizedAttributes.family : undefined,
-    subcategory: typeof normalizedAttributes.subcategory === "string" ? normalizedAttributes.subcategory : undefined,
+    family: collectibleClassification?.family ?? (typeof normalizedAttributes.family === "string" ? normalizedAttributes.family : undefined),
+    subcategory: collectibleClassification?.item_type ?? (typeof normalizedAttributes.subcategory === "string" ? normalizedAttributes.subcategory : undefined),
     platform: typeof normalizedAttributes.platform === "string" ? normalizedAttributes.platform : undefined,
     model: typeof normalizedAttributes.model === "string" ? normalizedAttributes.model : undefined,
   });
@@ -140,7 +142,7 @@ export function ManageListingForm({ listing, categories }: { listing: Listing; c
     <fieldset disabled={!hydrated || busy} className="min-w-0 space-y-5 border-0 p-0">
     <legend className="sr-only">Edit listing information</legend>
     <div><label className="label" htmlFor="edit-category">Category</label><select className="input" id="edit-category" value={categoryId} onChange={(event) => { const next = categories.find((category) => category.id === event.target.value); setCategoryId(event.target.value); setTaxonomySelection({ categorySlug: next?.slug ?? "" }); setTaxonomyAttributes({}); setTaxonomyDirty(true); setDirty(true); }}>{categories.map((category) => <option value={category.id} key={category.id}>{category.name}</option>)}</select></div>
-    <TaxonomySelector selection={taxonomySelection} onChange={(next) => { setTaxonomySelection(next); setTaxonomyDirty(true); setDirty(true); }} />
+    <TaxonomySelector selection={taxonomySelection} onChange={(next) => { if (selectedCategory.slug === "collectibles" && (next.family !== taxonomySelection.family || next.subcategory !== taxonomySelection.subcategory)) setTaxonomyAttributes({}); setTaxonomySelection(next); setTaxonomyDirty(true); setDirty(true); }} />
     {selectedCategory.slug !== "collectibles" ? <div><label className="label" htmlFor="edit-product-name">Product or model name</label><input className="input" id="edit-product-name" name="productName" minLength={2} maxLength={160} defaultValue={initialProductName} required /></div> : null}
     <TaxonomyAttributeFields categorySlug={selectedCategory.slug} selectionAttributes={buildListingTaxonomyAttributes(taxonomySelection, {})} values={taxonomyAttributes} enforceRequired={taxonomyDirty} collapsible={selectedCategory.slug === "collectibles"} onChange={(next) => { setTaxonomyAttributes(next); setTaxonomyDirty(true); setDirty(true); }} />
     <div><label className="label" htmlFor="title">Title</label><input className="input" id="title" name="title" defaultValue={listing.title} minLength={6} maxLength={120} required /></div>
