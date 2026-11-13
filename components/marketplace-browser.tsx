@@ -12,6 +12,7 @@ import { useHydrated } from "./use-hydrated";
 import { BrowsingStateRestorer } from "./listing-navigation";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "./ui/sheet";
 import { conditions } from "@/lib/constants";
+import { isCollectiblesMarketplaceFilterKey } from "@/lib/collectibles-taxonomy";
 import { pageHref } from "@/lib/pagination";
 import { COMPATIBILITY_OPTIONS, formatTaxonomyAttribute, getTaxonomyFields, getTaxonomyRoot, isDeprecatedTaxonomyAttribute, isTaxonomyFilterKey, resolveTaxonomyQuery, taxonomyFilterEntries, updateTaxonomyFilterParams } from "@/lib/gaming-taxonomy";
 import { pcHardwareDependentKeys } from "@/lib/pc-hardware-taxonomy";
@@ -143,9 +144,9 @@ export function MarketplaceBrowser({
       </div>
       {selectedRoot?.children?.length ? <>
         <div>
-          <label className="label" htmlFor={`${prefix}-taxonomy-primary`}>{selectedCategorySlug === "games" || selectedCategorySlug === "consoles" ? "Platform family" : "Product type"}</label>
+          <label className="label" htmlFor={`${prefix}-taxonomy-primary`}>{selectedCategorySlug === "games" || selectedCategorySlug === "consoles" ? "Platform family" : selectedCategorySlug === "collectibles" ? "Collectible category" : "Product type"}</label>
           <select className="input" id={`${prefix}-taxonomy-primary`} name={selectedCategorySlug === "games" || selectedCategorySlug === "consoles" ? "family" : "subcategory"} defaultValue={resolvedTaxonomyValue(selectedCategorySlug === "games" || selectedCategorySlug === "consoles" ? "family" : "subcategory")} disabled={filterNavigationPending} onChange={selectedCategorySlug === "games" || selectedCategorySlug === "consoles" ? (event) => updateHierarchy(prefix, "family", event.currentTarget.value) : selectedCategorySlug === "pc-components" ? (event) => updatePcFilter(prefix, "subcategory", event.currentTarget.value) : undefined}>
-            <option value="">All {selectedCategorySlug === "games" || selectedCategorySlug === "consoles" ? "families" : "product types"}</option>
+            <option value="">All {selectedCategorySlug === "games" || selectedCategorySlug === "consoles" ? "families" : selectedCategorySlug === "collectibles" ? "collectible categories" : "product types"}</option>
             {selectedRoot.children.map((item) => <option value={item.id} key={item.id}>{item.label}</option>)}
           </select>
         </div>
@@ -161,7 +162,7 @@ export function MarketplaceBrowser({
         <label className="label" htmlFor={`${prefix}-compatibility`}>Compatible platform</label>
         <select className="input" id={`${prefix}-compatibility`} name="compatibility" defaultValue={resolvedTaxonomyValue("compatibility")}><option value="">Any compatible platform</option>{COMPATIBILITY_OPTIONS.map((item) => <option value={item.value} key={item.value}>{item.label}</option>)}</select>
       </div> : null}
-      {getTaxonomyFields(selectedCategorySlug, taxonomyDisplayParams as ListingAttributes).filter((field) => field.key !== "compatibility" && !(field.key === "model" && selectedCategorySlug === "consoles") && ["select", "multiselect", "text", "number", "boolean"].includes(field.type)).map((field) => <div key={`${prefix}-${field.key}`}>
+      {getTaxonomyFields(selectedCategorySlug, taxonomyDisplayParams as ListingAttributes).filter((field) => field.key !== "compatibility" && !(field.key === "model" && selectedCategorySlug === "consoles") && (selectedCategorySlug !== "collectibles" || isCollectiblesMarketplaceFilterKey(field.key)) && ["select", "multiselect", "text", "number", "boolean"].includes(field.type)).map((field) => <div key={`${prefix}-${field.key}`}>
         <label className="label" htmlFor={`${prefix}-${field.key}`}>{field.label}</label>
         {field.type === "select" || field.type === "multiselect" ? <select className="input" id={`${prefix}-${field.key}`} name={field.key} defaultValue={resolvedTaxonomyValue(field.key)} disabled={filterNavigationPending && selectedCategorySlug === "pc-components"} onChange={selectedCategorySlug === "pc-components" && pcHardwareDependentKeys(resolvedTaxonomyValue("subcategory"), field.key).length ? (event) => updatePcFilter(prefix, field.key, event.currentTarget.value) : undefined}><option value="">Any {field.label.toLowerCase()}</option>{field.options?.map((item) => <option value={item.value} key={item.value}>{item.label}</option>)}</select> : field.type === "boolean" ? <select className="input" id={`${prefix}-${field.key}`} name={field.key} defaultValue={resolvedTaxonomyValue(field.key)}><option value="">Any</option><option value="true">Yes</option><option value="false">No</option></select> : <input className="input" id={`${prefix}-${field.key}`} name={field.key} type={field.type} min={field.min} max={field.max} defaultValue={resolvedTaxonomyValue(field.key)} />}
       </div>)}
@@ -212,14 +213,14 @@ export function MarketplaceBrowser({
       </div>
       <div>
         <label className="label" htmlFor={`${prefix}-location`}>
-          Location
+          City
         </label>
         <input
           className="input"
           id={`${prefix}-location`}
           name="location"
           maxLength={80}
-          placeholder="City or region"
+          placeholder="e.g. Nicosia"
           defaultValue={value(params, "location")}
         />
       </div>

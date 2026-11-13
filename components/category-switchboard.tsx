@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowUpRight, Cpu, Disc3, Gamepad2, Headphones } from "lucide-react";
+import { ArrowUpRight, Cpu, Disc3, Gamepad2, Headphones, Trophy } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const categories = [
@@ -7,6 +7,7 @@ const categories = [
   { label: "PC hardware", note: "Components and complete builds", href: "/marketplace?category=pc-components", Icon: Cpu, tone: "ink" },
   { label: "Video games", note: "New releases and classics", href: "/marketplace?category=games", Icon: Disc3, tone: "blue" },
   { label: "Accessories", note: "Audio, input and setup gear", href: "/marketplace?category=peripherals", Icon: Headphones, tone: "slate" },
+  { label: "Collectibles & Trading Cards", note: "Trading cards, figures and collector editions", href: "/marketplace?category=collectibles", Icon: Trophy, tone: "plum" },
 ] as const;
 
 export function CategorySwitchboard({ compact = false }: { compact?: boolean }) {
@@ -18,7 +19,7 @@ export function CategorySwitchboard({ compact = false }: { compact?: boolean }) 
     >
       <div className="category-switchboard-intro">
         <p>Choose your lane</p>
-        <span>Four routes. One player-to-player exchange.</span>
+        <span>Five routes. One player-to-player exchange.</span>
       </div>
       <nav className="category-switchboard-grid" aria-label="Explore gaming categories">
         {categories.map(({ label, note, href, Icon, tone }) => (

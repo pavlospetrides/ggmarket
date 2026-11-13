@@ -29,7 +29,7 @@ export default async function HomePage() {
       <div className="container-page campaign-hero-inner">
         <div className="campaign-hero-copy">
           <h1 id="home-heading">Find your next setup</h1>
-          <p className="campaign-lede">The player-to-player market for consoles, PC hardware, games, and accessories.</p>
+          <p className="campaign-lede">The player-to-player market for gaming gear, games, and collectibles.</p>
           <div className="campaign-actions">
             <Link href="/marketplace" className="btn-primary">Browse marketplace <ArrowRight className="size-4" /></Link>
             <Link href="/sell" prefetch={false} className="btn-on-dark">Sell your gear</Link>

@@ -20,6 +20,16 @@ export const COLLECTIBLE_PRODUCT_TYPE_OPTIONS = [
   option("single-card", "Single Card"), option("graded-card", "Graded Card"), option("booster-pack", "Booster Pack"), option("booster-box", "Booster Box"), option("sealed-product", "Sealed Product"), option("deck", "Deck"), option("figure", "Figure"), option("statue", "Statue"), option("collection", "Collection"), option("bundle", "Bundle"), option("other", "Other"),
 ] as const;
 
+export const COLLECTIBLES_MARKETPLACE_FILTER_KEYS = [
+  "product_type", "card_game", "grading_status", "grading_company",
+  "grading_score", "sealed_condition", "language",
+] as const;
+const collectiblesMarketplaceFilterKeys = new Set<string>(COLLECTIBLES_MARKETPLACE_FILTER_KEYS);
+
+export function isCollectiblesMarketplaceFilterKey(key: string): boolean {
+  return collectiblesMarketplaceFilterKeys.has(key);
+}
+
 const cardTypes = new Set(["single-card", "graded-card", "booster-pack", "booster-box", "sealed-product", "deck"]);
 const figureTypes = new Set(["figure", "statue"]);
 const sealedTypes = new Set(["booster-pack", "booster-box", "sealed-product"]);
