@@ -42,7 +42,7 @@ export default defineConfig({
   ],
   webServer: {
     command: process.env.PLAYWRIGHT_WEB_SERVER_COMMAND ?? "npm run dev",
-    url: baseURL,
+    url: process.env.E2E_UI_HARNESS === "1" ? `${baseURL}/test-harness/profile-media` : baseURL,
     reuseExistingServer: process.env.PLAYWRIGHT_REUSE_SERVER !== "false",
     timeout: 120_000,
   },
