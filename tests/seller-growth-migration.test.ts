@@ -27,6 +27,11 @@ describe("seller growth migration security contract", () => {
     expect(sql).toContain("promotion_reward_ledger_referral_key");
   });
 
+  it("lets a seller answer a more-information request without creating a duplicate application", () => {
+    expect(sql).toContain("if latest.status = 'more_info' then");
+    expect(sql).toMatch(/update public\.seller_verifications set[\s\S]+status = 'pending'[\s\S]+where id = latest\.id/);
+  });
+
   it("uses narrow security-definer functions with protected search paths", () => {
     for (const name of [
       "submit_seller_verification",

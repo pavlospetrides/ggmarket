@@ -185,11 +185,20 @@ begin
   if char_length(application_text) not between 20 and 2000 then
     raise exception 'application must be between 20 and 2000 characters' using errcode = '22023';
   end if;
-  if exists (select 1 from public.seller_verifications where seller_id = actor and status in ('pending','more_info')) then
-    raise exception 'application already pending' using errcode = '23505';
-  end if;
   select * into latest from public.seller_verifications
     where seller_id = actor order by created_at desc limit 1;
+  if latest.status = 'pending' then
+    raise exception 'application already pending' using errcode = '23505';
+  end if;
+  if latest.status = 'more_info' then
+    update public.seller_verifications set
+      status = 'pending', application_note = application_text,
+      decision_reason = null, reviewer_note = null, reviewed_by = null, reviewed_at = null
+    where id = latest.id returning * into result;
+    insert into public.seller_verification_audit(application_id, seller_id, actor_id, action, previous_status, next_status)
+    values (result.id, actor, actor, 'resubmitted', 'more_info', 'pending');
+    return result;
+  end if;
   if latest.status = 'rejected' and coalesce(latest.resubmission_eligible_at, latest.reviewed_at + interval '7 days') > now() then
     raise exception 'resubmission cooldown active' using errcode = '42501';
   end if;

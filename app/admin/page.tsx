@@ -4,6 +4,7 @@ import { AdminReportActions } from "@/components/admin-report-actions";
 import { PageMasthead } from "@/components/page-masthead";
 import { requireAdmin } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
+import Link from "next/link";
 
 export const metadata: Metadata = { title: "Moderation", robots: { index: false, follow: false } };
 type ReportRow = { id: string; reason: string; details: string | null; listing: { id: string; title: string; status: string } | null };
@@ -17,6 +18,7 @@ export default async function AdminPage() {
 
   return <div className="container-page min-w-0 pb-28 pt-8 md:pb-12 md:pt-12">
     <PageMasthead eyebrow="Staff workspace" title="Moderation" description="Review marketplace signals with a clear, auditable action trail." variant="operations" meta={<span className="inline-flex items-center gap-2"><Shield className="size-4" aria-hidden="true" /> {openCount} open {openCount === 1 ? "report" : "reports"}</span>} />
+    <Link href="/admin/seller-growth" className="btn-primary mb-6">Seller verification management</Link>
     <section data-ui className="card min-w-0 overflow-hidden">
       <div className="flex items-center justify-between border-b border-[var(--border)] p-5"><h2 className="font-bold">Reported listings</h2><span className="badge">{openCount} open</span></div>
       {reports.length ? reports.map((report) => (

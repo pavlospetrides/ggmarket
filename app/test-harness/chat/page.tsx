@@ -21,7 +21,7 @@ export default async function ChatHarnessPage({
     listingTitle: "Test graphics card",
     listingPrice: 500,
     currency: "EUR",
-    other: { id: other, username: other, display_name: other === "account-a" ? "Buyer A" : "Seller B" },
+    other: { id: other, username: other, display_name: other === "account-a" ? "Buyer A" : "Seller B", verified: false },
     messages: [],
     offers: actions === "1" ? [{
       id: "offer-1",
