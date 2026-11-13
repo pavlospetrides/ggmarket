@@ -24,3 +24,12 @@ export async function PATCH(request: Request) {
   return NextResponse.json({ ok: true });
 }
 
+export async function POST() {
+  const admin = await getAdminUser();
+  if (!admin) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  const supabase = await createClient();
+  const { data, error } = await supabase!.rpc("qualify_referrals");
+  if (error) return NextResponse.json({ error: "Referral qualification could not be completed." }, { status: 400 });
+  return NextResponse.json({ awarded: Number(data ?? 0) });
+}
+

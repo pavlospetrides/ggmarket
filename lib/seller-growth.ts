@@ -86,3 +86,29 @@ export async function getSellerPromotionState(sellerId: string, client?: Supabas
   };
 }
 
+export type ReferralReward = {
+  id: string;
+  entitlement_id: string;
+  status: "earned" | "redeemed" | "expired" | "revoked";
+  earned_at: string;
+  redeemed_at: string | null;
+};
+
+export async function getReferralDashboard(client?: SupabaseClient) {
+  const supabase = client ?? await createClient();
+  if (!supabase) return { code: null, referrals: [], rewards: [] };
+  const { data: code, error: codeError } = await supabase.rpc("ensure_referral_code");
+  if (codeError) throw new Error("Referral code could not be loaded.");
+  const codeRow = Array.isArray(code) ? code[0] : code;
+  const [referralsResult, rewardsResult] = await Promise.all([
+    supabase.from("referrals").select("id,status,risk_status,attributed_at,qualified_at").order("attributed_at", { ascending: false }).limit(100),
+    supabase.from("promotion_reward_ledger").select("id,entitlement_id,status,earned_at,redeemed_at").order("earned_at", { ascending: false }).limit(100),
+  ]);
+  if (referralsResult.error || rewardsResult.error) throw new Error("Referral activity could not be loaded.");
+  return {
+    code: typeof codeRow?.code === "string" ? codeRow.code : null,
+    referrals: referralsResult.data ?? [],
+    rewards: (rewardsResult.data ?? []) as ReferralReward[],
+  };
+}
+

@@ -4,6 +4,7 @@ import { safeRedirectPath } from "@/lib/security";
 import { getPublicRequestOrigin } from "@/lib/request-security";
 import { createClient } from "@/lib/supabase/server";
 import { withPrivateNoStore } from "../../../lib/supabase/cookie-security";
+import { claimPendingReferral, clearReferralVisit } from "@/lib/referrals";
 
 const emailOtpTypes = new Set<EmailOtpType>([
   "email_change",
@@ -103,9 +104,14 @@ export async function GET(request: Request) {
   }
 
   const { data: { user } } = await supabase.auth.getUser();
+  const referralClaimed = !error && !recoveryFlow && Boolean(user?.email_confirmed_at)
+    ? await claimPendingReferral(supabase, request.headers.get("cookie"))
+    : false;
   if (verificationFlow) {
     if (!error && user?.email_confirmed_at) {
-      return verificationRedirect(publicOrigin, "verified", welcome);
+      const response = verificationRedirect(publicOrigin, "verified", welcome);
+      if (referralClaimed) clearReferralVisit(response);
+      return response;
     }
     if (user?.email_confirmed_at) return verificationRedirect(publicOrigin, "already_verified");
     return verificationRedirect(publicOrigin, isExpiredOrUsed(error) ? "expired_or_used" : "invalid");
@@ -117,10 +123,12 @@ export async function GET(request: Request) {
     return withPrivateNoStore(NextResponse.redirect(target));
   }
 
-  return withPrivateNoStore(NextResponse.redirect(
+  const response = withPrivateNoStore(NextResponse.redirect(
     new URL(
       error ? "/login?error=invalid_callback" : next,
       publicOrigin,
     ),
   ));
+  if (referralClaimed) clearReferralVisit(response);
+  return response;
 }

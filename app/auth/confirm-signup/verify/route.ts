@@ -7,6 +7,7 @@ import {
 import { getPublicRequestOrigin } from "@/lib/request-security";
 import { createClient } from "@/lib/supabase/server";
 import { withPrivateNoStore } from "@/lib/supabase/cookie-security";
+import { claimPendingReferral, clearReferralVisit } from "@/lib/referrals";
 
 type ConfirmationFailure = "expired_or_used" | "invalid" | "unavailable";
 
@@ -55,7 +56,9 @@ export async function POST(request: Request) {
       await supabase.auth.signOut();
       return failureRedirect(origin, "unavailable");
     }
-    return redirect(origin, "/settings/verification?status=verified&welcome=1");
+    const response = redirect(origin, "/settings/verification?status=verified&welcome=1");
+    if (await claimPendingReferral(supabase, request.headers.get("cookie"))) clearReferralVisit(response);
+    return response;
   } catch {
     return failureRedirect(origin, "unavailable", false);
   }

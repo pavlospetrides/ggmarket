@@ -26,6 +26,21 @@ describe("seller growth migration security contract", () => {
     expect(sql).toContain("seller_verifications_one_open_idx");
     expect(sql).toContain("founding_sellers_seller_key");
     expect(sql).toContain("promotion_reward_ledger_referral_key");
+    expect(sql).toContain("referred_id uuid not null unique");
+    expect(sql).toContain("maximum five rewarded referrals");
+  });
+
+  it("attributes referrals only from a pre-signup opaque visit and qualifies them server-side", () => {
+    expect(sql).toContain("create table public.referral_visits");
+    expect(sql).toContain("function public.record_referral_visit(referral_code text)");
+    expect(sql).toContain("function public.claim_referral_attribution(referral_visit uuid)");
+    expect(sql).toMatch(/created < visit\.created_at/);
+    expect(sql).toContain("email_confirmed_at is not null");
+    expect(sql).toContain("interval '7 days'");
+    expect(sql).toContain("create table public.referral_listing_eligibility");
+    expect(sql).toContain("eligible_since <= now() - interval '7 days'");
+    expect(sql).toContain("circular referral is not allowed");
+    expect(sql).toMatch(/not public\.is_admin\(\)/);
   });
 
   it("lets a seller answer a more-information request without creating a duplicate application", () => {

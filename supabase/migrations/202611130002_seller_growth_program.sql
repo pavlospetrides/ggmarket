@@ -105,6 +105,24 @@ create table public.referral_codes (
   created_at timestamptz not null default now()
 );
 
+create table public.referral_visits (
+  id uuid primary key default gen_random_uuid(),
+  referral_code_id uuid not null references public.referral_codes(id) on delete restrict,
+  created_at timestamptz not null default now(),
+  expires_at timestamptz not null default (now() + interval '7 days'),
+  claimed_at timestamptz,
+  claimed_by uuid unique references public.profiles(id) on delete restrict,
+  check (expires_at > created_at)
+);
+create index referral_visits_code_created_idx on public.referral_visits(referral_code_id, created_at desc);
+
+create table public.referral_listing_eligibility (
+  listing_id uuid primary key references public.listings(id) on delete cascade,
+  seller_id uuid not null references public.profiles(id) on delete cascade,
+  eligible_since timestamptz not null default now()
+);
+create index referral_listing_eligibility_seller_idx on public.referral_listing_eligibility(seller_id, eligible_since);
+
 create table public.referrals (
   id uuid primary key default gen_random_uuid(),
   referral_code_id uuid not null references public.referral_codes(id) on delete restrict,
@@ -223,6 +241,35 @@ $$;
 create trigger pause_ineligible_featured_campaigns
   after update of status or delete on public.listings
   for each row execute function public.pause_ineligible_featured_campaigns();
+
+create or replace function public.track_referral_listing_eligibility()
+returns trigger language plpgsql security definer set search_path = '' as $$
+declare became_active boolean := false;
+begin
+  if tg_op = 'DELETE' then
+    delete from public.referral_listing_eligibility where listing_id = old.id;
+    return old;
+  end if;
+  if tg_op = 'INSERT' then became_active := new.status = 'active';
+  elsif tg_op = 'UPDATE' then became_active := new.status = 'active' and old.status is distinct from 'active';
+  end if;
+  if became_active then
+    insert into public.referral_listing_eligibility(listing_id, seller_id, eligible_since)
+    values (new.id, new.seller_id, now())
+    on conflict (listing_id) do update set seller_id = excluded.seller_id, eligible_since = excluded.eligible_since;
+  elsif new.status <> 'active' then
+    delete from public.referral_listing_eligibility where listing_id = new.id;
+  end if;
+  return new;
+end;
+$$;
+create trigger track_referral_listing_eligibility
+  after insert or update of status or delete on public.listings
+  for each row execute function public.track_referral_listing_eligibility();
+
+insert into public.referral_listing_eligibility(listing_id, seller_id, eligible_since)
+select id, seller_id, now() from public.listings where status = 'active'
+on conflict (listing_id) do nothing;
 
 create or replace function public.submit_seller_verification(application_text text)
 returns public.seller_verifications
@@ -503,15 +550,37 @@ begin
 end;
 $$;
 
-create or replace function public.claim_referral_attribution(referral_code text)
+create or replace function public.record_referral_visit(referral_code text)
+returns uuid
+language plpgsql security definer set search_path = '' as $$
+declare code_row public.referral_codes; visit_id uuid;
+begin
+  select * into code_row from public.referral_codes where code = upper(btrim(referral_code)) and active;
+  if code_row.id is null then raise exception 'referral code not found' using errcode = 'P0002'; end if;
+  if (select count(*) from public.referral_visits where referral_code_id = code_row.id and created_at >= now() - interval '1 hour') >= 1000 then
+    raise exception 'referral visit limit reached' using errcode = '42901';
+  end if;
+  insert into public.referral_visits(referral_code_id) values (code_row.id) returning id into visit_id;
+  return visit_id;
+end;
+$$;
+
+create or replace function public.claim_referral_attribution(referral_visit uuid)
 returns public.referrals
 language plpgsql security definer set search_path = '' as $$
-declare actor uuid := auth.uid(); code_row public.referral_codes; result public.referrals; created timestamptz;
+declare actor uuid := auth.uid(); visit public.referral_visits; code_row public.referral_codes; result public.referrals; created timestamptz;
 begin
   if actor is null or not public.is_active_user() then raise exception 'active account required' using errcode = '42501'; end if;
+  select * into visit from public.referral_visits where id = referral_visit for update;
+  if visit.id is null or visit.expires_at <= now() then raise exception 'referral visit unavailable' using errcode = '42501'; end if;
+  if visit.claimed_by = actor then
+    select * into result from public.referrals where referred_id = actor;
+    return result;
+  end if;
+  if visit.claimed_by is not null then raise exception 'referral visit already claimed' using errcode = '42501'; end if;
   select p.created_at into created from public.profiles p where p.id = actor;
-  if created < now() - interval '7 days' then raise exception 'referral attribution window expired' using errcode = '42501'; end if;
-  select * into code_row from public.referral_codes where code = upper(btrim(referral_code)) and active;
+  if created < visit.created_at or created > visit.expires_at then raise exception 'referral attribution window expired' using errcode = '42501'; end if;
+  select * into code_row from public.referral_codes where id = visit.referral_code_id and active;
   if code_row.id is null then raise exception 'referral code not found' using errcode = 'P0002'; end if;
   if code_row.user_id = actor then raise exception 'self referral is not allowed' using errcode = '42501'; end if;
   if exists (select 1 from public.referrals where referrer_id = actor and referred_id = code_row.user_id) then
@@ -521,6 +590,7 @@ begin
   values (code_row.id, code_row.user_id, actor) returning * into result;
   insert into public.referral_audit(referral_id, actor_id, action, next_status)
   values (result.id, actor, 'attributed', 'pending');
+  update public.referral_visits set claimed_at = now(), claimed_by = actor where id = visit.id;
   return result;
 end;
 $$;
@@ -530,8 +600,8 @@ returns integer
 language plpgsql security definer set search_path = '' as $$
 declare item public.referrals; entitlement_id uuid; awarded integer := 0;
 begin
-  if auth.uid() is null or (not public.is_admin() and not public.is_active_user()) then
-    raise exception 'active account required' using errcode = '42501';
+  if auth.uid() is null or not public.is_admin() then
+    raise exception 'administrator required' using errcode = '42501';
   end if;
   perform pg_catalog.pg_advisory_xact_lock(1280265962);
   for item in
@@ -540,9 +610,14 @@ begin
     join public.profiles np on np.id = r.referred_id and np.suspended_at is null
     join auth.users au on au.id = r.referred_id and au.email_confirmed_at is not null
     where r.status = 'pending' and r.risk_status = 'clear'
-      and exists (select 1 from public.listings l where l.seller_id = r.referred_id and l.status = 'active' and l.published_at <= now() - interval '7 days')
+      and exists (
+        select 1 from public.referral_listing_eligibility e
+        join public.listings l on l.id = e.listing_id and l.status = 'active'
+        where e.seller_id = r.referred_id and e.eligible_since <= now() - interval '7 days'
+      )
     order by r.attributed_at, r.id for update of r skip locked
   loop
+    -- Maximum five rewarded referrals per referrer per calendar month.
     if (select count(*) from public.promotion_reward_ledger l where l.referrer_id = item.referrer_id
         and l.earned_at >= date_trunc('month', now()) and l.earned_at < date_trunc('month', now()) + interval '1 month') >= 5 then
       continue;
@@ -586,6 +661,8 @@ alter table public.founding_sellers enable row level security;
 alter table public.promotion_entitlements enable row level security;
 alter table public.featured_listing_campaigns enable row level security;
 alter table public.referral_codes enable row level security;
+alter table public.referral_visits enable row level security;
+alter table public.referral_listing_eligibility enable row level security;
 alter table public.referrals enable row level security;
 alter table public.referral_audit enable row level security;
 alter table public.promotion_reward_ledger enable row level security;
@@ -606,17 +683,15 @@ create policy "referral codes owner read" on public.referral_codes
   for select to authenticated using (user_id = auth.uid() or public.is_admin());
 create policy "referrals participants or admin read" on public.referrals
   for select to authenticated using (auth.uid() in (referrer_id, referred_id) or public.is_admin());
-create policy "referral audit participants or admin read" on public.referral_audit
-  for select to authenticated using (public.is_admin() or exists (
-    select 1 from public.referrals r where r.id = referral_id and auth.uid() in (r.referrer_id, r.referred_id)
-  ));
+create policy "referral audit admin read" on public.referral_audit
+  for select to authenticated using (public.is_admin());
 create policy "reward ledger owner or admin read" on public.promotion_reward_ledger
   for select to authenticated using (referrer_id = auth.uid() or public.is_admin());
 create policy "seller growth admin audit read" on public.seller_growth_admin_audit
   for select to authenticated using (public.is_admin());
 
 revoke all on public.seller_verification_audit, public.founding_sellers, public.promotion_entitlements,
-  public.featured_listing_campaigns, public.referral_codes, public.referrals, public.referral_audit,
+  public.featured_listing_campaigns, public.referral_codes, public.referral_visits, public.referral_listing_eligibility, public.referrals, public.referral_audit,
   public.promotion_reward_ledger, public.seller_growth_admin_audit from anon, authenticated;
 revoke all on public.seller_trust_signals, public.active_featured_listings from public, anon, authenticated;
 grant select on public.seller_trust_signals, public.active_featured_listings to anon, authenticated;
@@ -633,7 +708,8 @@ revoke all on function public.activate_featured_listing(uuid,uuid) from public, 
 revoke all on function public.expire_featured_campaigns() from public;
 revoke all on function public.admin_manage_seller_growth(text,uuid,text,text) from public, anon;
 revoke all on function public.ensure_referral_code() from public, anon;
-revoke all on function public.claim_referral_attribution(text) from public, anon;
+revoke all on function public.record_referral_visit(text) from public;
+revoke all on function public.claim_referral_attribution(uuid) from public, anon;
 revoke all on function public.qualify_referrals() from public, anon;
 revoke all on function public.redeem_referral_reward(uuid,uuid) from public, anon;
 grant execute on function public.submit_seller_verification(text) to authenticated;
@@ -644,7 +720,8 @@ grant execute on function public.activate_featured_listing(uuid,uuid) to authent
 grant execute on function public.expire_featured_campaigns() to anon, authenticated;
 grant execute on function public.admin_manage_seller_growth(text,uuid,text,text) to authenticated;
 grant execute on function public.ensure_referral_code() to authenticated;
-grant execute on function public.claim_referral_attribution(text) to authenticated;
+grant execute on function public.record_referral_visit(text) to anon, authenticated;
+grant execute on function public.claim_referral_attribution(uuid) to authenticated;
 grant execute on function public.qualify_referrals() to authenticated;
 grant execute on function public.redeem_referral_reward(uuid,uuid) to authenticated;
 

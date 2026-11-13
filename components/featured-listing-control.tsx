@@ -47,7 +47,7 @@ export function FeaturedListingControl({
       <div className="mt-5 grid gap-4">
         {entitlements.length ? entitlements.map((entitlement) => {
           const campaign = activeCampaigns.find((item) => item.entitlement_id === entitlement.id);
-          const available = enabled && ["available", "active"].includes(entitlement.state) && listings.length > 0;
+          const available = enabled && entitlement.source !== "referral" && ["available", "active"].includes(entitlement.state) && listings.length > 0;
           return <div key={entitlement.id} className="rounded-xl bg-[var(--surface-alt)] p-4">
             <div className="flex flex-wrap items-center justify-between gap-2"><strong>{entitlement.source === "founder" ? "Complimentary founder promotion" : entitlement.source === "referral" ? "Referral Featured boost" : "Promotional entitlement"}</strong><span className="badge capitalize">{campaign?.state ?? entitlement.state}</span></div>
             <p className="mt-2 text-sm text-[var(--muted)]">{entitlement.duration_days} days · begins on first activation · does not stack with another active campaign</p>
