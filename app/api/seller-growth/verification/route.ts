@@ -31,8 +31,14 @@ export async function POST(request: Request) {
   const { data, error } = await supabase!.rpc("submit_seller_verification", { application_text: statement });
   if (error) {
     const status = error.code === "42901" ? 429 : error.code === "23505" ? 409 : 400;
-    return NextResponse.json({ error: status === 429 ? "Application limit reached. Please try again later." : "The application could not be submitted." }, { status, headers: privateHeaders });
+    const message = status === 429 ? "Application limit reached. Please try again later." : status === 409 ? "An application is already under review or approved." : "The application could not be submitted.";
+    return NextResponse.json({ error: message }, { status, headers: privateHeaders });
   }
-  return NextResponse.json({ application: data }, { headers: privateHeaders });
+  if (!data || typeof data !== "object" || Array.isArray(data)) {
+    return NextResponse.json({ error: "The application could not be confirmed. Please refresh your status before trying again." }, { status: 502, headers: privateHeaders });
+  }
+  const safeFields = ["id", "seller_id", "status", "application_note", "decision_reason", "reviewed_at", "resubmission_eligible_at", "created_at", "updated_at"] as const;
+  const application = Object.fromEntries(safeFields.filter((key) => Object.hasOwn(data, key)).map((key) => [key, data[key]]));
+  return NextResponse.json({ application }, { headers: privateHeaders });
 }
 

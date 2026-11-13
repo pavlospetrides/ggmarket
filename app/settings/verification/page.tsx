@@ -4,12 +4,16 @@ import { PageMasthead } from "@/components/page-masthead";
 import { SignupWelcome } from "@/components/signup-welcome";
 import { requireUser } from "@/lib/auth";
 import { getOwnListings } from "@/lib/data";
+import { SellerVerificationEntry } from "@/components/seller-verification-entry";
+import { getLatestSellerVerification } from "@/lib/seller-growth";
+import { sellerGrowthFlags } from "@/lib/feature-flags";
 
 export default async function VerificationPage({ searchParams }: { searchParams: Promise<{ status?: string; welcome?: string }> }) {
   const user = await requireUser("/settings/verification");
   const query = await searchParams;
   const { status } = query;
-  const listings = (await getOwnListings(user.id))
+  const [ownListings, verificationApplication] = await Promise.all([getOwnListings(user.id), getLatestSellerVerification(user.id)]);
+  const listings = ownListings
     .filter((item) => item.status === "active")
     .map((item) => ({ id: item.id, title: item.title }));
   const showWelcome = status === "verified" && query.welcome === "1" && Boolean(user.email_confirmed_at);
@@ -18,6 +22,7 @@ export default async function VerificationPage({ searchParams }: { searchParams:
     <PageMasthead eyebrow="Trust and safety" title="Verification" description="Build buyer confidence without exposing sensitive identity documents." variant="trust" meta={<span>{listings.length} eligible listings</span>} />
     <div className="grid min-w-0 gap-5">
       <section className="card min-w-0 p-6"><h2 className="font-bold">Account email</h2><EmailVerificationCard email={user.email ?? "No email address"} confirmed={Boolean(user.email_confirmed_at)} initialStatus={status} /><dl className="mt-5 grid min-w-0 gap-3 border-t border-[var(--border)] pt-5 text-sm"><div className="grid min-w-0 gap-1 sm:grid-cols-2"><dt>Phone</dt><dd className="min-w-0 text-[var(--muted)] [overflow-wrap:anywhere] sm:text-right">Not configured</dd></div><div className="grid min-w-0 gap-1 sm:grid-cols-2"><dt>Identity</dt><dd className="min-w-0 text-[var(--muted)] [overflow-wrap:anywhere] sm:text-right">Requires an approved external provider</dd></div><div className="grid min-w-0 gap-1 sm:grid-cols-2"><dt>Seller verification</dt><dd className="min-w-0 text-[var(--muted)] [overflow-wrap:anywhere] sm:text-right">Manual approval required</dd></div></dl><p className="mt-4 text-xs leading-5 text-[var(--muted)]">Email confirmation does not grant a seller badge. Lootriva never approves seller verification merely because a button was tapped.</p></section>
+      <SellerVerificationEntry application={verificationApplication} enabled={sellerGrowthFlags().sellerVerification} />
       <ItemVerification listings={listings} />
     </div>
   </div>;

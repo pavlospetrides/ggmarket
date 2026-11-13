@@ -33,5 +33,6 @@ export default async function ProfileReviewsHarness({ searchParams }: { searchPa
     favoriteIds={new Set<string>()}
     own={own}
     ggCard={null}
+    sellerVerificationEnabled={own}
   />;
 }

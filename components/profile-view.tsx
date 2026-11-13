@@ -24,6 +24,8 @@ import { ProfileAvatar } from "./profile-avatar";
 import { ProfileMediaImage } from "./profile-media-image";
 import { ProfileMediaEditor } from "./profile-media-editor";
 import { SellerTrustBadges } from "./seller-trust-badges";
+import { SellerVerificationEntry } from "./seller-verification-entry";
+import type { SellerVerificationApplication } from "@/lib/seller-growth-domain";
 
 type ProfileStats = {
   activeListings: number;
@@ -45,6 +47,8 @@ export function ProfileView({
   favoriteIds,
   own = false,
   ggCard,
+  verificationApplication = null,
+  sellerVerificationEnabled = false,
 }: {
   seller: Seller;
   items: Listing[];
@@ -55,6 +59,8 @@ export function ProfileView({
   favoriteIds: Set<string>;
   own?: boolean;
   ggCard: GGCardConfig | null;
+  verificationApplication?: SellerVerificationApplication | null;
+  sellerVerificationEnabled?: boolean;
 }) {
   const [ratingSummary, setRatingSummary] = useState({ average: seller.rating, count: seller.reviewCount });
   const [visibleReviews, setVisibleReviews] = useState(reviews);
@@ -112,6 +118,7 @@ export function ProfileView({
             >
               {own ? (
                 <>
+                  <SellerVerificationEntry application={verificationApplication} enabled={sellerVerificationEnabled} compact />
                   <Link href="/settings" className="btn-primary w-full min-w-0 md:w-auto">
                     <Settings className="size-4" aria-hidden="true" />
                     Edit profile

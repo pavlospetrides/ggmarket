@@ -1,9 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useSyncExternalStore } from "react";
 import { BadgeCheck, Clock3, Send, ShieldCheck } from "lucide-react";
 import type { SellerVerificationApplication, SellerVerificationStatus } from "@/lib/seller-growth-domain";
-import { verificationStatusContent } from "@/lib/seller-growth-domain";
+import { canSubmitSellerVerification, verificationStatusContent } from "@/lib/seller-growth-domain";
+
+const subscribeToHydration = () => () => {};
 
 export function SellerVerificationPanel({
   initialApplication,
@@ -15,16 +17,19 @@ export function SellerVerificationPanel({
   const [application, setApplication] = useState(initialApplication);
   const [statement, setStatement] = useState("");
   const [busy, setBusy] = useState(false);
+  const hydrated = useSyncExternalStore(subscribeToHydration, () => true, () => false);
   const [message, setMessage] = useState("");
+  const [messageError, setMessageError] = useState(false);
   const status = (application?.status ?? "not_applied") as SellerVerificationStatus;
   const content = verificationStatusContent(status);
-  const canApply = enabled && ["not_applied", "more_info", "rejected", "expired"].includes(status);
+  const canApply = canSubmitSellerVerification(application, enabled);
 
   async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (busy) return;
     setBusy(true);
     setMessage("");
+    setMessageError(false);
     try {
       const response = await fetch("/api/seller-growth/verification", {
         method: "POST",
@@ -35,8 +40,9 @@ export function SellerVerificationPanel({
       if (!response.ok) throw new Error(body.error || "Application could not be submitted.");
       setApplication(body.application);
       setStatement("");
-      setMessage("Application submitted. Lootriva will notify you after review.");
+      setMessage("Application submitted. GGMarket will notify you after staff review.");
     } catch (error) {
+      setMessageError(true);
       setMessage(error instanceof Error ? error.message : "Application could not be submitted.");
     } finally {
       setBusy(false);
@@ -48,8 +54,8 @@ export function SellerVerificationPanel({
       <div className="flex items-start gap-4">
         <span className="grid size-12 shrink-0 place-items-center rounded-full bg-[#211a3d] text-[#cbbcff]"><ShieldCheck aria-hidden="true" /></span>
         <div className="min-w-0">
-          <h2 id="seller-review-heading" className="text-xl font-bold">Become a Seller Reviewed account — Free</h2>
-          <p className="mt-2 max-w-2xl text-sm leading-6 text-[var(--text-secondary)]">Lootriva staff review your marketplace profile, listing quality, and account activity. This is not identity verification and does not guarantee transactions or item authenticity.</p>
+          <h2 id="seller-review-heading" className="text-xl font-bold">Apply for Free Verification</h2>
+          <p className="mt-2 max-w-2xl text-sm leading-6 text-[var(--text-secondary)]">GGMarket staff review your marketplace profile, listing quality, and account activity. No government ID or identity check is part of this review. Approval is never automatic, and a badge does not guarantee transactions or item authenticity.</p>
         </div>
       </div>
       <div className="mt-6 rounded-xl bg-[var(--surface-alt)] p-4" role="status" aria-live="polite">
@@ -59,14 +65,14 @@ export function SellerVerificationPanel({
         {application?.resubmission_eligible_at ? <p className="mt-2 text-xs text-[var(--muted)]">Eligible to reapply: <time dateTime={application.resubmission_eligible_at}>{new Intl.DateTimeFormat("en-GB", { dateStyle: "medium", timeZone: "Europe/Athens" }).format(new Date(application.resubmission_eligible_at))}</time></p> : null}
       </div>
       {canApply ? (
-        <form className="mt-6 grid gap-3" onSubmit={submit}>
+        <form className="mt-6 grid gap-3" data-hydrated={hydrated} onSubmit={submit}>
           <label htmlFor="seller-review-statement" className="font-bold">How do you source and describe the items you sell?</label>
-          <textarea id="seller-review-statement" className="input min-h-32 resize-y" minLength={20} maxLength={2000} required value={statement} onChange={(event) => setStatement(event.target.value)} aria-describedby="seller-review-help" />
+          <textarea id="seller-review-statement" className="input min-h-32 resize-y" minLength={20} maxLength={2000} required disabled={busy} value={statement} onChange={(event) => setStatement(event.target.value)} aria-describedby="seller-review-help" />
           <p id="seller-review-help" className="text-xs leading-5 text-[var(--muted)]">Do not upload or include ID documents, payment details, or other sensitive personal information.</p>
-          <button className="btn-primary w-full sm:w-fit" disabled={busy}><Send className="size-4" aria-hidden="true" /> {busy ? "Submitting…" : "Submit free application"}</button>
+          <button className="btn-primary w-full sm:w-fit" disabled={busy || !hydrated}><Send className="size-4" aria-hidden="true" /> {busy ? "Submitting…" : "Submit free application"}</button>
         </form>
-      ) : !enabled ? <p className="mt-5 text-sm text-[var(--muted)]">New applications are not currently open. Existing decisions and history are preserved.</p> : null}
-      {message ? <p className="mt-4 text-sm" role="status" aria-live="polite">{message}</p> : null}
+      ) : !enabled ? <p className="mt-5 text-sm text-[var(--muted)]">New applications are not currently open. Existing decisions and history are preserved.</p> : status === "rejected" ? <p className="mt-5 text-sm text-[var(--muted)]">The reapplication period has not opened yet.</p> : null}
+      {message ? <p className="mt-4 text-sm" role={messageError ? "alert" : "status"} aria-live="polite">{message}</p> : null}
     </section>
   );
 }

@@ -4,6 +4,8 @@
 
 The release is additive and ships disabled. Apply `supabase/migrations/202611130002_seller_growth_program.sql` before deploying application code, then validate the pgTAP suite in a disposable Supabase environment. Keep all flags false until owner review is complete:
 
+The free verification entry follow-up also requires `supabase/migrations/202611130005_seller_verification_entry_safety.sql`. Check the target project's migration history first and apply pending files in timestamp order. Migration `005` keeps existing records, tables, policies, and grants; it prevents an already approved seller from opening another application, prohibits administrators from deciding their own applications, and makes public badges follow the latest decision. Do not deploy the updated application before `005` has been applied and checked in staging.
+
 ```env
 SELLER_VERIFICATION_ENABLED=false
 FOUNDING_SELLERS_ENABLED=false
@@ -12,6 +14,14 @@ REFERRAL_REWARDS_ENABLED=false
 ```
 
 Enable in dependency order: seller review, founders, featured listings, then referrals. Do not enable Founding 100 until staff review operations are staffed; do not enable referrals until the fraud-review and qualification cadence has an owner.
+
+To open **Apply for Free Verification** specifically, set `SELLER_VERIFICATION_ENABLED=true` in the application environment and enable only the `seller_verification` row in `public.seller_growth_feature_config`. Both switches are required; applying migrations alone leaves applications closed. Leave the other Seller Growth switches disabled until their separate rollout decisions. This runbook does not authorize changing production settings automatically.
+
+```sql
+update public.seller_growth_feature_config
+set enabled = true, updated_at = now()
+where feature = 'seller_verification';
+```
 
 The database also has a deny-by-default kill switch so direct RPC calls cannot bypass application flags. In the Supabase SQL editor, enable the matching rows only when the corresponding environment flag is enabled:
 
@@ -37,7 +47,9 @@ Enable only the rows approved for the current rollout stage; the four-row exampl
 2. Run `supabase test db` and exercise RLS as anon, ordinary authenticated user, seller, and admin.
 3. Deploy code with all flags false; verify existing auth, listings, chat, offers, trades, and profiles.
 4. Enable one flag at a time and run the matching smoke tests.
-5. Confirm OAuth, native signup confirmation, and password recovery still complete without referral parameters or token leakage.
+5. As a signed-in seller, check `/profile`, `/settings`, and `/settings/verification` for the free application entry, submit the seller statement, and confirm the status is **Application Under Review** without a badge. Confirm a second submission is rejected.
+6. As an authorized admin, approve and reject separate applications at `/admin/seller-growth`. Confirm only approval displays **Verified Seller** on public profiles and listing cards, and revocation removes it. Check rejection cooldown and revoked reapplication.
+7. Confirm OAuth, native signup confirmation, and password recovery still complete without referral parameters or token leakage.
 
 ## Rollback
 
