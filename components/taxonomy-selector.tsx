@@ -57,7 +57,7 @@ export function TaxonomySelector({ selection, onChange, error }: { selection: Ta
     : undefined;
   return <div className="mt-6 space-y-5">
     <div>
-      <label className="label" htmlFor="taxonomy-level-one">{isFamilyTree ? "Platform family" : "Product type"}</label>
+      <label className="label" htmlFor="taxonomy-level-one">{isFamilyTree ? "Platform family" : selection.categorySlug === "collectibles" ? "Collectible category" : "Product type"}</label>
       <select
         id="taxonomy-level-one"
         className="input"
@@ -68,7 +68,7 @@ export function TaxonomySelector({ selection, onChange, error }: { selection: Ta
           ? { categorySlug: selection.categorySlug, family: event.target.value || undefined }
           : { categorySlug: selection.categorySlug, subcategory: event.target.value || undefined })}
       >
-        <option value="">Choose {isFamilyTree ? "a family" : "a product type"}</option>
+        <option value="">Choose {isFamilyTree ? "a family" : selection.categorySlug === "collectibles" ? "a collectible category" : "a product type"}</option>
         {root.children.map((item) => <option value={item.id} key={item.id}>{item.label}</option>)}
       </select>
     </div>

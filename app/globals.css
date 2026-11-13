@@ -278,6 +278,7 @@ select.input { cursor: pointer; }
 .category-switchboard-card:nth-child(2) { grid-column: span 7; }
 .category-switchboard-card:nth-child(3) { grid-column: span 4; }
 .category-switchboard-card:nth-child(4) { grid-column: span 3; }
+.category-switchboard-card:nth-child(5) { grid-column: span 12; }
 .category-switchboard-card:nth-child(1) .category-switchboard-visual { top: 16%; right: 12%; width: clamp(7rem, 13vw, 12rem); background: rgb(255 255 255 / .12); }
 .category-switchboard-card:nth-child(1) .category-switchboard-visual svg { stroke-width: 1.15; }
 .category-switchboard-card::before { position: absolute; top: 0; left: 0; width: 4.5rem; height: var(--brutalist-stroke); background: currentColor; content: ""; opacity: .8; }
@@ -287,6 +288,7 @@ select.input { cursor: pointer; }
 .category-switchboard-ink { background: #19162c; }
 .category-switchboard-blue { background: #102c4a; }
 .category-switchboard-slate { background: #202632; }
+.category-switchboard-plum { background: #3a1e42; }
 .category-switchboard-visual { position: absolute; top: clamp(1rem, 2vw, 1.5rem); right: clamp(1rem, 2vw, 1.5rem); display: grid; width: clamp(3.25rem, 7vw, 5.5rem); aspect-ratio: 1; place-items: center; border-radius: 35% 12% 35% 12%; background: rgb(255 255 255 / .1); transform: rotate(-4deg); transition: transform var(--motion-emphasized), background-color var(--transition-normal); }
 .category-switchboard-visual svg { width: 48%; height: 48%; stroke-width: 1.55; }
 .category-switchboard-card:hover .category-switchboard-visual, .category-switchboard-card:focus-visible .category-switchboard-visual { transform: rotate(2deg) scale(1.06); background: rgb(255 255 255 / .16); }
@@ -472,7 +474,7 @@ select.input { cursor: pointer; }
     position: relative;
     display: block;
     grid-row: 3;
-    min-height: clamp(13.5rem, 30vh, 15rem);
+    min-height: clamp(16.5rem, 36vh, 18rem);
     margin-top: 1.5rem;
   }
   .mobile-hero-ambient { position: absolute; border-radius: 999px; opacity: .72; }
@@ -484,6 +486,7 @@ select.input { cursor: pointer; }
   .category-switchboard-compact .category-switchboard-intro span { max-width: 12rem; text-align: right; font-size: .6875rem; line-height: 1.25; }
   .category-switchboard-compact .category-switchboard-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); grid-auto-rows: minmax(4.55rem, 1fr); height: calc(100% - 2rem); gap: .4rem; }
   .category-switchboard-compact .category-switchboard-card:nth-child(n) { grid-column: auto; grid-row: auto; min-height: 0; border-radius: .85rem; padding: .65rem; }
+  .category-switchboard-compact .category-switchboard-card:nth-child(5) { grid-column: 1 / -1; }
   .category-switchboard-compact .category-switchboard-card::before { width: 2rem; height: 2px; }
   .category-switchboard-compact .category-switchboard-visual { top: .55rem; right: .55rem; width: 2rem; }
   .category-switchboard-compact .category-switchboard-card:nth-child(1) .category-switchboard-visual { top: .55rem; right: .55rem; width: 2rem; }
@@ -581,7 +584,7 @@ select.input { cursor: pointer; }
 @media (max-width: 374px) {
   .campaign-hero, .campaign-hero-inner { min-height: 46rem; }
   .campaign-actions { grid-template-columns: 1fr; }
-  .mobile-hero-composition { min-height: 13.25rem; }
+  .mobile-hero-composition { min-height: 16.25rem; }
   .mobile-hero-console-heading { padding-top: .75rem; }
   .mobile-hero-lanes { top: 2.85rem; gap-inline: 3.8rem; }
 }
@@ -589,6 +592,7 @@ select.input { cursor: pointer; }
 @media (min-width: 768px) and (max-width: 1023px) {
   .category-switchboard-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); grid-auto-rows: 11rem; }
   .category-switchboard-card:nth-child(n) { grid-column: auto; grid-row: auto; }
+  .category-switchboard-card:nth-child(5) { grid-column: 1 / -1; }
 }
 
 @media (min-width: 768px) {

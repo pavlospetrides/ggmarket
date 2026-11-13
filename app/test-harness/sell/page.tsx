@@ -9,6 +9,7 @@ const categories: Category[] = [
   { id: "22222222-2222-4222-8222-222222222222", name: "PC Components", slug: "pc-components", icon: "cpu" },
   { id: "33333333-3333-4333-8333-333333333333", name: "Gaming PCs", slug: "gaming-pcs", icon: "monitor" },
   { id: "44444444-4444-4444-8444-444444444444", name: "Consoles", slug: "consoles", icon: "gamepad" },
+  { id: "55555555-5555-4555-8555-555555555555", name: "Collectibles & Trading Cards", slug: "collectibles", icon: "trophy" },
 ];
 
 export default function SellInteractionHarnessPage() {

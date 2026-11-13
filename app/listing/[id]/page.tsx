@@ -37,7 +37,9 @@ const LISTING_ATTRIBUTE_ORDER = [
   "storage_form_factor", "storage_protocol", "interface", "vram_gb", "memory_type", "wattage", "efficiency", "modularity",
   "case_size", "motherboard_support", "compatible_sockets", "form_factor", "switch_type", "connection", "dpi", "genre",
   "game_series", "release_year", "multiplayer", "pegi", "game_features",
-  "publisher", "edition", "packaging", "manuals", "region", "force_feedback", "pedals_included", "original_box",
+  "product_type", "card_game", "card_name", "set_name", "card_number", "rarity", "language", "grading_status",
+  "grading_company", "grading_score", "grading_certification_number", "sealed_condition", "manufacturer", "figure_series", "character",
+  "publisher", "edition", "packaging", "packaging_condition", "manuals", "region", "force_feedback", "pedals_included", "original_box",
   "warranty", "intent", "wanted_budget_min",
 ] as const;
 const listingAttributeRank = new Map<string, number>(LISTING_ATTRIBUTE_ORDER.map((key, index) => [key, index]));
@@ -99,6 +101,11 @@ export default async function ListingPage({
               {item.description}
             </p>
             <h2 className="mt-8 text-xl font-bold">Specifications</h2>
+            {item.category.slug === "collectibles" ? (
+              <p className="mt-3 rounded-[var(--radius-md)] bg-[var(--surface-alt)] p-4 text-sm leading-6 text-[var(--text-secondary)]">
+                Grading, certification, and authenticity details are provided by the seller. Lootriva has not verified them. Seller badges do not prove item authenticity.
+              </p>
+            ) : null}
             {orderedAttributes.length ? (
               <dl className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-px overflow-hidden rounded-[var(--radius-md)] bg-[var(--border)]">
                 {orderedAttributes.map(([key, value]) => {
