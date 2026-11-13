@@ -1,6 +1,6 @@
 import { BadgeCheck, Medal } from "lucide-react";
 
-const reviewExplanation = "Lootriva manually reviewed this seller's marketplace profile and activity. This does not guarantee transactions, item authenticity, or that the seller is risk-free.";
+const reviewExplanation = "GGMarket staff reviewed this seller's marketplace profile, listing quality, and account activity. No government ID or identity check is part of this review. This does not guarantee transactions or item authenticity.";
 const founderExplanation = "This account was one of the first 100 eligible sellers approved by Lootriva. Founder recognition is separate from seller review and ratings.";
 
 export function SellerTrustBadges({
@@ -18,11 +18,11 @@ export function SellerTrustBadges({
       {verified ? (
         <span
           className={compact ? "inline-flex items-center text-[var(--success)]" : "badge border-[#28563e] bg-[#123021] text-[#75e5aa]"}
-          aria-label={`Seller reviewed. ${reviewExplanation}`}
+          aria-label={`Verified Seller. ${reviewExplanation}`}
           title={reviewExplanation}
         >
           <BadgeCheck className={compact ? "size-4" : "size-4"} aria-hidden="true" />
-          {compact ? <span className="sr-only">Seller reviewed</span> : "Seller reviewed"}
+          {compact ? <span className="sr-only">Verified Seller</span> : "Verified Seller"}
         </span>
       ) : null}
       {founding ? (

@@ -2,6 +2,7 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { AdminSellerVerifications } from "../components/admin-seller-verifications";
+import type { AdminVerificationRow } from "../lib/seller-growth";
 
 describe("admin seller verification history", () => {
   it("shows immutable decision events with reviewer and timestamp", () => {
@@ -17,5 +18,19 @@ describe("admin seller verification history", () => {
     expect(html).toContain("Reviewer One");
     expect(html).toContain("pending → rejected");
     expect(html).toContain("Please establish more marketplace history.");
+  });
+
+  it("offers revocation only for an approved application and no decision on a rejected one", () => {
+    const base: Omit<AdminVerificationRow, "status"> = {
+      id: "application-a", seller_id: "seller-a", application_note: "I accurately describe every gaming item that I list.",
+      reviewer_note: null, decision_reason: null, reviewed_at: null, resubmission_eligible_at: null,
+      created_at: "2026-11-12T10:00:00Z", updated_at: "2026-11-13T10:00:00Z",
+      seller: { username: "seller", display_name: "Seller" }, reviewer: null, audit: [],
+    };
+    const approved = renderToStaticMarkup(createElement(AdminSellerVerifications, { enabled: true, applications: [{ ...base, status: "verified" }] }));
+    const rejected = renderToStaticMarkup(createElement(AdminSellerVerifications, { enabled: true, applications: [{ ...base, status: "rejected" }] }));
+    expect(approved).toContain('value="revoke"');
+    expect(approved).not.toContain('value="approve"');
+    expect(rejected).not.toContain('name="action"');
   });
 });

@@ -1,10 +1,11 @@
-import { ArrowUpRight, BadgeCheck, MapPin, PackageCheck, Users } from "lucide-react";
+import { ArrowUpRight, MapPin, PackageCheck, Users } from "lucide-react";
 import type { RefObject } from "react";
 import { listingAnchorKey } from "@/lib/listing-navigation";
 import { toFavoriteRailItem } from "@/lib/favorite-rail";
 import type { Listing } from "@/lib/types";
 import { FavoriteButton } from "./favorite-button";
 import { ListingNavigationLink } from "./listing-navigation";
+import { SellerTrustBadges } from "./seller-trust-badges";
 
 export function FavoriteListingDetail({
   listing,
@@ -64,7 +65,7 @@ export function FavoriteListingDetail({
           </div>
           <div className="mt-5 flex min-w-0 items-center gap-2 text-sm text-[var(--text-secondary)]">
             <span className="min-w-0 [overflow-wrap:anywhere]">Sold by {item.sellerName}</span>
-            {item.sellerVerified ? <BadgeCheck className="size-4 shrink-0 text-[var(--success)]" aria-label="Verified seller" /> : null}
+            <SellerTrustBadges verified={item.sellerVerified} compact />
           </div>
         </div>
 
