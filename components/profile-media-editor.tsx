@@ -21,27 +21,59 @@ export function ProfileMediaEditor({ kind, currentUrl, triggerClassName = "", co
   const [error, setError] = useState("");
   const [status, setStatus] = useState("");
   const viewportRef = useRef<HTMLDivElement>(null);
-  const dragRef = useRef<{ x: number; y: number } | null>(null);
+  const dragRef = useRef<{ pointerId: number; x: number; y: number } | null>(null);
+  const mountedRef = useRef(false);
+  const pendingSelectionRef = useRef<{ url: string; image: HTMLImageElement } | null>(null);
+  const requestRef = useRef<AbortController | null>(null);
   const label = kind === "avatar" ? "photo" : "cover";
   const crop = source ? profileCropForView(source.width, source.height, kind, zoom, panX, panY) : null;
 
+  function clearPendingSelection() {
+    const pending = pendingSelectionRef.current;
+    if (!pending) return;
+    pending.image.onload = null;
+    pending.image.onerror = null;
+    URL.revokeObjectURL(pending.url);
+    pendingSelectionRef.current = null;
+  }
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+      clearPendingSelection();
+      requestRef.current?.abort();
+      dragRef.current = null;
+    };
+  }, []);
   useEffect(() => () => { if (source) URL.revokeObjectURL(source.url); }, [source]);
 
   async function choose(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
     event.target.value = "";
     if (!file) return;
+    clearPendingSelection();
     setError(""); setStatus("");
     if (!(["image/jpeg", "image/png", "image/webp"].includes(file.type)) || file.size > 10_485_760 || file.size === 0) {
       setError("Choose a JPEG, PNG or WebP image up to 10 MB."); return;
     }
     const url = URL.createObjectURL(file);
     const image = new Image();
+    pendingSelectionRef.current = { url, image };
     image.onload = () => {
+      if (!mountedRef.current || pendingSelectionRef.current?.url !== url) return;
+      pendingSelectionRef.current = null;
+      if (!Number.isFinite(image.naturalWidth) || !Number.isFinite(image.naturalHeight) || image.naturalWidth <= 0 || image.naturalHeight <= 0) {
+        URL.revokeObjectURL(url); setError("This image has invalid dimensions. Choose another image."); return;
+      }
       setSource({ file, url, width: image.naturalWidth, height: image.naturalHeight });
       setZoom(1); setPanX(0.5); setPanY(0.5);
     };
-    image.onerror = () => { URL.revokeObjectURL(url); setError("This image could not be opened."); };
+    image.onerror = () => {
+      if (!mountedRef.current || pendingSelectionRef.current?.url !== url) return;
+      pendingSelectionRef.current = null;
+      URL.revokeObjectURL(url); setError("This image could not be opened. Choose another image.");
+    };
     image.src = url;
   }
 
@@ -51,36 +83,57 @@ export function ProfileMediaEditor({ kind, currentUrl, triggerClassName = "", co
     const form = new FormData();
     form.set("image", source.file);
     form.set("crop", JSON.stringify(crop));
+    const controller = new AbortController();
+    requestRef.current = controller;
     try {
-      const response = await fetch(`/api/profile/media/${kind}`, { method: "POST", body: form });
-      const data = await response.json() as { error?: string };
+      const response = await fetch(`/api/profile/media/${kind}`, { method: "POST", body: form, signal: controller.signal });
+      const data = await response.json().catch(() => ({})) as { error?: string };
       if (!response.ok) throw new Error(data.error || "Could not save image.");
+      if (!mountedRef.current) return;
       setSource(null); setStatus("Image saved."); setOpen(false); router.refresh();
-    } catch (reason) { setError(reason instanceof Error ? reason.message : "Could not save image."); }
-    finally { setBusy(false); }
+    } catch (reason) { if (mountedRef.current) setError(reason instanceof Error ? reason.message : "Could not save image."); }
+    finally { if (requestRef.current === controller) requestRef.current = null; if (mountedRef.current) setBusy(false); }
   }
 
   async function remove() {
     if (busy || !window.confirm(`Remove your ${label} and restore the default?`)) return;
     setBusy(true); setError(""); setStatus("");
+    const controller = new AbortController();
+    requestRef.current = controller;
     try {
-      const response = await fetch(`/api/profile/media/${kind}`, { method: "DELETE" });
-      const data = await response.json() as { error?: string };
+      const response = await fetch(`/api/profile/media/${kind}`, { method: "DELETE", signal: controller.signal });
+      const data = await response.json().catch(() => ({})) as { error?: string };
       if (!response.ok) throw new Error(data.error || "Could not remove image.");
+      if (!mountedRef.current) return;
       setSource(null); setStatus("Default restored."); setOpen(false); router.refresh();
-    } catch (reason) { setError(reason instanceof Error ? reason.message : "Could not remove image."); }
-    finally { setBusy(false); }
+    } catch (reason) { if (mountedRef.current) setError(reason instanceof Error ? reason.message : "Could not remove image."); }
+    finally { if (requestRef.current === controller) requestRef.current = null; if (mountedRef.current) setBusy(false); }
   }
 
   function drag(event: PointerEvent<HTMLDivElement>) {
-    if (!dragRef.current || !crop || !viewportRef.current) return;
+    const active = dragRef.current;
+    if (!active || active.pointerId !== event.pointerId || !crop || !viewportRef.current) return;
     const bounds = viewportRef.current.getBoundingClientRect();
-    setPanX((value) => moveProfilePan(value, event.clientX - dragRef.current!.x, bounds.width, crop.width));
-    setPanY((value) => moveProfilePan(value, event.clientY - dragRef.current!.y, bounds.height, crop.height));
-    dragRef.current = { x: event.clientX, y: event.clientY };
+    const deltaX = event.clientX - active.x;
+    const deltaY = event.clientY - active.y;
+    const viewportWidth = bounds.width;
+    const viewportHeight = bounds.height;
+    const cropWidth = crop.width;
+    const cropHeight = crop.height;
+    dragRef.current = { pointerId: active.pointerId, x: event.clientX, y: event.clientY };
+    setPanX((value) => moveProfilePan(value, deltaX, viewportWidth, cropWidth));
+    setPanY((value) => moveProfilePan(value, deltaY, viewportHeight, cropHeight));
   }
 
-  return <Dialog open={open} onOpenChange={(next) => { if (busy) return; setOpen(next); if (!next) { setSource(null); setError(""); } }}>
+  function endDrag(event: PointerEvent<HTMLDivElement>) {
+    if (dragRef.current?.pointerId !== event.pointerId) return;
+    dragRef.current = null;
+    try {
+      if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
+    } catch { /* The browser may have already released capture on pointer cancellation. */ }
+  }
+
+  return <Dialog open={open} onOpenChange={(next) => { if (busy) return; setOpen(next); if (!next) { clearPendingSelection(); dragRef.current = null; setSource(null); setError(""); } }}>
     <DialogTrigger className={triggerClassName} aria-label={compact ? `Edit ${label}` : undefined} disabled={!hydrated}>
       {compact ? <Camera className="size-4" aria-hidden="true" /> : <><ImagePlus className="size-4" aria-hidden="true" />{kind === "cover" ? "Edit cover" : currentUrl ? "Change photo" : "Upload photo"}</>}
     </DialogTrigger>
@@ -96,8 +149,14 @@ export function ProfileMediaEditor({ kind, currentUrl, triggerClassName = "", co
           <div ref={viewportRef} role="img" aria-label={`${label} crop preview; use arrow keys to reposition`} tabIndex={0}
             className={`relative mx-auto w-full max-w-full overflow-hidden rounded-xl bg-[#1b2030] outline-none ring-offset-2 focus-visible:ring-2 focus-visible:ring-[var(--primary)] ${kind === "avatar" ? "max-w-72 rounded-full aspect-square" : "aspect-[3/1]"}`}
             style={{ touchAction: "none" }}
-            onPointerDown={(event) => { dragRef.current = { x: event.clientX, y: event.clientY }; event.currentTarget.setPointerCapture(event.pointerId); }}
-            onPointerMove={drag} onPointerUp={() => { dragRef.current = null; }} onPointerCancel={() => { dragRef.current = null; }}
+            onPointerDown={(event) => {
+              if (!event.isPrimary || dragRef.current) return;
+              dragRef.current = { pointerId: event.pointerId, x: event.clientX, y: event.clientY };
+              try {
+                event.currentTarget.setPointerCapture(event.pointerId);
+              } catch { /* Pointer movement inside the preview still works without capture. */ }
+            }}
+            onPointerMove={drag} onPointerUp={endDrag} onPointerCancel={endDrag} onLostPointerCapture={endDrag}
             onKeyDown={(event) => { const step = event.shiftKey ? 0.1 : 0.025; if (event.key === "ArrowLeft") setPanX((v) => Math.max(0, v - step)); else if (event.key === "ArrowRight") setPanX((v) => Math.min(1, v + step)); else if (event.key === "ArrowUp") setPanY((v) => Math.max(0, v - step)); else if (event.key === "ArrowDown") setPanY((v) => Math.min(1, v + step)); else return; event.preventDefault(); }}>
             {/* Native image is used only for a local object URL preview. */}
             {/* eslint-disable-next-line @next/next/no-img-element */}

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getUser } from "@/lib/auth";
-import { calculateRatingSummary } from "@/lib/ratings";
+import { readSellerReviewSummary } from "@/lib/seller-review-summary";
 import { createClient } from "@/lib/supabase/server";
 import { readJson } from "@/lib/security";
 import { ratingSchema } from "@/lib/validation";
@@ -77,12 +77,16 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "The rating could not be saved." }, { status: 400 });
   }
 
-  const [{ data: reviewer }, { data: rows, error: summaryError }] = await Promise.all([
-    supabase.from("profiles").select("display_name").eq("id", user.id).single(),
-    supabase.from("reviews").select("rating").eq("seller_id", sellerId).limit(1000),
-  ]);
-  if (summaryError) return NextResponse.json({ error: "The rating was saved, but the profile summary could not be refreshed." }, { status: 500 });
-  const summary = calculateRatingSummary((rows ?? []).map((row) => row.rating));
+  let summary: { average: number; count: number };
+  let reviewer: { display_name: string } | null;
+  try {
+    const [reviewerResult, ratingSummary] = await Promise.all([
+      supabase.from("profiles").select("display_name").eq("id", user.id).single(),
+      readSellerReviewSummary(supabase, sellerId),
+    ]);
+    reviewer = reviewerResult.data;
+    summary = ratingSummary;
+  } catch { return NextResponse.json({ error: "The rating was saved, but the profile summary could not be refreshed." }, { status: 500 }); }
   return NextResponse.json({
     updated,
     summary,

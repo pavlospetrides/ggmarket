@@ -2,7 +2,122 @@ import { expect, test } from "@playwright/test";
 import sharp from "sharp";
 import { mkdirSync } from "node:fs";
 
+test.use({ serviceWorkers: "block" });
 test.skip(process.env.E2E_UI_HARNESS !== "1", "Isolated UI harness only; cloud data untouched.");
+
+test("dragging avatar and cover crops repeatedly keeps the editor and page alive", async ({ page }, testInfo) => {
+  const errors: string[] = [];
+  const requests: string[] = [];
+  page.on("pageerror", (error) => errors.push(error.message));
+  page.on("request", (request) => { if (request.url().includes("_rsc=")) requests.push(request.url()); });
+  const pixels = await sharp({ create: { width: 900, height: 600, channels: 3, background: "#7559ca" } }).png().toBuffer();
+  await page.goto("/test-harness/profile-media");
+  await expect(page.getByRole("button", { name: "Edit photo" })).toBeEnabled();
+  await page.evaluate(() => { document.documentElement.dataset.cropTest = "active"; });
+  for (const [kind, button] of [["photo", "Edit photo"], ["cover", "Edit cover"]] as const) {
+    await page.getByRole("button", { name: button }).click();
+    await page.getByLabel(`Choose ${kind} image`).setInputFiles({ name: `${kind}.png`, mimeType: "image/png", buffer: pixels });
+    const preview = page.getByRole("img", { name: new RegExp(`${kind} crop preview`) });
+    await expect(preview).toBeVisible();
+    await page.getByRole("slider", { name: "Crop & zoom" }).fill("2");
+    const before = await preview.locator("img").getAttribute("style");
+    const box = await preview.boundingBox();
+    expect(box).not.toBeNull();
+    const cx = box!.x + box!.width / 2;
+    const cy = box!.y + box!.height / 2;
+    await page.mouse.move(cx, cy);
+    await page.mouse.down();
+    await page.mouse.move(cx + 60, cy + 35, { steps: 5 });
+    await page.mouse.move(cx - 45, cy - 25, { steps: 5 });
+    await page.mouse.up();
+    await page.mouse.move(cx, cy);
+    await page.mouse.down();
+    await preview.evaluate((element) => {
+      element.dispatchEvent(new PointerEvent("pointermove", { bubbles: true, pointerId: 1, clientX: 200, clientY: 200 }));
+      element.dispatchEvent(new PointerEvent("pointerup", { bubbles: true, pointerId: 1, clientX: 200, clientY: 200 }));
+    });
+    await page.mouse.up();
+    await expect(preview.locator("img")).not.toHaveAttribute("style", before!);
+    await expect(preview).toBeVisible();
+    if (kind === "cover") {
+      mkdirSync("docs/profile-crop-ratings-screenshots", { recursive: true });
+      await page.screenshot({ path: `docs/profile-crop-ratings-screenshots/${testInfo.project.name}-crop.png`, fullPage: true });
+      for (const width of [390, 768, 1440]) {
+        await page.setViewportSize({ width, height: 844 });
+        await expect(page.getByRole("button", { name: "Save cover" })).toBeInViewport();
+        expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+      }
+    }
+    await page.getByRole("button", { name: "Close" }).click();
+  }
+  expect(errors).toEqual([]);
+  expect(await page.evaluate(() => document.documentElement.dataset.cropTest)).toBe("active");
+  expect(requests).toEqual([]);
+});
+
+test("a failed upload preserves the crop, and cancel keeps the existing image", async ({ page, context, baseURL }) => {
+  const pixels = await sharp({ create: { width: 600, height: 400, channels: 3, background: "#7559ca" } }).png().toBuffer();
+  await context.addCookies([
+    { name: "profile-harness-avatar", value: "1", url: new URL(baseURL!).origin },
+    { name: "profile-harness-fresh", value: "1", url: new URL(baseURL!).origin },
+  ]);
+  await page.route("**/test-harness/profile-image?*", (route) => route.fulfill({ status: 200, contentType: "image/png", body: pixels }));
+  await page.route("**/api/profile/media/avatar", (route) => route.fulfill({ status: 503, contentType: "application/json", body: JSON.stringify({ error: "Image storage is unavailable." }) }));
+  await page.goto("/test-harness/profile-media");
+  await page.getByRole("button", { name: "Edit photo" }).click();
+  await page.getByLabel("Choose photo image").setInputFiles({ name: "avatar.png", mimeType: "image/png", buffer: pixels });
+  const preview = page.getByRole("img", { name: /photo crop preview/ });
+  await expect(preview).toBeVisible();
+  await page.getByRole("slider", { name: "Crop & zoom" }).fill("2");
+  const before = await preview.locator("img").getAttribute("style");
+  await page.getByRole("button", { name: "Save photo" }).click();
+  await expect(page.getByRole("alert")).toHaveText("Image storage is unavailable.");
+  await expect(preview.locator("img")).toHaveAttribute("style", before!);
+  await page.getByRole("button", { name: "Close" }).click();
+  await expect(page.getByRole("img", { name: "Sample Seller avatar" }).locator("img")).toBeVisible();
+  await page.getByRole("button", { name: "Edit photo" }).click();
+  await expect(page.getByRole("img", { name: "Current photo" })).toBeVisible();
+});
+
+test("touch pointer movement remains usable when capture is unavailable", async ({ page }) => {
+  const errors: string[] = [];
+  page.on("pageerror", (error) => errors.push(error.message));
+  const pixels = await sharp({ create: { width: 900, height: 600, channels: 3, background: "#7559ca" } }).png().toBuffer();
+  await page.goto("/test-harness/profile-media");
+  await page.getByRole("button", { name: "Edit cover" }).click();
+  await page.getByLabel("Choose cover image").setInputFiles({ name: "cover.png", mimeType: "image/png", buffer: pixels });
+  const preview = page.getByRole("img", { name: /cover crop preview/ });
+  await page.getByRole("slider", { name: "Crop & zoom" }).fill("2");
+  const before = await preview.locator("img").getAttribute("style");
+  await preview.evaluate((element) => {
+    Object.defineProperty(element, "setPointerCapture", { value: () => { throw new DOMException("Capture unavailable"); } });
+    for (const [type, x, y] of [["pointerdown", 200, 200], ["pointermove", 240, 220], ["pointerup", 240, 220]] as const) {
+      element.dispatchEvent(new PointerEvent(type, { bubbles: true, pointerId: 12, pointerType: "touch", isPrimary: true, clientX: x, clientY: y }));
+    }
+  });
+  await expect(preview.locator("img")).not.toHaveAttribute("style", before!);
+  expect(errors).toEqual([]);
+});
+
+test("a second touch cannot hijack the active crop drag", async ({ page }) => {
+  const pixels = await sharp({ create: { width: 900, height: 600, channels: 3, background: "#7559ca" } }).png().toBuffer();
+  await page.goto("/test-harness/profile-media");
+  await page.getByRole("button", { name: "Edit photo" }).click();
+  await page.getByLabel("Choose photo image").setInputFiles({ name: "avatar.png", mimeType: "image/png", buffer: pixels });
+  const preview = page.getByRole("img", { name: /photo crop preview/ });
+  await page.getByRole("slider", { name: "Crop & zoom" }).fill("2");
+  const before = await preview.locator("img").getAttribute("style");
+  await preview.evaluate((element) => {
+    Object.defineProperty(element, "setPointerCapture", { value: () => {} });
+    for (const [type, pointerId, x, primary] of [
+      ["pointerdown", 1, 200, true], ["pointerdown", 2, 210, false],
+      ["pointermove", 1, 260, true], ["pointerup", 1, 260, true],
+    ] as const) {
+      element.dispatchEvent(new PointerEvent(type, { bubbles: true, pointerId, pointerType: "touch", isPrimary: primary, clientX: x, clientY: 200 }));
+    }
+  });
+  await expect(preview.locator("img")).not.toHaveAttribute("style", before!);
+});
 
 test("avatar and cover controls preview, reposition, and persist through refresh in a mocked media session", async ({ page, context, baseURL }, testInfo) => {
   page.on("pageerror", (error) => { console.error("profile harness page error", error.stack); });

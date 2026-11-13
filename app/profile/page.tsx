@@ -22,6 +22,7 @@ export default async function ProfilePage({ searchParams }: { searchParams: Prom
 
   return (
     <ProfileView
+      key={`${profile.seller.id}:${profile.pagination.reviews.page}`}
       seller={profile.seller}
       items={profile.listings}
       reviews={profile.reviews}

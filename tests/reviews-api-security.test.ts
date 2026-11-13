@@ -75,10 +75,11 @@ describe("reviews API authorization", () => {
       { data: null, error: null },
       { data: { id: "review-1", reviewer_id: accountA, rating: 4, comment: "Good", created_at: "2026-10-20" }, error: null },
       { data: { display_name: "Account A" }, error: null },
-      { data: [{ rating: 4 }], error: null },
     ];
     const supabase = {
-      rpc: vi.fn(async () => ({ data: true, error: null })),
+      rpc: vi.fn((name: string) => name === "seller_review_summary"
+        ? { single: async () => ({ data: { average: 4, review_count: 1 }, error: null }) }
+        : Promise.resolve({ data: true, error: null })),
       from: vi.fn(() => query(results.shift(), writes)),
     };
     mocks.createClient.mockResolvedValue(supabase);
@@ -90,6 +91,7 @@ describe("reviews API authorization", () => {
       value: { reviewer_id: accountA, seller_id: accountB, rating: 4, comment: "Good" },
     });
     expect((await response.json()).summary).toEqual({ average: 4, count: 1 });
+    expect(supabase.rpc).toHaveBeenCalledWith("seller_review_summary", { target_seller: accountB });
   });
 
   it("updates an existing pair rather than inserting a duplicate", async () => {
@@ -100,10 +102,11 @@ describe("reviews API authorization", () => {
       { data: { id: "review-1" }, error: null },
       { data: { id: "review-1", reviewer_id: accountA, rating: 2, comment: null, created_at: "2026-10-20" }, error: null },
       { data: { display_name: "Account A" }, error: null },
-      { data: [{ rating: 2 }, { rating: 4 }], error: null },
     ];
     mocks.createClient.mockResolvedValue({
-      rpc: vi.fn(async () => ({ data: true, error: null })),
+      rpc: vi.fn((name: string) => name === "seller_review_summary"
+        ? { single: async () => ({ data: { average: 3, review_count: 2 }, error: null }) }
+        : Promise.resolve({ data: true, error: null })),
       from: vi.fn(() => query(results.shift(), writes)),
     });
     const { POST } = await import("../app/api/reviews/route");
