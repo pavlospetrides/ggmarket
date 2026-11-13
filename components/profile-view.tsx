@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import {
+  ArrowDown,
   BadgeCheck,
   Bell,
   CalendarDays,
@@ -137,7 +138,9 @@ export function ProfileView({
                 <>
                   {viewerId && viewerId !== seller.id ? <RateUserDialog sellerId={seller.id} sellerName={seller.displayName} onSaved={({ review, summary }) => {
                     setRatingSummary(summary);
-                    setVisibleReviews((current) => replaceReviewerRating(current, review));
+                    setVisibleReviews((current) => pagination.reviews.page === 1
+                      ? replaceReviewerRating(current, review).slice(0, pagination.reviews.pageSize)
+                      : current.map((item) => item.reviewerId === review.reviewerId ? review : item));
                   }} /> : !viewerId ? <Link href={`/login?next=${encodeURIComponent(basePath)}`} className="btn-primary w-full md:w-auto">Rate this user</Link> : null}
                   <a href="#active-listings" className="btn-secondary w-full md:w-auto">
                     <Store className="size-4" aria-hidden="true" />
@@ -158,13 +161,14 @@ export function ProfileView({
             className="mt-5 flex min-w-0 flex-col gap-3 text-sm text-[var(--muted)] sm:flex-row sm:flex-wrap sm:gap-x-5"
             data-profile-region="metadata"
           >
-            {ratingSummary.count > 0 ? (
-              <span className="inline-flex min-w-0 items-center gap-1.5">
+            <a href="#reviews-heading" className="inline-flex min-h-11 min-w-0 items-center gap-1.5 rounded-md text-[var(--text-secondary)] underline-offset-4 hover:text-white hover:underline focus-visible:outline-2 focus-visible:outline-[var(--primary)]">
+              {ratingSummary.count > 0 ? <>
                 <Star className="size-4 shrink-0 fill-[#f8bf4b] text-[#f8bf4b]" aria-hidden="true" />
                 <strong className="text-white">{ratingSummary.average.toFixed(1)} / 5</strong>
                 <span className="[overflow-wrap:anywhere]">— {ratingSummary.count} {ratingSummary.count === 1 ? "rating" : "ratings"}</span>
-              </span>
-            ) : <span className="text-[var(--text-secondary)]">No ratings yet</span>}
+              </> : "No ratings yet"}
+              <ArrowDown className="size-3.5 shrink-0 text-[var(--primary)]" aria-hidden="true" />
+            </a>
             {seller.location ? (
               <span className="inline-flex min-w-0 items-start gap-1.5">
                 <MapPin className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
@@ -173,7 +177,7 @@ export function ProfileView({
             ) : null}
             <span className="inline-flex items-center gap-1.5">
               <CalendarDays className="size-4 shrink-0" aria-hidden="true" />
-              Member since {new Date(seller.memberSince).getFullYear()}
+              Member since {new Date(seller.memberSince).getUTCFullYear()}
             </span>
           </div>
 
@@ -225,8 +229,8 @@ export function ProfileView({
 
       <section className="mt-12 min-w-0 sm:mt-14" aria-labelledby="reviews-heading">
         <div className="flex items-end justify-between gap-4">
-          <div><p className="eyebrow">Seller history</p>{/* taste-skill-ignore -- review section context */}<h2 id="reviews-heading" className="mt-1 text-balance text-2xl font-[800] tracking-tight sm:text-3xl">Reviews</h2></div>
-          <span className="shrink-0 text-sm tabular-nums text-[var(--muted)]">{ratingSummary.count}</span>
+          <div><p className="eyebrow">Seller history</p>{/* taste-skill-ignore -- review section context */}<h2 id="reviews-heading" className="mt-1 scroll-mt-6 text-balance text-2xl font-[800] tracking-tight sm:text-3xl">Reviews</h2></div>
+          <span className="shrink-0 text-sm tabular-nums text-[var(--muted)]">{ratingSummary.count ? `${ratingSummary.average.toFixed(1)} / 5 · ${ratingSummary.count}` : "0 ratings"}</span>
         </div>
         <div className="mt-5 space-y-3">
           {visibleReviews.length ? visibleReviews.map((review) => (
@@ -235,10 +239,10 @@ export function ProfileView({
                 {Array.from({ length: review.rating }, (_, index) => <Star key={index} className="size-4 fill-current" aria-hidden="true" />)}
               </div>
               {review.comment ? <p className="mt-3 min-w-0 leading-7 text-[#c4c9d3] [overflow-wrap:anywhere]">{review.comment}</p> : null}
-              <p className="mt-4 min-w-0 text-sm text-[var(--muted)] [overflow-wrap:anywhere]">{review.reviewerName} ·{" "}<time dateTime={review.createdAt}>{new Date(review.createdAt).toLocaleDateString()}</time></p>
+              <p className="mt-4 min-w-0 text-sm text-[var(--muted)] [overflow-wrap:anywhere]">{review.reviewerName} ·{" "}<time dateTime={review.createdAt}>{new Intl.DateTimeFormat("en-US", { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" }).format(new Date(review.createdAt))}</time></p>
             </article>
           )) : (
-            <div className="card overflow-hidden p-7 text-center text-sm leading-6 text-[var(--muted)] sm:p-8">No ratings yet.</div>
+            <div className="card overflow-hidden p-7 text-center text-sm leading-6 text-[var(--muted)] sm:p-8">No reviews yet. Reviews from buyers and sellers will appear here.</div>
           )}
         </div>
         {pagination.reviews.total > pagination.reviews.pageSize ? <nav className="mt-6 flex items-center justify-between gap-3" aria-label="Review pages">

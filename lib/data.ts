@@ -13,6 +13,7 @@ import { signAuthorizedListingImages } from "./listing-media-delivery";
 import { createMediaStorage, storedMediaProvider } from "./media-storage";
 import { profileMediaBucket } from "./profile-media-storage";
 import { signAuthorizedProfileMedia } from "./profile-media-delivery";
+import { readSellerReviewSummary } from "./seller-review-summary";
 
 export class DataAccessError extends Error {
   constructor(public operation: string) {
@@ -509,7 +510,7 @@ export const getProfileByUsername = cache(async function getProfileByUsername(
     reviewError = retry.error;
     reviewCount = retry.count;
   }
-  const [{ data: verification, error: verificationError }, { data: ratingRows, error: ratingError }, { data: ggCardRow, error: ggCardError }] = await Promise.all([
+  const [{ data: verification, error: verificationError }, summary, { data: ggCardRow, error: ggCardError }] = await Promise.all([
     supabase
       .from("seller_verifications")
       .select("id")
@@ -517,12 +518,11 @@ export const getProfileByUsername = cache(async function getProfileByUsername(
       .eq("status", "verified")
       .limit(1)
       .maybeSingle(),
-    supabase.from("reviews").select("rating").eq("seller_id", profile.id).limit(1000),
+    readSellerReviewSummary(supabase, profile.id).catch(() => { throw new DataAccessError("load seller activity"); }),
     supabase.from("gg_cards").select("slogan,theme_id,is_public,text_color,front_pattern_color").eq("user_id", profile.id).maybeSingle(),
   ]);
-  if (listingError || reviewError || verificationError || ratingError || ggCardError)
+  if (listingError || reviewError || verificationError || ggCardError)
     throw new DataAccessError("load seller activity");
-  const ratings = (ratingRows ?? []).map((review) => Number(review.rating));
   const profileMediaSelections = [
     { ownerId: profile.id, kind: "avatar", path: profile.avatar_path },
     { ownerId: profile.id, kind: "cover", path: profile.cover_path },
@@ -538,10 +538,8 @@ export const getProfileByUsername = cache(async function getProfileByUsername(
     coverUrl,
     location: profile.location ?? undefined,
     bio: profile.bio ?? undefined,
-    rating: ratings.length
-      ? ratings.reduce((sum, value) => sum + value, 0) / ratings.length
-      : 0,
-    reviewCount: reviewCount ?? ratings.length,
+    rating: summary.average,
+    reviewCount: summary.count,
     verified: Boolean(verification),
     memberSince: profile.created_at,
   };

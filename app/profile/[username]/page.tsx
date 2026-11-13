@@ -49,6 +49,7 @@ export default async function SellerPage({
 
   return (
     <ProfileView
+      key={`${profile.seller.id}:${profile.pagination.reviews.page}`}
       seller={profile.seller}
       items={profile.listings}
       reviews={profile.reviews}
