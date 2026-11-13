@@ -1,4 +1,4 @@
-import { BadgeCheck, ImageIcon, MapPin, Star } from "lucide-react";
+import { ImageIcon, MapPin, Star } from "lucide-react";
 import { formatPrice, labelCondition } from "@/lib/constants";
 import { listingAnchorKey } from "@/lib/listing-navigation";
 import type { Listing } from "@/lib/types";
@@ -6,6 +6,7 @@ import { FavoriteButton } from "./favorite-button";
 import { ListingMediaImage } from "./listing-media-image";
 import { ListingNavigationLink } from "./listing-navigation";
 import { ProfileAvatar } from "./profile-avatar";
+import { SellerTrustBadges } from "./seller-trust-badges";
 
 export function ListingCard({
   listing,
@@ -101,12 +102,7 @@ export function ListingCard({
           </div>
           <div className="mt-3 flex min-w-0 items-center gap-1.5 pt-1 text-[13px] text-[var(--text-secondary)]">
             <ProfileAvatar name={listing.seller.displayName} url={listing.seller.avatarUrl} className="size-5 text-[10px]" sizes="20px" /><span className="min-w-0 truncate">{listing.seller.displayName}</span>
-            {listing.seller.verified && (
-              <BadgeCheck
-                className="size-4 shrink-0 text-[var(--success)]"
-                aria-label="Verified seller"
-              />
-            )}
+            <SellerTrustBadges verified={listing.seller.verified} founding={listing.seller.founding} compact />
             {listing.seller.reviewCount > 0 && (
               <span className="ml-auto inline-flex shrink-0 items-center gap-1 tabular-nums" aria-label={`Rated ${listing.seller.rating.toFixed(1)} out of 5`}>
                 <Star className="size-3 fill-[#f8bf4b] text-[#f8bf4b]" aria-hidden="true" />

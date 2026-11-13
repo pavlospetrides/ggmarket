@@ -13,7 +13,7 @@ export type ListingImageRecord = {
 export type Category = { id: string; name: string; slug: string; icon: string };
 export type Seller = {
   id: string; username: string; displayName: string; avatarUrl?: string; coverUrl?: string;
-  rating: number; reviewCount: number; verified: boolean; memberSince: string;
+  rating: number; reviewCount: number; verified: boolean; founding?: boolean; memberSince: string;
   location?: string; bio?: string;
 };
 export type Listing = {

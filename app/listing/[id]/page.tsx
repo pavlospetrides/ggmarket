@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import {
-  BadgeCheck,
   CalendarDays,
   Eye,
   Heart,
@@ -22,6 +21,7 @@ import { MessageSellerButton } from "@/components/message-seller-button";
 import { ProfileAvatar } from "@/components/profile-avatar";
 import { BrowsingStateRestorer, ListingBackButton } from "@/components/listing-navigation";
 import { ReportButton } from "@/components/report-button";
+import { SellerTrustBadges } from "@/components/seller-trust-badges";
 import { getUser } from "@/lib/auth";
 import { formatPrice, labelCondition } from "@/lib/constants";
 import { getFavoriteIds, getListing, getListingExtras } from "@/lib/data";
@@ -172,9 +172,7 @@ export default async function ListingPage({
                 <span className="min-w-0 flex-1">
                   <span className="flex min-w-0 items-start gap-1.5 font-bold">
                     <span className="min-w-0 [overflow-wrap:anywhere]">{item.seller.displayName}</span>
-                    {item.seller.verified && (
-                      <BadgeCheck className="mt-1 size-4 shrink-0 text-[var(--success)]" aria-label="Verified seller" />
-                    )}
+                    <SellerTrustBadges verified={item.seller.verified} founding={item.seller.founding} compact />
                   </span>
                   {item.seller.reviewCount > 0 && (
                     <span className="mt-1 flex flex-wrap items-center gap-1 text-xs text-[var(--text-secondary)]">

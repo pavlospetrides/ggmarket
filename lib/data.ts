@@ -98,6 +98,7 @@ async function enrichRows(
   const [
     { data: reviews, error: reviewsError },
     { data: verifications, error: verificationError },
+    { data: founders, error: foundersError },
   ] = await Promise.all([
     sellerIds.length
       ? supabase
@@ -107,13 +108,20 @@ async function enrichRows(
       : Promise.resolve({ data: [], error: null }),
     sellerIds.length
       ? supabase
-          .from("seller_verifications")
+          .from("seller_trust_signals")
           .select("seller_id")
-          .eq("status", "verified")
+          .eq("seller_reviewed", true)
+          .in("seller_id", sellerIds)
+      : Promise.resolve({ data: [], error: null }),
+    sellerIds.length
+      ? supabase
+          .from("seller_trust_signals")
+          .select("seller_id")
+          .eq("founding_seller", true)
           .in("seller_id", sellerIds)
       : Promise.resolve({ data: [], error: null }),
   ]);
-  if (reviewsError || verificationError)
+  if (reviewsError || verificationError || foundersError)
     throw new DataAccessError("load seller details");
   const selectedImages = new Map(
     rows.map((row) => [row.id, selectListingImagesForDelivery(row.images, imagePurpose)]),
@@ -140,6 +148,7 @@ async function enrichRows(
       Number(review.rating),
     ]);
   const verified = new Set((verifications ?? []).map((item) => item.seller_id));
+  const founding = new Set((founders ?? []).map((item) => item.seller_id));
   const avatarBySeller = new Map(profiles.map((profile, index) => [profile.id, signedProfiles[index]]));
   return rows.flatMap((row) => {
     const category = one(row.category);
@@ -159,6 +168,7 @@ async function enrichRows(
         : 0,
       reviewCount: sellerRatings.length,
       verified: verified.has(profile.id),
+      founding: founding.has(profile.id),
       memberSince: profile.created_at,
     };
     const imageRecords = (selectedImages.get(row.id) ?? [])
@@ -510,18 +520,25 @@ export const getProfileByUsername = cache(async function getProfileByUsername(
     reviewError = retry.error;
     reviewCount = retry.count;
   }
-  const [{ data: verification, error: verificationError }, summary, { data: ggCardRow, error: ggCardError }] = await Promise.all([
+  const [{ data: verification, error: verificationError }, { data: founder, error: founderError }, summary, { data: ggCardRow, error: ggCardError }] = await Promise.all([
     supabase
-      .from("seller_verifications")
-      .select("id")
+      .from("seller_trust_signals")
+      .select("seller_id")
       .eq("seller_id", profile.id)
-      .eq("status", "verified")
+      .eq("seller_reviewed", true)
+      .limit(1)
+      .maybeSingle(),
+    supabase
+      .from("seller_trust_signals")
+      .select("seller_id")
+      .eq("seller_id", profile.id)
+      .eq("founding_seller", true)
       .limit(1)
       .maybeSingle(),
     readSellerReviewSummary(supabase, profile.id).catch(() => { throw new DataAccessError("load seller activity"); }),
     supabase.from("gg_cards").select("slogan,theme_id,is_public,text_color,front_pattern_color").eq("user_id", profile.id).maybeSingle(),
   ]);
-  if (listingError || reviewError || verificationError || ggCardError)
+  if (listingError || reviewError || verificationError || founderError || ggCardError)
     throw new DataAccessError("load seller activity");
   const profileMediaSelections = [
     { ownerId: profile.id, kind: "avatar", path: profile.avatar_path },
@@ -541,6 +558,7 @@ export const getProfileByUsername = cache(async function getProfileByUsername(
     rating: summary.average,
     reviewCount: summary.count,
     verified: Boolean(verification),
+    founding: Boolean(founder),
     memberSince: profile.created_at,
   };
   const [sellerListings, { data: statsData }] = await Promise.all([

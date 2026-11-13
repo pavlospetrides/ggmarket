@@ -25,6 +25,7 @@ import { TradeProposalForm } from "./trade-proposal-form";
 import { Loader2 } from "./ui/loader-2";
 import { useActiveConversation } from "./notification-center";
 import { ProfileAvatar } from "./profile-avatar";
+import { SellerTrustBadges } from "./seller-trust-badges";
 
 type Conversation = {
   id: string;
@@ -32,7 +33,7 @@ type Conversation = {
   listingTitle: string;
   listingPrice: number;
   currency: string;
-  other: { id: string; username: string; display_name: string; avatarUrl?: string };
+  other: { id: string; username: string; display_name: string; avatarUrl?: string; verified: boolean; founding: boolean };
   messages: ChatMessage[];
   offers: ChatOffer[];
   trades: ChatTrade[];
@@ -547,6 +548,7 @@ export function ChatInterface({
             <div className="min-w-0 flex-1">
               <span className="flex min-w-0 items-center gap-1.5">
                 <strong className="truncate text-sm leading-5">{conversation.other.display_name}</strong>
+                <SellerTrustBadges verified={conversation.other.verified} founding={conversation.other.founding} compact />
                 <span className={`flex shrink-0 items-center gap-1 text-[10px] ${online ? "text-[var(--success)]" : "text-[var(--muted)]"}`}>
                   <Circle className={`size-2 ${online ? "fill-current" : ""}`} aria-hidden="true" />
                   {online ? "Online now" : typing ? "Typing…" : "Offline"}

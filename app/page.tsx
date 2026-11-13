@@ -12,11 +12,15 @@ import { getUser } from "@/lib/auth";
 import { getFavoriteIds, getListings } from "@/lib/data";
 import { getRecentlyViewed } from "@/lib/phase2-data";
 import { PUBLIC_PAGE_SOCIAL_METADATA } from "@/lib/site-metadata";
+import { getFeaturedListings } from "@/lib/featured-listings";
+import { getFounderProgramStats } from "@/lib/seller-growth";
+import { sellerGrowthFlags } from "@/lib/feature-flags";
 
 export const metadata: Metadata = PUBLIC_PAGE_SOCIAL_METADATA.home;
 
 export default async function HomePage() {
-  const [recent, user] = await Promise.all([getListings({}, 8), getUser()]);
+  const flags = sellerGrowthFlags();
+  const [recent, user, featured, founderStats] = await Promise.all([getListings({}, 8), getUser(), getFeaturedListings({ limit: 8 }), getFounderProgramStats()]);
   const [favoriteIds, viewed] = user
     ? await Promise.all([getFavoriteIds(user.id), getRecentlyViewed(user.id)])
     : [new Set<string>(), []];
@@ -45,6 +49,10 @@ export default async function HomePage() {
       <div className="section-heading-row"><div><h2 id="atlas-heading" className="section-title">Pick a system. Find the gear.</h2></div><Link href="/marketplace" className="btn-ghost shrink-0">All categories <ArrowRight className="size-4" /></Link></div>
       <CategorySwitchboard />
     </section>
+
+    {flags.foundingSellers ? <section className="seller-growth-reveal bg-[#211a3d] py-16 md:py-24" aria-labelledby="founder-heading"><div className="container-page grid gap-8 lg:grid-cols-[1fr_auto] lg:items-end"><div className="max-w-3xl"><h2 id="founder-heading" className="section-title">Become one of the first 100 Lootriva sellers</h2><p className="mt-4 max-w-2xl text-lg leading-8 text-[#d8ceff]">Complete Lootriva’s free seller review and publish a legitimate active listing. Eligible accounts are allocated by the time they meet both requirements.</p><p className="mt-5 font-bold tabular-nums">{founderStats.remaining} of 100 slots remaining</p></div><Link href={user ? "/settings/seller-growth" : "/register"} className="btn-primary">{user ? "View seller program" : "Create an account"} <ArrowRight className="size-4" /></Link></div></section> : null}
+
+    {flags.featuredListings && featured.length ? <section className="seller-growth-reveal container-page py-16 md:py-24" aria-labelledby="featured-heading"><div className="section-heading-row"><div><h2 id="featured-heading" className="section-title">Featured listings</h2><p className="mt-3 text-[var(--text-secondary)]">Complimentary launch promotions, labelled and rotated fairly.</p></div><span className="badge">Promotional placement</span></div><ListingGrid listings={featured} viewerId={user?.id ?? null} favoriteIds={favoriteIds} navigationContext="home:featured" /></section> : null}
 
     <section className="market-band" aria-labelledby="fresh-heading"><div className="container-page py-16 md:py-24">
       <div className="section-heading-row"><div><h2 id="fresh-heading" className="section-title">Just listed</h2><p className="mt-3 text-[var(--text-secondary)]">Real gear from real sellers, shown exactly as listed.</p></div><Link href="/marketplace?sort=newest" className="btn-ghost shrink-0">View marketplace <ArrowRight className="size-4" /></Link></div>

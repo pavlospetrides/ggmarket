@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { registerSchema } from "@/lib/validation";
 import { withPrivateNoStore } from "../../../lib/supabase/cookie-security";
 import { buildSignupConfirmationUrl } from "@/lib/auth-redirect";
+import { claimPendingReferral, clearReferralVisit } from "@/lib/referrals";
 
 function registrationRedirect(origin: string, key: "error" | "status", value: string) {
   const target = new URL("/register", origin);
@@ -38,5 +39,7 @@ export async function POST(request: Request) {
   const destination = data.session && data.user?.email_confirmed_at
     ? "/settings/verification?status=verified&welcome=1"
     : data.session ? "/profile" : "/register?status=check_email";
-  return withPrivateNoStore(NextResponse.redirect(new URL(destination, publicOrigin), 303));
+  const response = withPrivateNoStore(NextResponse.redirect(new URL(destination, publicOrigin), 303));
+  if (data.session && data.user?.email_confirmed_at && await claimPendingReferral(supabase, request.headers.get("cookie"))) clearReferralVisit(response);
+  return response;
 }

@@ -9,6 +9,7 @@ import { listingImageObjectPaths } from "@/lib/listing-media-storage";
 import { createMediaStorage } from "@/lib/media-storage";
 import { prepareStoredListingImageRemoval } from "@/lib/listing-media-delivery";
 import { completeMediaCleanup } from "@/lib/media-storage/cleanup";
+import { isFeatureEnabled } from "@/lib/feature-flags";
 
 type AttributeRule = { type?: "string" | "number" | "boolean" };
 function validAttributes(attributes: ListingAttributes, schema: unknown) {
@@ -22,7 +23,17 @@ function validAttributes(attributes: ListingAttributes, schema: unknown) {
 export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const user = await getUser(); if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 }); const { id } = await params;
   const body = await readJson(request); const supabase = await createClient();
-  if (typeof body === "object" && body !== null && (body as { action?: unknown }).action === "publish") { const { count } = await supabase!.from("listing_images").select("id", { count: "exact", head: true }).eq("listing_id", id); if (!count) return NextResponse.json({ error: "Add at least one photo before publishing." }, { status: 400 }); const { data, error } = await supabase!.from("listings").update({ status: "active" }).eq("id", id).eq("seller_id", user.id).eq("status", "draft").select("id,status").single(); if (error) { console.error("Listing publish failed", { code: error.code }); return NextResponse.json({ error: "The listing could not be published." }, { status: 400 }); } return NextResponse.json(data); }
+  if (typeof body === "object" && body !== null && (body as { action?: unknown }).action === "publish") {
+    const { count } = await supabase!.from("listing_images").select("id", { count: "exact", head: true }).eq("listing_id", id);
+    if (!count) return NextResponse.json({ error: "Add at least one photo before publishing." }, { status: 400 });
+    const { data, error } = await supabase!.from("listings").update({ status: "active" }).eq("id", id).eq("seller_id", user.id).eq("status", "draft").select("id,status").single();
+    if (error) { console.error("Listing publish failed", { code: error.code }); return NextResponse.json({ error: "The listing could not be published." }, { status: 400 }); }
+    if (isFeatureEnabled("FOUNDING_SELLERS_ENABLED")) {
+      const allocation = await supabase!.rpc("allocate_founding_sellers");
+      if (allocation.error) console.error("Founder allocation deferred", { code: allocation.error.code });
+    }
+    return NextResponse.json(data);
+  }
   const parsed = listingUpdateSchema.safeParse(body); if (!parsed.success) return NextResponse.json({ error: parsed.error.issues[0]?.message ?? "Invalid listing." }, { status: 400 });
   const { data: current, error: currentError } = await supabase!.from("listings").select("category_id,product_id,attributes").eq("id", id).eq("seller_id", user.id).single();
   if (currentError || !current) return NextResponse.json({ error: "Listing not found." }, { status: 404 });
@@ -68,7 +79,12 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     ...(attributes !== undefined ? { attributes } : {}),
   };
   const { data, error } = await supabase!.from("listings").update(update).eq("id", id).eq("seller_id", user.id).select("id,status").single();
-  if (error) { console.error("Listing update failed", { code: error.code }); return NextResponse.json({ error: "The listing could not be updated." }, { status: 400 }); } return NextResponse.json(data);
+  if (error) { console.error("Listing update failed", { code: error.code }); return NextResponse.json({ error: "The listing could not be updated." }, { status: 400 }); }
+  if (data.status === "active" && isFeatureEnabled("FOUNDING_SELLERS_ENABLED")) {
+    const allocation = await supabase!.rpc("allocate_founding_sellers");
+    if (allocation.error) console.error("Founder allocation deferred", { code: allocation.error.code });
+  }
+  return NextResponse.json(data);
 }
 
 export async function DELETE(_request: Request, { params }: { params: Promise<{ id: string }> }) {

@@ -14,7 +14,7 @@ export default function PrivacyPolicyPage() {
       <h1>Privacy policy</h1>
       <p className="policy-status">Privacy at Lootriva</p>
       <p>This draft describes processing visible in the current Lootriva application. It deliberately leaves legal and business facts unresolved where the repository cannot prove them.</p>
-      <p className="policy-updated">Last updated: 20 October 2026</p>
+      <p className="policy-updated">Last updated: 13 November 2026</p>
     </header>
 
     <div className="policy-layout">
@@ -25,7 +25,8 @@ export default function PrivacyPolicyPage() {
       <article className="policy-copy">
         <section>
           <h2>Information used</h2>
-          <p>Depending on the features you choose, Lootriva processes account and profile details, email-verification state, listings and images, favorites and saved searches, recently viewed listings, conversations and messages, offers, trades, notifications, ratings, reports, and verification records.</p>
+          <p>Depending on the features you choose, Lootriva processes account and profile details, email-verification state, listings and images, favorites and saved searches, recently viewed listings, conversations and messages, offers, trades, notifications, ratings, reports, seller-review applications and decisions, referral attribution and reward records, and promotional eligibility records.</p>
+          <p>The seller-review program does not request identity documents. Private reviewer notes are restricted to authorized staff; public badges expose only the resulting trust signal and never claim product authenticity or transaction safety.</p>
           <p>Authentication sessions include encoded access and refresh credentials and related user/session metadata. Lootriva does not intentionally place those credentials in localStorage or IndexedDB.</p>
         </section>
 

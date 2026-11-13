@@ -3,7 +3,6 @@
 import Link from "next/link";
 import {
   ArrowDown,
-  BadgeCheck,
   Bell,
   CalendarDays,
   MessageCircle,
@@ -24,6 +23,7 @@ import { GGCardSection } from "./gg-card-section";
 import { ProfileAvatar } from "./profile-avatar";
 import { ProfileMediaImage } from "./profile-media-image";
 import { ProfileMediaEditor } from "./profile-media-editor";
+import { SellerTrustBadges } from "./seller-trust-badges";
 
 type ProfileStats = {
   activeListings: number;
@@ -98,12 +98,7 @@ export function ProfileView({
                 >
                   {seller.displayName}
                 </h1>
-                {seller.verified ? (
-                  <BadgeCheck
-                    className="mt-1 size-5 shrink-0 text-[var(--success)] sm:size-6"
-                    aria-label="Verified seller"
-                  />
-                ) : null}
+                <SellerTrustBadges verified={seller.verified} founding={seller.founding} compact />
               </div>
               <p className="mt-1 min-w-0 text-sm text-[var(--muted)] [overflow-wrap:anywhere]" translate="no">
                 @{seller.username}
@@ -181,12 +176,7 @@ export function ProfileView({
             </span>
           </div>
 
-          {seller.verified ? (
-            <div className="badge mt-5 border-[#28563e] bg-[#123021] text-[#75e5aa]">
-              <BadgeCheck className="size-4" aria-hidden="true" />
-              Verified seller
-            </div>
-          ) : null}
+          {seller.verified || seller.founding ? <div className="mt-5"><SellerTrustBadges verified={seller.verified} founding={seller.founding} /></div> : null}
         </div>
       </section>
 
