@@ -32,7 +32,7 @@ const schema = z
     price: z.number().positive().max(1_000_000),
     budgetMin: z.number().positive().max(1_000_000),
     categoryId: z.string().uuid(),
-    productName: z.string().trim().min(2).max(160),
+    productName: z.string().trim().max(160),
     intent: z.enum(["sale", "wanted", "trade", "sale_or_trade"]),
     condition: z.enum(["new", "like_new", "good", "fair", "parts"]),
     location: z.string().trim().min(2).max(120),
@@ -163,10 +163,14 @@ export function SellWizard({ categories }: { categories: Category[] }) {
     }
     let fields: (keyof Values)[] = [];
     if (step === 0) fields = ["categoryId"];
-    if (step === 1) fields = ["productName"];
+    if (step === 1 && category?.slug !== "collectibles") fields = ["productName"];
     if (step === 3) fields = ["title", "description", "condition"];
     if (step === 4) fields = ["price", ...(values.intent === "wanted" ? ["budgetMin" as const] : []), "location", "shipping", "meetup"];
     if (fields.length && !(await form.trigger(fields, { shouldFocus: true }))) return;
+    if (step === 1 && category?.slug !== "collectibles" && String(values.productName ?? "").trim().length < 2) {
+      form.setError("productName", { message: "Enter a product or model." }, { shouldFocus: true });
+      return;
+    }
     if (step === 0 && !isTaxonomySelectionComplete(taxonomySelection)) {
       setTaxonomyError("Choose the complete product path before continuing.");
       return;
@@ -198,7 +202,7 @@ export function SellWizard({ categories }: { categories: Category[] }) {
           description: data.description,
           price: data.price,
           categoryId: data.categoryId,
-          productName: data.productName,
+          productName: data.productName || data.title,
           condition: data.condition,
           location: data.location,
           shipping: data.shipping,
@@ -328,12 +332,11 @@ export function SellWizard({ categories }: { categories: Category[] }) {
           )}
           {step === 1 && (
             <div>
-              <h2 className="text-2xl font-black">Which product or model?</h2>
+              <h2 className="text-2xl font-black">{category?.slug === "collectibles" ? "Choose a product type" : "Which product or model?"}</h2>
               <p className="mt-2 text-sm text-[var(--muted)]">
-                We&apos;ll link it to the product catalog when an exact match
-                exists.
+                {category?.slug === "collectibles" ? "Additional collector details are optional. Add only what you know." : "We'll link it to the product catalog when an exact match exists."}
               </p>
-              <div className="mt-6">
+              {category?.slug !== "collectibles" ? <div className="mt-6">
                 <label className="label" htmlFor="productName">
                   Product or model
                 </label>
@@ -354,12 +357,12 @@ export function SellWizard({ categories }: { categories: Category[] }) {
                     {error("productName")}
                   </p>
                 )}
-              </div>
-              {category ? <TaxonomyAttributeFields categorySlug={category.slug} selectionAttributes={buildListingTaxonomyAttributes(taxonomySelection, {})} values={taxonomyAttributes} onChange={(next) => { setTaxonomyAttributes(next); setTaxonomyError(""); }} /> : null}
+              </div> : null}
+              {category ? <TaxonomyAttributeFields categorySlug={category.slug} selectionAttributes={buildListingTaxonomyAttributes(taxonomySelection, {})} values={taxonomyAttributes} collapsible={category.slug === "collectibles"} onChange={(next) => { setTaxonomyAttributes(next); setTaxonomyError(""); }} /> : null}
               {taxonomyError ? <p className="mt-3 text-sm text-[var(--danger)]" role="alert">{taxonomyError}</p> : null}
               <div className="mt-5 rounded-xl border border-[var(--border)] bg-[#0d1017] p-4 text-sm text-[var(--muted)]">
                 <Package className="mb-2 size-5 text-[#a995ff]" />
-                Enter the exact model where possible.
+                {category?.slug === "collectibles" ? "Seller-provided grading details are not verified by Lootriva." : "Enter the exact model where possible."}
               </div>
             </div>
           )}
@@ -518,11 +521,12 @@ export function SellWizard({ categories }: { categories: Category[] }) {
                 )}
                 <div>
                   <label className="label" htmlFor="sell-location">
-                    Location
+                    City
                   </label>
                   <input
                     id="sell-location"
                     className="input"
+                    placeholder="e.g. Nicosia"
                     maxLength={120}
                     {...form.register("location")}
                   />
