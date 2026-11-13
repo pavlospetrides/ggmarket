@@ -2,8 +2,8 @@
 
 import { useState } from "react";
 import { BadgeCheck, Clock3, Send, ShieldCheck } from "lucide-react";
-import type { SellerVerificationApplication, SellerVerificationStatus } from "@/lib/seller-growth";
-import { verificationStatusContent } from "@/lib/seller-growth";
+import type { SellerVerificationApplication, SellerVerificationStatus } from "@/lib/seller-growth-domain";
+import { verificationStatusContent } from "@/lib/seller-growth-domain";
 
 export function SellerVerificationPanel({
   initialApplication,

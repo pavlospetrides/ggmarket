@@ -19,6 +19,7 @@ describe("seller growth migration security contract", () => {
     expect(sql).toContain("prevent_seller_growth_ledger_mutation");
     expect(sql).toContain("verification_audit_immutable");
     expect(sql).toContain("promotion_reward_ledger_immutable");
+    expect(sql).toContain("seller_growth_admin_audit_immutable");
   });
 
   it("enforces one pending application, one founder, and one referral reward", () => {
@@ -30,6 +31,16 @@ describe("seller growth migration security contract", () => {
   it("lets a seller answer a more-information request without creating a duplicate application", () => {
     expect(sql).toContain("if latest.status = 'more_info' then");
     expect(sql).toMatch(/update public\.seller_verifications set[\s\S]+status = 'pending'[\s\S]+where id = latest\.id/);
+  });
+
+  it("starts founder benefits once, expires by server time, and accepts only owned active listings", () => {
+    expect(sql).toContain("select seller_id, 'founder', id, 30 from inserted");
+    expect(sql).toContain("featured_listing_campaigns_one_active_seller_idx");
+    expect(sql).toContain("seller_id = actor and status = 'active'");
+    expect(sql).toContain("campaign_end <= now()");
+    expect(sql).toContain("campaign_start + make_interval(days => entitlement.duration_days)");
+    expect(sql).toContain("function public.expire_featured_campaigns");
+    expect(sql).toContain("pause_ineligible_featured_campaigns");
   });
 
   it("uses narrow security-definer functions with protected search paths", () => {
@@ -61,6 +72,12 @@ describe("seller growth migration security contract", () => {
       expect(sql).toContain(`alter table public.${table} enable row level security`);
     }
     expect(sql).not.toMatch(/grant\s+(insert|update|delete)\s+on\s+public\.seller_verification_audit\s+to\s+authenticated/);
+    expect(sql).toContain('drop policy if exists "verifications own or admin read"');
+    expect(sql).toContain('create policy "verifications admin read"');
+    expect(sql).toContain('create policy "verification audit admin read"');
+    expect(sql).toContain("function public.get_my_seller_verification()");
+    expect(sql).toContain("create view public.seller_trust_signals");
+    expect(sql).toContain("grant select on public.seller_trust_signals, public.active_featured_listings to anon, authenticated");
   });
 });
 

@@ -613,3 +613,19 @@ select.input { cursor: pointer; }
 }
 
 @keyframes jellyfish-orbit { from { transform: rotateY(0); } to { transform: rotateY(-360deg); } }
+
+.seller-growth-reveal > *,
+.seller-growth-reveal > .container-page > *,
+.seller-growth-reveal .section-heading-row > *,
+.seller-growth-reveal [data-listing-id] {
+  animation: seller-growth-enter .7s both cubic-bezier(.2,.7,.2,1);
+}
+.seller-growth-reveal [data-listing-id]:nth-child(2) { animation-delay: 70ms; }
+.seller-growth-reveal [data-listing-id]:nth-child(3) { animation-delay: 140ms; }
+.seller-growth-reveal [data-listing-id]:nth-child(4) { animation-delay: 210ms; }
+.seller-growth-reveal [data-listing-id]:nth-child(n+5) { animation-delay: 280ms; }
+
+@keyframes seller-growth-enter {
+  from { opacity: 0; transform: translateY(24px); }
+  to { opacity: 1; transform: translateY(0); }
+}

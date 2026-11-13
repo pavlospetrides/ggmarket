@@ -11,6 +11,8 @@ import { TaxonomyNavigation } from "@/components/taxonomy-navigation";
 import { getUser } from "@/lib/auth";
 import { getBrowseData, getCategories } from "@/lib/data";
 import { PUBLIC_PAGE_SOCIAL_METADATA } from "@/lib/site-metadata";
+import { getFeaturedListings } from "@/lib/featured-listings";
+import { isFeatureEnabled } from "@/lib/feature-flags";
 
 export const metadata: Metadata = {
   title: "Browse gaming gear",
@@ -24,7 +26,7 @@ function Heading({ title, href }: { title: string; href?: string }) {
 
 export default async function BrowsePage() {
   const user = await getUser();
-  const [categories, discovery] = await Promise.all([getCategories(), getBrowseData(user?.id)]);
+  const [categories, discovery, featured] = await Promise.all([getCategories(), getBrowseData(user?.id), getFeaturedListings({ limit: 10 })]);
   const features = [
     { slug: "pc-components", title: "Build the next frame", image: "/images/browse/browse-pc-performance.webp", alt: "Gaming PC components arranged in a hardware studio" },
     { slug: "consoles", title: "Choose your platform", image: "/images/browse/browse-console-corner.webp", alt: "Console and controllers in a gaming setup" },
@@ -67,11 +69,12 @@ export default async function BrowsePage() {
       </div>
       <div className="mt-4"><CategoryGrid categories={categories} /></div>
       <section className="mt-10 rounded-[var(--radius-xl)] bg-[var(--surface)] p-5 sm:p-7" aria-label="Gaming category directory">
-        <div className="mb-5 max-w-2xl"><p className="eyebrow">Loadout tree</p><h3 className="mt-2 text-2xl font-extrabold tracking-[-.04em] sm:text-3xl">Browse by system & product</h3><p className="mt-2 text-sm leading-6 text-[var(--text-secondary)]">Start with the gear type, then narrow by platform, generation, model, or compatibility.</p></div>
+        <div className="mb-5 max-w-2xl"><p className="eyebrow">Loadout tree</p>{/* taste-skill-ignore -- preserved existing category-directory context */}<h3 className="mt-2 text-2xl font-extrabold tracking-[-.04em] sm:text-3xl">Browse by system & product</h3><p className="mt-2 text-sm leading-6 text-[var(--text-secondary)]">Start with the gear type, then narrow by platform, generation, model, or compatibility.</p></div>
         <TaxonomyNavigation directory />
       </section>
     </section>
 
+    {isFeatureEnabled("FEATURED_LISTINGS_ENABLED") && featured.length > 0 && <section className="seller-growth-reveal container-page pb-20 md:pb-28"><div className="mb-7 flex items-end justify-between gap-4"><div><h2 className="section-title">Featured listings</h2><p className="mt-3 text-sm text-[var(--text-secondary)]">Promotional placement · rotated fairly</p></div><span className="badge">Featured</span></div><ProductRail label="Featured promotional listings" restorationKey="browse:featured">{featured.map((listing) => <DiscoveryListingCard key={listing.id} listing={listing} navigationContext="browse:featured" />)}</ProductRail></section>}
     {discovery.popular.length > 0 && <section className="container-page pb-20 md:pb-28"><Heading title="Popular now" href="/marketplace" /><ProductRail label="Popular listings" restorationKey="browse:popular">{discovery.popular.map((listing) => <DiscoveryListingCard key={listing.id} listing={listing} navigationContext="browse:popular" />)}</ProductRail></section>}
     {discovery.fresh.length > 0 && <section className="container-page pb-20 md:pb-28"><Heading title="Just listed" href="/marketplace?sort=newest" /><ProductRail label="Fresh listings" restorationKey="browse:fresh">{discovery.fresh.map((listing) => <DiscoveryListingCard key={listing.id} listing={listing} navigationContext="browse:fresh" />)}</ProductRail></section>}
 

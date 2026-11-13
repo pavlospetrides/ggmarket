@@ -54,6 +54,16 @@ describe("seller verification mutation authorization", () => {
     });
   });
 
+  it("loads the seller-safe application projection without exposing reviewer notes", async () => {
+    mocks.getUser.mockResolvedValue({ id: "seller-a" });
+    mocks.rpc.mockResolvedValue({ data: [{ id: "application-a", seller_id: "seller-a", status: "pending" }], error: null });
+    const { GET } = await import("../app/api/seller-growth/verification/route");
+    const response = await GET();
+    expect(response.status).toBe(200);
+    expect(mocks.rpc).toHaveBeenCalledWith("get_my_seller_verification");
+    expect(await response.json()).toEqual({ application: { id: "application-a", seller_id: "seller-a", status: "pending" } });
+  });
+
   it("rejects ordinary users attempting an admin decision", async () => {
     mocks.getAdminUser.mockResolvedValue(null);
     const { PATCH } = await import("../app/api/admin/seller-verifications/route");

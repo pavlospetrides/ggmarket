@@ -70,18 +70,19 @@ export async function getConversation(userId: string, id: string) {
   if (error) throw new DataAccessError("load conversation"); if (!row) return null;
   const other = one((row.buyer_id === userId ? row.seller : row.buyer) as Related<{ id: string; username: string; display_name: string; avatar_path: string | null }>);
   const listing = one(row.listing as Related<{ title: string; price: number; currency: string }>); if (!other || !listing) return null;
-  const [{ data: messages, error: messageError }, { data: offers, error: offerError }, { data: trades, error: tradeError }, { data: ownListings }, { data: verification, error: verificationError }] = await Promise.all([
+  const [{ data: messages, error: messageError }, { data: offers, error: offerError }, { data: trades, error: tradeError }, { data: ownListings }, { data: verification, error: verificationError }, { data: founder, error: founderError }] = await Promise.all([
     supabase.from("messages").select("id,sender_id,body,client_id,created_at").eq("conversation_id", id).order("created_at").limit(500),
     supabase.from("offers").select("id,created_by,buyer_id,seller_id,amount,currency,status,created_at").eq("conversation_id", id).order("created_at").limit(100),
     supabase.from("trade_proposals").select("id,proposer_id,recipient_id,cash_adjustment,note,status,created_at,offered:listings!trade_proposals_offered_listing_id_fkey(title)").eq("conversation_id", id).order("created_at").limit(100),
     supabase.from("listings").select("id,title").eq("seller_id", userId).eq("status", "active").neq("id", row.listing_id).limit(50),
-    supabase.from("seller_verifications").select("id").eq("seller_id", other.id).eq("status", "verified").limit(1).maybeSingle(),
+    supabase.from("seller_trust_signals").select("seller_id").eq("seller_id", other.id).eq("seller_reviewed", true).limit(1).maybeSingle(),
+    supabase.from("seller_trust_signals").select("seller_id").eq("seller_id", other.id).eq("founding_seller", true).limit(1).maybeSingle(),
   ]);
-  if (messageError || offerError || tradeError || verificationError) throw new DataAccessError("load conversation activity");
+  if (messageError || offerError || tradeError || verificationError || founderError) throw new DataAccessError("load conversation activity");
   const otherAvatarUrl = other.avatar_path ? (await signAuthorizedProfileMedia([{ ownerId: other.id, kind: "avatar", path: other.avatar_path }], profileMediaBucket()))[0] : undefined;
   return {
     id, listingId: row.listing_id, listingTitle: listing.title, listingPrice: Number(listing.price), currency: listing.currency,
-    other: { ...other, avatarUrl: otherAvatarUrl, verified: Boolean(verification) }, messages: (messages ?? []).map((item) => ({ id: item.id, senderId: item.sender_id, body: item.body, clientId: item.client_id, createdAt: item.created_at, status: "sent" } satisfies ChatMessage)),
+    other: { ...other, avatarUrl: otherAvatarUrl, verified: Boolean(verification), founding: Boolean(founder) }, messages: (messages ?? []).map((item) => ({ id: item.id, senderId: item.sender_id, body: item.body, clientId: item.client_id, createdAt: item.created_at, status: "sent" } satisfies ChatMessage)),
     offers: (offers ?? []).map((item) => ({ id: item.id, createdBy: item.created_by, buyerId: item.buyer_id, sellerId: item.seller_id, amount: Number(item.amount), currency: item.currency, status: item.status, createdAt: item.created_at } satisfies ChatOffer)),
     trades: (trades ?? []).map((item) => ({ id: item.id, proposerId: item.proposer_id, recipientId: item.recipient_id, cashAdjustment: Number(item.cash_adjustment), note: item.note ?? undefined, status: item.status, offeredTitle: one(item.offered as Related<{ title: string }>)?.title, createdAt: item.created_at } satisfies ChatTrade)),
     ownListings: ownListings ?? [],

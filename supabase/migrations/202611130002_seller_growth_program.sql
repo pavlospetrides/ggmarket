@@ -84,7 +84,7 @@ create table public.featured_listing_campaigns (
   id uuid primary key default gen_random_uuid(),
   entitlement_id uuid not null unique references public.promotion_entitlements(id) on delete restrict,
   seller_id uuid not null references public.profiles(id) on delete restrict,
-  listing_id uuid not null references public.listings(id) on delete restrict,
+  listing_id uuid references public.listings(id) on delete set null,
   state text not null default 'active' check (state in ('active','paused','expired','revoked')),
   starts_at timestamptz not null,
   expires_at timestamptz not null,
@@ -148,6 +148,39 @@ create table public.promotion_reward_ledger (
 create index promotion_reward_ledger_owner_idx
   on public.promotion_reward_ledger(referrer_id, status, earned_at desc);
 
+create table public.seller_growth_admin_audit (
+  id uuid primary key default gen_random_uuid(),
+  actor_id uuid not null references public.profiles(id) on delete restrict,
+  entity_type text not null check (entity_type in ('founder','entitlement')),
+  entity_id uuid not null,
+  action text not null check (action in ('suspend','resume','revoke','restore')),
+  reason text not null check (char_length(reason) between 5 and 1000),
+  before_state jsonb not null,
+  after_state jsonb not null,
+  created_at timestamptz not null default now()
+);
+create index seller_growth_admin_audit_entity_idx on public.seller_growth_admin_audit(entity_type, entity_id, created_at desc);
+
+create view public.seller_trust_signals
+with (security_barrier = true) as
+select signal.seller_id,
+  bool_or(signal.kind = 'reviewed') as seller_reviewed,
+  bool_or(signal.kind = 'founder') as founding_seller
+from (
+  select seller_id, 'reviewed'::text as kind
+  from public.seller_verifications where status = 'verified'
+  union all
+  select seller_id, 'founder'::text as kind
+  from public.founding_sellers where badge_active and revoked_at is null
+) signal
+group by signal.seller_id;
+
+create view public.active_featured_listings
+with (security_barrier = true) as
+select listing_id, starts_at, expires_at
+from public.featured_listing_campaigns
+where state = 'active' and expires_at > now() and listing_id is not null;
+
 create or replace function public.prevent_seller_growth_ledger_mutation()
 returns trigger language plpgsql set search_path = '' as $$
 begin
@@ -160,6 +193,8 @@ create trigger referral_audit_immutable before update or delete on public.referr
   for each row execute function public.prevent_seller_growth_ledger_mutation();
 create trigger promotion_reward_ledger_immutable before delete on public.promotion_reward_ledger
   for each row execute function public.prevent_seller_growth_ledger_mutation();
+create trigger seller_growth_admin_audit_immutable before update or delete on public.seller_growth_admin_audit
+  for each row execute function public.prevent_seller_growth_ledger_mutation();
 
 create trigger seller_verifications_touch before update on public.seller_verifications
   for each row execute function public.touch_updated_at();
@@ -169,6 +204,25 @@ create trigger featured_listing_campaigns_touch before update on public.featured
   for each row execute function public.touch_updated_at();
 create trigger referrals_touch before update on public.referrals
   for each row execute function public.touch_updated_at();
+
+create or replace function public.pause_ineligible_featured_campaigns()
+returns trigger language plpgsql security definer set search_path = '' as $$
+begin
+  if tg_op = 'DELETE' then
+    update public.featured_listing_campaigns set state = 'paused'
+    where listing_id = old.id and state = 'active';
+    return old;
+  end if;
+  if new.status <> 'active' then
+    update public.featured_listing_campaigns set state = 'paused'
+    where listing_id = old.id and state = 'active';
+  end if;
+  return new;
+end;
+$$;
+create trigger pause_ineligible_featured_campaigns
+  after update of status or delete on public.listings
+  for each row execute function public.pause_ineligible_featured_campaigns();
 
 create or replace function public.submit_seller_verification(application_text text)
 returns public.seller_verifications
@@ -211,6 +265,27 @@ begin
   values (result.id, actor, actor, case when latest.id is null then 'submitted' else 'resubmitted' end, latest.status, 'pending');
   return result;
 end;
+$$;
+
+create or replace function public.get_my_seller_verification()
+returns table (
+  id uuid,
+  seller_id uuid,
+  status text,
+  application_note text,
+  decision_reason text,
+  reviewed_at timestamptz,
+  resubmission_eligible_at timestamptz,
+  created_at timestamptz,
+  updated_at timestamptz
+)
+language sql stable security definer set search_path = '' as $$
+  select sv.id, sv.seller_id, sv.status, sv.application_note, sv.decision_reason,
+    sv.reviewed_at, sv.resubmission_eligible_at, sv.created_at, sv.updated_at
+  from public.seller_verifications sv
+  where sv.seller_id = auth.uid()
+  order by sv.created_at desc
+  limit 1;
 $$;
 
 create or replace function public.review_seller_verification(
@@ -343,6 +418,72 @@ begin
 end;
 $$;
 
+create or replace function public.expire_featured_campaigns()
+returns integer
+language plpgsql security definer set search_path = '' as $$
+declare expired_count integer;
+begin
+  update public.featured_listing_campaigns
+  set state = 'expired'
+  where state = 'active' and expires_at <= now();
+  get diagnostics expired_count = row_count;
+  update public.promotion_entitlements
+  set state = 'expired'
+  where state = 'active' and expires_at <= now();
+  return expired_count;
+end;
+$$;
+
+create or replace function public.admin_manage_seller_growth(target_type text, target_id uuid, admin_action text, reason_text text)
+returns boolean
+language plpgsql security definer set search_path = '' as $$
+declare actor uuid := auth.uid(); before_value jsonb; after_value jsonb; founder_id uuid;
+begin
+  if actor is null or not public.is_admin() then raise exception 'administrator required' using errcode = '42501'; end if;
+  reason_text := btrim(coalesce(reason_text, ''));
+  if target_type not in ('founder','entitlement') or admin_action not in ('suspend','resume','revoke','restore') or char_length(reason_text) not between 5 and 1000 then
+    raise exception 'invalid admin action' using errcode = '22023';
+  end if;
+  if target_type = 'founder' then
+    select to_jsonb(f), f.id into before_value, founder_id from public.founding_sellers f where f.id = target_id for update;
+    if before_value is null then raise exception 'founder record not found' using errcode = 'P0002'; end if;
+    if admin_action not in ('revoke','restore') then raise exception 'invalid founder action' using errcode = '22023'; end if;
+    update public.founding_sellers set
+      badge_active = admin_action = 'restore',
+      revoked_at = case when admin_action = 'revoke' then now() else null end,
+      revoked_by = case when admin_action = 'revoke' then actor else null end,
+      revocation_reason = case when admin_action = 'revoke' then reason_text else null end
+    where id = target_id;
+    if admin_action = 'revoke' then
+      update public.promotion_entitlements set state = 'revoked', revoked_at = now()
+      where source = 'founder' and source_reference = founder_id and state not in ('expired','consumed');
+      update public.featured_listing_campaigns set state = 'revoked'
+      where entitlement_id in (select id from public.promotion_entitlements where source = 'founder' and source_reference = founder_id)
+        and state in ('active','paused');
+    end if;
+    select to_jsonb(f) into after_value from public.founding_sellers f where f.id = target_id;
+  else
+    select to_jsonb(e) into before_value from public.promotion_entitlements e where e.id = target_id for update;
+    if before_value is null then raise exception 'entitlement not found' using errcode = 'P0002'; end if;
+    if admin_action = 'suspend' then
+      update public.promotion_entitlements set state = 'suspended', suspended_at = now() where id = target_id and state in ('available','active');
+      update public.featured_listing_campaigns set state = 'paused' where entitlement_id = target_id and state = 'active';
+    elsif admin_action = 'resume' then
+      update public.promotion_entitlements set state = case when expires_at is not null and expires_at <= now() then 'expired' else 'available' end, suspended_at = null where id = target_id and state = 'suspended';
+    elsif admin_action = 'revoke' then
+      update public.promotion_entitlements set state = 'revoked', revoked_at = now() where id = target_id and state <> 'expired';
+      update public.featured_listing_campaigns set state = 'revoked' where entitlement_id = target_id and state in ('active','paused');
+    else
+      raise exception 'revoked entitlements cannot be restored' using errcode = '42501';
+    end if;
+    select to_jsonb(e) into after_value from public.promotion_entitlements e where e.id = target_id;
+  end if;
+  insert into public.seller_growth_admin_audit(actor_id, entity_type, entity_id, action, reason, before_state, after_state)
+  values (actor, target_type, target_id, admin_action, reason_text, before_value, after_value);
+  return true;
+end;
+$$;
+
 create or replace function public.ensure_referral_code()
 returns public.referral_codes
 language plpgsql security definer set search_path = '' as $$
@@ -448,15 +589,19 @@ alter table public.referral_codes enable row level security;
 alter table public.referrals enable row level security;
 alter table public.referral_audit enable row level security;
 alter table public.promotion_reward_ledger enable row level security;
+alter table public.seller_growth_admin_audit enable row level security;
 
-create policy "verification audit owner or admin read" on public.seller_verification_audit
+drop policy if exists "verifications own or admin read" on public.seller_verifications;
+create policy "verifications admin read" on public.seller_verifications
+  for select to authenticated using (public.is_admin());
+create policy "verification audit admin read" on public.seller_verification_audit
+  for select to authenticated using (public.is_admin());
+create policy "founders owner or admin read" on public.founding_sellers
   for select to authenticated using (seller_id = auth.uid() or public.is_admin());
-create policy "founders public active read" on public.founding_sellers
-  for select using (badge_active and revoked_at is null or seller_id = auth.uid() or public.is_admin());
 create policy "promotion entitlements owner or admin read" on public.promotion_entitlements
   for select to authenticated using (seller_id = auth.uid() or public.is_admin());
-create policy "featured campaigns public active read" on public.featured_listing_campaigns
-  for select using (state = 'active' and expires_at > now() or seller_id = auth.uid() or public.is_admin());
+create policy "featured campaigns owner or admin read" on public.featured_listing_campaigns
+  for select to authenticated using (seller_id = auth.uid() or public.is_admin());
 create policy "referral codes owner read" on public.referral_codes
   for select to authenticated using (user_id = auth.uid() or public.is_admin());
 create policy "referrals participants or admin read" on public.referrals
@@ -467,26 +612,37 @@ create policy "referral audit participants or admin read" on public.referral_aud
   ));
 create policy "reward ledger owner or admin read" on public.promotion_reward_ledger
   for select to authenticated using (referrer_id = auth.uid() or public.is_admin());
+create policy "seller growth admin audit read" on public.seller_growth_admin_audit
+  for select to authenticated using (public.is_admin());
 
 revoke all on public.seller_verification_audit, public.founding_sellers, public.promotion_entitlements,
   public.featured_listing_campaigns, public.referral_codes, public.referrals, public.referral_audit,
-  public.promotion_reward_ledger from anon, authenticated;
-grant select on public.founding_sellers, public.featured_listing_campaigns to anon, authenticated;
+  public.promotion_reward_ledger, public.seller_growth_admin_audit from anon, authenticated;
+revoke all on public.seller_trust_signals, public.active_featured_listings from public, anon, authenticated;
+grant select on public.seller_trust_signals, public.active_featured_listings to anon, authenticated;
+grant select on public.founding_sellers, public.featured_listing_campaigns to authenticated;
 grant select on public.seller_verification_audit, public.promotion_entitlements, public.referral_codes,
   public.referrals, public.referral_audit, public.promotion_reward_ledger to authenticated;
+grant select on public.seller_growth_admin_audit to authenticated;
 
 revoke all on function public.submit_seller_verification(text) from public, anon;
+revoke all on function public.get_my_seller_verification() from public, anon;
 revoke all on function public.review_seller_verification(uuid,text,text,text) from public, anon;
 revoke all on function public.allocate_founding_sellers() from public, anon;
 revoke all on function public.activate_featured_listing(uuid,uuid) from public, anon;
+revoke all on function public.expire_featured_campaigns() from public;
+revoke all on function public.admin_manage_seller_growth(text,uuid,text,text) from public, anon;
 revoke all on function public.ensure_referral_code() from public, anon;
 revoke all on function public.claim_referral_attribution(text) from public, anon;
 revoke all on function public.qualify_referrals() from public, anon;
 revoke all on function public.redeem_referral_reward(uuid,uuid) from public, anon;
 grant execute on function public.submit_seller_verification(text) to authenticated;
+grant execute on function public.get_my_seller_verification() to authenticated;
 grant execute on function public.review_seller_verification(uuid,text,text,text) to authenticated;
 grant execute on function public.allocate_founding_sellers() to authenticated;
 grant execute on function public.activate_featured_listing(uuid,uuid) to authenticated;
+grant execute on function public.expire_featured_campaigns() to anon, authenticated;
+grant execute on function public.admin_manage_seller_growth(text,uuid,text,text) to authenticated;
 grant execute on function public.ensure_referral_code() to authenticated;
 grant execute on function public.claim_referral_attribution(text) to authenticated;
 grant execute on function public.qualify_referrals() to authenticated;

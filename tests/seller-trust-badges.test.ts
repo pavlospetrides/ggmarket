@@ -2,7 +2,7 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { SellerTrustBadges } from "../components/seller-trust-badges";
-import { verificationStatusContent } from "../lib/seller-growth";
+import { verificationStatusContent } from "../lib/seller-growth-domain";
 
 describe("seller trust presentation", () => {
   it("describes a manual seller review without claiming identity or transaction safety", () => {
