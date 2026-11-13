@@ -11,6 +11,8 @@ import { mapGGCardRow, type GGCardConfig, type GGCardRow } from "./gg-card";
 import { selectListingImagesForDelivery } from "./listing-media";
 import { signAuthorizedListingImages } from "./listing-media-delivery";
 import { createMediaStorage, storedMediaProvider } from "./media-storage";
+import { profileMediaBucket } from "./profile-media-storage";
+import { signAuthorizedProfileMedia } from "./profile-media-delivery";
 
 export class DataAccessError extends Error {
   constructor(public operation: string) {
@@ -60,6 +62,7 @@ type ProfileRow = {
   username: string;
   display_name: string;
   avatar_path: string | null;
+  cover_path: string | null;
   location: string | null;
   bio: string | null;
   created_at: string;
@@ -116,9 +119,16 @@ async function enrichRows(
   );
   const selections = [...selectedImages.values()].flatMap((images) => images.map(({ record, path }) => ({ path, provider: record.storage_provider })));
   const signedImages = new Map<string, string>();
+  const profiles = rows.flatMap((row) => { const profile = one(row.seller); return profile ? [profile] : []; });
+  const profileSelections = profiles.map((profile) => ({ ownerId: profile.id, kind: "avatar" as const, path: profile.avatar_path }));
+  let signedProfiles: Array<string | undefined>;
   try {
-    const urls = await signAuthorizedListingImages(selections, (provider) => createMediaStorage(provider, supabase));
+    const [urls, avatarUrls] = await Promise.all([
+      signAuthorizedListingImages(selections, (provider) => createMediaStorage(provider, supabase)),
+      profileSelections.some((item) => item.path) ? signAuthorizedProfileMedia(profileSelections, profileMediaBucket()) : Promise.resolve(profileSelections.map(() => undefined)),
+    ]);
     selections.forEach((selection, index) => signedImages.set(`${storedMediaProvider(selection.provider)}:${selection.path}`, urls[index]));
+    signedProfiles = avatarUrls;
   } catch {
     throw new DataAccessError("load listing images");
   }
@@ -129,6 +139,7 @@ async function enrichRows(
       Number(review.rating),
     ]);
   const verified = new Set((verifications ?? []).map((item) => item.seller_id));
+  const avatarBySeller = new Map(profiles.map((profile, index) => [profile.id, signedProfiles[index]]));
   return rows.flatMap((row) => {
     const category = one(row.category);
     const profile = one(row.seller);
@@ -138,7 +149,7 @@ async function enrichRows(
       id: profile.id,
       username: profile.username,
       displayName: profile.display_name,
-      avatarUrl: profile.avatar_path ?? undefined,
+      avatarUrl: avatarBySeller.get(profile.id),
       location: profile.location ?? undefined,
       bio: profile.bio ?? undefined,
       rating: sellerRatings.length
@@ -440,7 +451,7 @@ export const getProfileByUsername = cache(async function getProfileByUsername(
   const supabase = publicClient();
   const { data, error } = await supabase
     .from("profiles")
-    .select("id,username,display_name,avatar_path,location,bio,created_at")
+    .select("id,username,display_name,avatar_path,cover_path,location,bio,created_at")
     .ilike("username", username)
     .maybeSingle();
   if (error) throw new DataAccessError("load seller profile");
@@ -512,11 +523,19 @@ export const getProfileByUsername = cache(async function getProfileByUsername(
   if (listingError || reviewError || verificationError || ratingError || ggCardError)
     throw new DataAccessError("load seller activity");
   const ratings = (ratingRows ?? []).map((review) => Number(review.rating));
+  const profileMediaSelections = [
+    { ownerId: profile.id, kind: "avatar", path: profile.avatar_path },
+    { ownerId: profile.id, kind: "cover", path: profile.cover_path },
+  ] as const;
+  const [avatarUrl, coverUrl] = profile.avatar_path || profile.cover_path
+    ? await signAuthorizedProfileMedia([...profileMediaSelections], profileMediaBucket())
+    : [undefined, undefined];
   const seller: Seller = {
     id: profile.id,
     username: profile.username,
     displayName: profile.display_name,
-    avatarUrl: profile.avatar_path ?? undefined,
+    avatarUrl,
+    coverUrl,
     location: profile.location ?? undefined,
     bio: profile.bio ?? undefined,
     rating: ratings.length
@@ -582,7 +601,7 @@ export async function getCurrentProfile(userId: string): Promise<ProfileRow> {
   if (!supabase) throw new DataAccessError("connect to your account");
   const { data, error } = await supabase
     .from("profiles")
-    .select("id,username,display_name,avatar_path,location,bio,created_at")
+    .select("id,username,display_name,avatar_path,cover_path,location,bio,created_at")
     .eq("id", userId)
     .single();
   if (error) throw new DataAccessError("load your profile");

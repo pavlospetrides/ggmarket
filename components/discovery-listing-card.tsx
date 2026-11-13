@@ -4,6 +4,7 @@ import { listingAnchorKey } from "@/lib/listing-navigation";
 import type { Listing } from "@/lib/types";
 import { ListingNavigationLink } from "./listing-navigation";
 import { ListingMediaImage } from "./listing-media-image";
+import { ProfileAvatar } from "./profile-avatar";
 
 export function DiscoveryListingCard({ listing, navigationContext = "discovery" }: { listing: Listing; navigationContext?: string }) {
   const intent = typeof listing.attributes.intent === "string" ? listing.attributes.intent : "sale";
@@ -27,7 +28,7 @@ export function DiscoveryListingCard({ listing, navigationContext = "discovery" 
           <h3 className="line-clamp-2 min-h-11 font-bold leading-snug [overflow-wrap:anywhere]">{listing.title}</h3>
           <strong className="price mt-3 block text-xl tabular-nums [overflow-wrap:anywhere]">{priceLabel}</strong>
           <span className="mt-3 flex min-w-0 items-center gap-1 text-xs text-[var(--text-secondary)]"><MapPin className="size-3 shrink-0" aria-hidden="true" /> <span className="min-w-0 truncate">{listing.location}</span>{listing.shipping && <span className="shrink-0">· Ships</span>}</span>
-          <span className="mt-3 flex min-w-0 items-center gap-1.5 text-xs text-[var(--text-secondary)]"><span className="min-w-0 truncate">{listing.seller.displayName}</span>{listing.seller.verified && <BadgeCheck className="size-4 shrink-0 text-[var(--success)]" aria-label="Verified seller" />}</span>
+          <span className="mt-3 flex min-w-0 items-center gap-1.5 text-xs text-[var(--text-secondary)]"><ProfileAvatar name={listing.seller.displayName} url={listing.seller.avatarUrl} className="size-5 text-[10px]" sizes="20px" /><span className="min-w-0 truncate">{listing.seller.displayName}</span>{listing.seller.verified && <BadgeCheck className="size-4 shrink-0 text-[var(--success)]" aria-label="Verified seller" />}</span>
         </div>
       </ListingNavigationLink>
     </article>

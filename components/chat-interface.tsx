@@ -24,6 +24,7 @@ import { useHydrated } from "./use-hydrated";
 import { TradeProposalForm } from "./trade-proposal-form";
 import { Loader2 } from "./ui/loader-2";
 import { useActiveConversation } from "./notification-center";
+import { ProfileAvatar } from "./profile-avatar";
 
 type Conversation = {
   id: string;
@@ -31,7 +32,7 @@ type Conversation = {
   listingTitle: string;
   listingPrice: number;
   currency: string;
-  other: { id: string; username: string; display_name: string };
+  other: { id: string; username: string; display_name: string; avatarUrl?: string };
   messages: ChatMessage[];
   offers: ChatOffer[];
   trades: ChatTrade[];
@@ -523,7 +524,7 @@ export function ChatInterface({
               href={`/messages/${item.id}`}
               className={`block border-b border-[var(--border)] p-4 transition ${item.id === conversation.id ? "bg-[#1d1930] shadow-[inset_3px_0_0_var(--primary)]" : "hover:bg-[var(--surface-alt)]"}`}
             >
-              <strong className="block truncate">{item.otherName}</strong>
+              <strong className="flex items-center gap-2 truncate"><ProfileAvatar name={item.otherName} url={item.otherAvatarUrl} className="size-6 text-xs" sizes="24px" />{item.otherName}</strong>
               <span className="mt-1 block truncate text-xs text-[#b6a8ff]">
                 {item.listingTitle}
               </span>
@@ -542,9 +543,7 @@ export function ChatInterface({
             >
               <ArrowLeft aria-hidden="true" />
             </Link>
-            <span className="grid size-9 shrink-0 place-items-center rounded-full bg-[#30265b] text-sm font-bold">
-              {conversation.other.display_name[0]}
-            </span>
+            <ProfileAvatar name={conversation.other.display_name} url={conversation.other.avatarUrl} className="size-9 text-sm" sizes="36px" />
             <div className="min-w-0 flex-1">
               <span className="flex min-w-0 items-center gap-1.5">
                 <strong className="truncate text-sm leading-5">{conversation.other.display_name}</strong>

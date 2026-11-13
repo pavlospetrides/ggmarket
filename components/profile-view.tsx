@@ -20,6 +20,9 @@ import type { Listing, Review, Seller } from "@/lib/types";
 import { BrowsingStateRestorer } from "./listing-navigation";
 import type { GGCardConfig } from "@/lib/gg-card";
 import { GGCardSection } from "./gg-card-section";
+import { ProfileAvatar } from "./profile-avatar";
+import { ProfileMediaImage } from "./profile-media-image";
+import { ProfileMediaEditor } from "./profile-media-editor";
 
 type ProfileStats = {
   activeListings: number;
@@ -54,7 +57,6 @@ export function ProfileView({
 }) {
   const [ratingSummary, setRatingSummary] = useState({ average: seller.rating, count: seller.reviewCount });
   const [visibleReviews, setVisibleReviews] = useState(reviews);
-  const avatarFallback = seller.displayName.trim().charAt(0).toUpperCase() || "G";
   const basePath = own ? "/profile" : `/profile/${encodeURIComponent(seller.username)}`;
   function pageHref(kind: "listingsPage" | "reviewsPage", page: number) {
     const params = new URLSearchParams();
@@ -72,21 +74,19 @@ export function ProfileView({
         <div
           className="relative h-24 overflow-hidden bg-[#1b2030] sm:h-36"
           data-profile-region="banner"
-          aria-hidden="true"
         >
           <div className="absolute inset-y-0 left-0 w-2/3 bg-[#28234a] opacity-70" />
+          {seller.coverUrl ? <ProfileMediaImage src={seller.coverUrl} alt="" sizes="(max-width: 640px) 100vw, 1200px" className="object-cover" /> : null}
+          {seller.coverUrl ? <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/45 to-black/10" /> : null}
           <div className="absolute bottom-0 left-0 h-1 w-32 bg-[var(--primary)]" />
+          {own ? <ProfileMediaEditor kind="cover" currentUrl={seller.coverUrl} triggerClassName="btn-secondary absolute right-3 top-3 z-10 min-h-11 bg-[#131924]/90 text-xs sm:right-5 sm:top-5" /> : null}
         </div>
 
         <div className="px-4 pb-6 sm:px-7 sm:pb-8">
           <div className="grid grid-cols-[auto_minmax(0,1fr)] items-end gap-x-4 gap-y-5 md:grid-cols-[auto_minmax(0,1fr)_auto] md:gap-x-6">
-            <div
-              className="relative -mt-9 grid size-[4.75rem] shrink-0 place-items-center rounded-full border-4 border-[#131924] bg-[var(--primary)] text-2xl font-black text-white sm:-mt-12 sm:size-24 sm:text-3xl"
-              data-profile-region="avatar"
-              role="img"
-              aria-label={`${seller.displayName} avatar`}
-            >
-              <span aria-hidden="true">{avatarFallback}</span>
+            <div className="relative -mt-9 shrink-0 sm:-mt-12" data-profile-region="avatar">
+              <ProfileAvatar name={seller.displayName} url={seller.avatarUrl} className="size-[4.75rem] border-4 border-[#131924] text-2xl sm:size-24 sm:text-3xl" />
+              {own ? <ProfileMediaEditor kind="avatar" currentUrl={seller.avatarUrl} compact triggerClassName="absolute -bottom-1 -right-1 z-10 grid size-11 place-items-center rounded-full border-2 border-[#131924] bg-[var(--primary)] text-white focus-visible:outline-2 focus-visible:outline-white" /> : null}
             </div>
 
             <div className="min-w-0 pb-0.5" data-profile-region="identity">

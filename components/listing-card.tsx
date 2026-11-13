@@ -5,6 +5,7 @@ import type { Listing } from "@/lib/types";
 import { FavoriteButton } from "./favorite-button";
 import { ListingMediaImage } from "./listing-media-image";
 import { ListingNavigationLink } from "./listing-navigation";
+import { ProfileAvatar } from "./profile-avatar";
 
 export function ListingCard({
   listing,
@@ -99,7 +100,7 @@ export function ListingCard({
             {listing.shipping && <span className="shrink-0">· Ships</span>}
           </div>
           <div className="mt-3 flex min-w-0 items-center gap-1.5 pt-1 text-[13px] text-[var(--text-secondary)]">
-            <span className="min-w-0 truncate">{listing.seller.displayName}</span>
+            <ProfileAvatar name={listing.seller.displayName} url={listing.seller.avatarUrl} className="size-5 text-[10px]" sizes="20px" /><span className="min-w-0 truncate">{listing.seller.displayName}</span>
             {listing.seller.verified && (
               <BadgeCheck
                 className="size-4 shrink-0 text-[var(--success)]"

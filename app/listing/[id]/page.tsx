@@ -19,6 +19,7 @@ import {
 import { ListingGallery } from "@/components/listing-gallery";
 import { ListingGrid } from "@/components/listing-grid";
 import { MessageSellerButton } from "@/components/message-seller-button";
+import { ProfileAvatar } from "@/components/profile-avatar";
 import { BrowsingStateRestorer, ListingBackButton } from "@/components/listing-navigation";
 import { ReportButton } from "@/components/report-button";
 import { getUser } from "@/lib/auth";
@@ -167,9 +168,7 @@ export default async function ListingPage({
                 href={`/profile/${item.seller.username}`}
                 className="flex min-w-0 flex-1 items-center gap-3 rounded-[var(--radius-md)] p-2 transition-colors hover:bg-[var(--surface-alt)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary-hover)]"
               >
-                <span className="grid size-12 shrink-0 place-items-center rounded-full bg-[var(--surface-elevated)] font-extrabold text-[var(--primary-hover)]" aria-hidden="true">
-                  {item.seller.displayName[0] || "?"}
-                </span>
+                <ProfileAvatar name={item.seller.displayName} url={item.seller.avatarUrl} className="size-12 text-lg" sizes="48px" />
                 <span className="min-w-0 flex-1">
                   <span className="flex min-w-0 items-start gap-1.5 font-bold">
                     <span className="min-w-0 [overflow-wrap:anywhere]">{item.seller.displayName}</span>
