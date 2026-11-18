@@ -1,5 +1,5 @@
 begin;
-select plan(19);
+select plan(20);
 
 select has_table('public', 'seller_verification_audit', 'verification audit exists');
 select has_table('public', 'founding_sellers', 'founding sellers exists');
@@ -14,6 +14,7 @@ select row_security_active('public', 'referrals');
 select row_security_active('public', 'referral_visits');
 select row_security_active('public', 'promotion_reward_ledger');
 select row_security_active('public', 'seller_verifications');
+select policies_are('public', 'seller_verifications', array['verifications admin read']);
 select function_privs_are('public', 'submit_seller_verification', array['text'], 'authenticated', array['EXECUTE']);
 select function_privs_are('public', 'submit_seller_verification', array['text'], 'anon', array[]::text[]);
 select function_privs_are('public', 'get_my_seller_verification', array[]::text[], 'anon', array[]::text[]);

@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import { PGlite } from "@electric-sql/pglite";
 
 const sql = readFileSync(new URL("../supabase/migrations/202611130005_seller_verification_entry_safety.sql", import.meta.url), "utf8").toLowerCase();
+const rpcOnlySql = readFileSync(new URL("../supabase/migrations/202611140001_seller_verification_rpc_only.sql", import.meta.url), "utf8").toLowerCase();
 
 describe("seller verification follow-up migration", () => {
   it("blocks a new application from a currently verified seller at the database boundary", () => {
@@ -24,8 +25,9 @@ describe("seller verification follow-up migration", () => {
     expect(sql).toContain("where latest.status = 'verified'");
   });
 
-  it("does not introduce tables, broader grants, or policy changes", () => {
-    expect(sql).not.toMatch(/create\s+table|grant\s+|alter\s+table|create\s+policy|drop\s+policy/);
+  it("removes the legacy direct-update policy without introducing broader grants", () => {
+    expect(rpcOnlySql).toContain('drop policy if exists "verifications admin update" on public.seller_verifications');
+    expect(rpcOnlySql).not.toMatch(/create\s+table|grant\s+|alter\s+table|create\s+policy/);
     expect(sql).toContain("security definer set search_path = ''");
     expect(sql).toContain("public.is_active_user()");
   });

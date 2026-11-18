@@ -4,7 +4,7 @@
 
 The release is additive and ships disabled. Apply `supabase/migrations/202611130002_seller_growth_program.sql` before deploying application code, then validate the pgTAP suite in a disposable Supabase environment. Keep all flags false until owner review is complete:
 
-The free verification entry follow-up also requires `supabase/migrations/202611130005_seller_verification_entry_safety.sql`. Check the target project's migration history first and apply pending files in timestamp order. Migration `005` keeps existing records, tables, policies, and grants; it prevents an already approved seller from opening another application, prohibits administrators from deciding their own applications, and makes public badges follow the latest decision. Do not deploy the updated application before `005` has been applied and checked in staging.
+The free verification entry follow-up also requires `supabase/migrations/202611130005_seller_verification_entry_safety.sql` and `supabase/migrations/202611140001_seller_verification_rpc_only.sql`. Check the target project's migration history first and apply pending files in timestamp order. Migration `005` keeps existing records and grants; it prevents an already approved seller from opening another application, prohibits administrators from deciding their own applications, and makes public badges follow the latest decision. Migration `202611140001` removes the legacy direct-update policy so verification decisions cannot bypass the review RPC, its transition rules, or audit insertion. Do not enable the updated workflow before both migrations have been applied and checked in staging.
 
 ```env
 SELLER_VERIFICATION_ENABLED=false
