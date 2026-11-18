@@ -20,7 +20,7 @@ export const metadata: Metadata = PUBLIC_PAGE_SOCIAL_METADATA.home;
 
 export default async function HomePage() {
   const flags = sellerGrowthFlags();
-  const [recent, user, featured, founderStats] = await Promise.all([getListings({}, 8), getUser(), getFeaturedListings({ limit: 8 }), getFounderProgramStats()]);
+  const [recent, user, featured, founderStats] = await Promise.all([getListings({}, 8), getUser(), getFeaturedListings({ limit: 8 }), flags.foundingSellers ? getFounderProgramStats() : { allocated: 0, remaining: 100 }]);
   const [favoriteIds, viewed] = user
     ? await Promise.all([getFavoriteIds(user.id), getRecentlyViewed(user.id)])
     : [new Set<string>(), []];
