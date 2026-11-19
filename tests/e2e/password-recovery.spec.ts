@@ -86,7 +86,7 @@ test("expired recovery stays out of stale Google OAuth messaging", async ({ page
   await expect(page.getByRole("heading", { name: "Welcome back" })).toHaveCount(0);
 });
 
-test("new-password form validates, loads, and confirms success", async ({ page, browserName }) => {
+test("new-password form validates, loads, and confirms success", async ({ page, browserName }, testInfo) => {
   let releaseResponse!: () => void;
   const responseGate = new Promise<void>((resolve) => { releaseResponse = resolve; });
   let submittedBody = "";
@@ -111,14 +111,14 @@ test("new-password form validates, loads, and confirms success", async ({ page, 
   expect(submittedBody).toBe("");
 
   const showPassword = page.getByRole("button", { name: "Show new password" });
-  if (browserName === "webkit") await showPassword.tap();
+  if (browserName === "webkit" && testInfo.project.name === "webkit") await showPassword.tap();
   else await showPassword.click();
   await expect(password).toHaveAttribute("type", "text");
   await expect(password).toHaveValue("new-password-value");
 
   await confirmation.fill("new-password-value");
   const submit = page.getByRole("button", { name: "Update password" });
-  if (browserName === "webkit") await submit.tap();
+  if (browserName === "webkit" && testInfo.project.name === "webkit") await submit.tap();
   else await submit.click();
   await expect(page.getByRole("button", { name: "Updating…" })).toBeDisabled();
   releaseResponse();
