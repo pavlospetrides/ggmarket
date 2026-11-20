@@ -41,7 +41,7 @@ describe("responsive profile layout contract", () => {
   it("uses exact profile totals and exposes older listings and reviews", () => {
     const data = read("lib/data.ts");
     const profile = read("components/profile-view.tsx");
-    expect(data).toContain('select(listingSelect, { count: "exact" })');
+    expect(data).toContain('select(listingCardSelect, { count: "exact" })');
     expect(data).toContain('{ count: "exact" }');
     expect(profile).toContain("pagination.listings.total");
     expect(profile).toContain("pagination.reviews.total");
