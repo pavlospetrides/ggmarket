@@ -95,6 +95,9 @@ export function ChatInterface({
   const latestMessageCreatedAtRef = useRef<string | null>(
     conversation.messages.at(-1)?.createdAt ?? null,
   );
+  useEffect(() => {
+    latestMessageCreatedAtRef.current = conversation.messages.at(-1)?.createdAt ?? null;
+  }, [conversation.id, conversation.messages]);
   const messagesRef = useRef<HTMLDivElement>(null);
   const composerRef = useRef<HTMLTextAreaElement>(null);
   const composerActionsRef = useRef<HTMLDivElement>(null);
@@ -182,7 +185,6 @@ export function ChatInterface({
     const abortController = new AbortController();
     let channelStatus = "CONNECTING";
     let reconciling = false;
-    latestMessageCreatedAtRef.current = conversation.messages.at(-1)?.createdAt ?? null;
     const supabase = createClient();
     const channel = supabase.channel(`conversation:${conversation.id}`, {
       config: { private: true, presence: { key: currentUserId } },

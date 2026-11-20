@@ -63,7 +63,7 @@ export async function GET(request: Request, context: RouteContext) {
     .select(messageColumns)
     .eq("conversation_id", id)
     .order("created_at", { ascending: true });
-  if (cursor.value) query = query.gt("created_at", cursor.value);
+  if (cursor.value) query = query.gte("created_at", cursor.value);
   const { data, error } = await query.limit(cursor.value ? 100 : 500);
   if (error) {
     const forbidden = error.code === "42501";

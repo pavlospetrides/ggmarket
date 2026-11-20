@@ -55,6 +55,11 @@ class MessageQuery {
     return this;
   }
 
+  gte(column: string, value: unknown) {
+    state.filters.push([`${column}>=`, value]);
+    return this;
+  }
+
   order() {
     return this;
   }
@@ -216,7 +221,7 @@ describe("conversation message API", () => {
     expect(state.filters).toContainEqual(["conversation_id", conversationId]);
   });
 
-  it("bounds incremental reconciliation to messages after a validated cursor", async () => {
+  it("includes the cursor boundary so equal-timestamp messages are not missed", async () => {
     const after = "2026-10-20T07:59:59.000Z";
     const response = await GET(
       new Request(`https://lootriva.test/api/conversations/${conversationId}/messages?after=${encodeURIComponent(after)}`),
@@ -224,7 +229,7 @@ describe("conversation message API", () => {
     );
 
     expect(response.status).toBe(200);
-    expect(state.filters).toContainEqual(["created_at>", after]);
+    expect(state.filters).toContainEqual(["created_at>=", after]);
     expect(state.limits).toContain(100);
   });
 
