@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import { MarketplaceBrowser } from "@/components/marketplace-browser";
 import { getPaginatedListings } from "@/lib/data";
-import { getCategories, getFavoriteIds } from "@/lib/data";
+import { getFavoriteIds } from "@/lib/data";
+import { getCachedCategories } from "@/lib/public-catalog";
 import { getUser } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { isDeprecatedTaxonomyAttribute, sanitizeTaxonomyQueryParams } from "@/lib/gaming-taxonomy";
@@ -13,7 +14,7 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
     const query = new URLSearchParams(sanitizeTaxonomyQueryParams(params)).toString();
     redirect(query ? `/search?${query}` : "/search");
   }
-  const [result, categories, user] = await Promise.all([getPaginatedListings(params), getCategories(), getUser()]);
+  const [result, categories, user] = await Promise.all([getPaginatedListings(params), getCachedCategories(), getUser()]);
   const favoriteIds = user ? [...await getFavoriteIds(user.id)] : [];
   return <MarketplaceBrowser result={result} params={params} categories={categories} favoriteIds={favoriteIds} viewerId={user?.id ?? null} actionPath="/search" />;
 }

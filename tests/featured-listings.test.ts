@@ -1,8 +1,14 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const mocks = vi.hoisted(() => ({ getUser: vi.fn(), rpc: vi.fn() }));
+const mocks = vi.hoisted(() => ({
+  getUser: vi.fn(),
+  rpc: vi.fn(),
+  from: vi.fn(),
+  getListingsByIds: vi.fn(),
+}));
 vi.mock("@/lib/auth", () => ({ getUser: mocks.getUser }));
-vi.mock("@/lib/supabase/server", () => ({ createClient: vi.fn(async () => ({ rpc: mocks.rpc })) }));
+vi.mock("@/lib/data", () => ({ getListingsByIds: mocks.getListingsByIds }));
+vi.mock("@/lib/supabase/server", () => ({ createClient: vi.fn(async () => ({ from: mocks.from, rpc: mocks.rpc })) }));
 
 const inventory = [
   { id: "listing-a", seller: { id: "seller-a" } },
@@ -13,6 +19,14 @@ const inventory = [
 ];
 
 describe("featured listing rotation", () => {
+  beforeEach(() => {
+    vi.resetModules();
+    vi.stubEnv("FEATURED_LISTINGS_ENABLED", "true");
+    mocks.from.mockReset();
+    mocks.getListingsByIds.mockReset();
+    mocks.rpc.mockReset();
+  });
+
   it("is deterministic within a day and never gives one seller two positions", async () => {
     const { rotateFeaturedListings } = await import("../lib/featured-listings");
     const first = rotateFeaturedListings(inventory, "2026-11-13", 4);
@@ -25,6 +39,33 @@ describe("featured listing rotation", () => {
     const { rotateFeaturedListings } = await import("../lib/featured-listings");
     const leaders = ["2026-11-13", "2026-11-14", "2026-11-15", "2026-11-16"].map((day) => rotateFeaturedListings(inventory, day, 4)[0].seller.id);
     expect(new Set(leaders).size).toBeGreaterThan(1);
+  });
+
+  it("hydrates campaigns in one bounded batch without mutating expiration state", async () => {
+    const campaigns = inventory.slice(0, 4).map((item) => ({ listing_id: item.id }));
+    const limit = vi.fn().mockResolvedValue({ data: campaigns, error: null });
+    const query = {
+      select: vi.fn().mockReturnThis(),
+      gt: vi.fn().mockReturnThis(),
+      order: vi.fn().mockReturnThis(),
+      limit,
+    };
+    mocks.from.mockReturnValue(query);
+    mocks.getListingsByIds.mockResolvedValue(inventory.slice(0, 4).toReversed());
+
+    const { getFeaturedListings, rotateFeaturedListings } = await import("../lib/featured-listings");
+    const now = new Date("2026-11-13T12:00:00+02:00");
+    const result = await getFeaturedListings({ limit: 3, now });
+
+    expect(mocks.from).toHaveBeenCalledTimes(1);
+    expect(mocks.from).toHaveBeenCalledWith("active_featured_listings");
+    expect(limit).toHaveBeenCalledWith(60);
+    expect(mocks.getListingsByIds).toHaveBeenCalledTimes(1);
+    expect(mocks.getListingsByIds).toHaveBeenCalledWith(campaigns.map((item) => item.listing_id));
+    expect(mocks.rpc).not.toHaveBeenCalled();
+    expect(result.map((item) => item.id)).toEqual(
+      rotateFeaturedListings(inventory.slice(0, 4), "2026-11-13", 3).map((item) => item.id),
+    );
   });
 });
 

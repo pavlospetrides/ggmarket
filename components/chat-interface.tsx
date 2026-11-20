@@ -26,6 +26,10 @@ import { Loader2 } from "./ui/loader-2";
 import { useActiveConversation } from "./notification-center";
 import { ProfileAvatar } from "./profile-avatar";
 import { SellerTrustBadges } from "./seller-trust-badges";
+import {
+  FALLBACK_RECONCILIATION_MS,
+  shouldUseFallbackReconciliation,
+} from "@/lib/message-reconciliation";
 
 type Conversation = {
   id: string;
@@ -88,6 +92,12 @@ export function ChatInterface({
     ReturnType<typeof createClient>["channel"]
   > | null>(null);
   const typingTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const latestMessageCreatedAtRef = useRef<string | null>(
+    conversation.messages.at(-1)?.createdAt ?? null,
+  );
+  useEffect(() => {
+    latestMessageCreatedAtRef.current = conversation.messages.at(-1)?.createdAt ?? null;
+  }, [conversation.id, conversation.messages]);
   const messagesRef = useRef<HTMLDivElement>(null);
   const composerRef = useRef<HTMLTextAreaElement>(null);
   const composerActionsRef = useRef<HTMLDivElement>(null);
@@ -173,6 +183,8 @@ export function ChatInterface({
   useEffect(() => {
     const effectScope = scope;
     const abortController = new AbortController();
+    let channelStatus = "CONNECTING";
+    let reconciling = false;
     const supabase = createClient();
     const channel = supabase.channel(`conversation:${conversation.id}`, {
       config: { private: true, presence: { key: currentUserId } },
@@ -192,6 +204,9 @@ export function ChatInterface({
           if (scopeRef.current !== effectScope || row.conversation_id !== conversation.id) return;
           rememberHistoryPosition();
           setMessages((current) => mergeChatMessages(current, [row]));
+          if (!latestMessageCreatedAtRef.current || Date.parse(row.created_at) > Date.parse(latestMessageCreatedAtRef.current)) {
+            latestMessageCreatedAtRef.current = row.created_at;
+          }
           updateConversationPreview(row.body, row.created_at);
           if (row.sender_id !== currentUserId && isConversationForeground()) void markRead();
         },
@@ -257,6 +272,7 @@ export function ChatInterface({
         );
       })
       .subscribe(async (status) => {
+        channelStatus = status;
         if (status === "SUBSCRIBED") {
           await reconcileMessages();
           if (scopeRef.current !== effectScope) return;
@@ -266,13 +282,19 @@ export function ChatInterface({
             userId: currentUserId,
             onlineAt: new Date().toISOString(),
           });
-        } else if (status === "CHANNEL_ERROR" || status === "TIMED_OUT" || status === "CLOSED")
+        } else if (shouldUseFallbackReconciliation(status)) {
           setConnection("error");
+          void recoverWhenActive();
+        }
       });
 
     async function reconcileMessages() {
+      if (reconciling) return;
+      reconciling = true;
       try {
-        const response = await fetch(`/api/conversations/${conversation.id}/messages`, {
+        const after = latestMessageCreatedAtRef.current;
+        const query = after ? `?after=${encodeURIComponent(after)}` : "";
+        const response = await fetch(`/api/conversations/${conversation.id}/messages${query}`, {
           signal: abortController.signal,
           cache: "no-store",
         });
@@ -282,11 +304,16 @@ export function ChatInterface({
         rememberHistoryPosition();
         setMessages((current) => mergeChatMessages(current, result.messages ?? []));
         const latest = result.messages?.at(-1);
-        if (latest) updateConversationPreview(latest.body, latest.created_at);
+        if (latest) {
+          latestMessageCreatedAtRef.current = latest.created_at;
+          updateConversationPreview(latest.body, latest.created_at);
+        }
       } catch (reason) {
         if (abortController.signal.aborted || scopeRef.current !== effectScope) return;
         setConnection("error");
         if (reason instanceof Error && reason.message) setError(reason.message);
+      } finally {
+        reconciling = false;
       }
     }
 
@@ -317,11 +344,15 @@ export function ChatInterface({
     }
 
     function reconcileWhenActive() {
-      if (isConversationForeground()) void reconcileMessages();
+      if (isConversationForeground() && shouldUseFallbackReconciliation(channelStatus)) {
+        void reconcileMessages();
+      }
     }
 
-    if (isConversationForeground()) void markRead();
-    const reconciliationTimer = window.setInterval(reconcileWhenActive, 12_000);
+    const reconciliationTimer = window.setInterval(
+      reconcileWhenActive,
+      FALLBACK_RECONCILIATION_MS,
+    );
     document.addEventListener("visibilitychange", recoverWhenActive);
     window.addEventListener("focus", recoverWhenActive);
     window.addEventListener("online", recoverWhenActive);

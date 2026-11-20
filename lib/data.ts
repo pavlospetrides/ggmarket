@@ -31,7 +31,7 @@ type Related<T> = T | T[] | null;
 type ListingRow = {
   id: string;
   title: string;
-  description: string;
+  description?: string;
   price: number | string;
   currency: string;
   location: string;
@@ -49,15 +49,15 @@ type ListingRow = {
     username: string;
     display_name: string;
     avatar_path: string | null;
-    location: string | null;
-    bio: string | null;
+    location?: string | null;
+    bio?: string | null;
     created_at: string;
   }>;
   images: {
     id: string;
     storage_path: string;
     card_path: string | null;
-    detail_path: string | null;
+    detail_path?: string | null;
     storage_provider?: string;
     sort_order: number;
   }[];
@@ -73,7 +73,9 @@ type ProfileRow = {
   bio: string | null;
   created_at: string;
 };
-const listingSelect =
+export const listingCardSelect =
+  "id,title,price,currency,location,condition,status,attributes,view_count,shipping_available,meetup_available,created_at,published_at,category:categories!listings_category_id_fkey!inner(id,name,slug,icon),seller:profiles!listings_seller_id_fkey!inner(id,username,display_name,avatar_path,created_at),images:listing_images!listing_images_listing_id_fkey(id,storage_path,card_path,storage_provider,sort_order)";
+export const listingDetailSelect =
   "id,title,description,price,currency,location,condition,status,attributes,view_count,shipping_available,meetup_available,created_at,published_at,category:categories!listings_category_id_fkey!inner(id,name,slug,icon),seller:profiles!listings_seller_id_fkey!inner(id,username,display_name,avatar_path,location,bio,created_at),images:listing_images!listing_images_listing_id_fkey(id,storage_path,card_path,detail_path,storage_provider,sort_order)";
 const one = <T>(value: Related<T>): T | null =>
   Array.isArray(value) ? (value[0] ?? null) : value;
@@ -190,7 +192,7 @@ async function enrichRows(
         id: row.id,
         slug: row.id,
         title: row.title,
-        description: row.description,
+        description: row.description ?? "",
         price: Number(row.price),
         currency: row.currency,
         location: row.location,
@@ -225,6 +227,25 @@ export async function getListings(
   limit = 48,
 ): Promise<Listing[]> {
   return (await getPaginatedListings(params, limit)).items;
+}
+
+export async function getListingsByIds(ids: readonly string[]): Promise<Listing[]> {
+  const boundedIds = [...new Set(ids)].slice(0, 60);
+  if (!boundedIds.length) return [];
+  const supabase = publicClient();
+  const { data, error } = await supabase
+    .from("listings")
+    .select(listingCardSelect)
+    .in("id", boundedIds)
+    .eq("status", "active")
+    .limit(60);
+  if (error) throw new DataAccessError("load listings", error);
+  const enriched = await enrichRows(supabase, data as unknown as ListingRow[]);
+  const byId = new Map(enriched.map((listing) => [listing.id, listing]));
+  return boundedIds.flatMap((id) => {
+    const listing = byId.get(id);
+    return listing ? [listing] : [];
+  });
 }
 
 export async function getPaginatedListings(
@@ -282,7 +303,7 @@ export async function getPaginatedListings(
     if (!pageIds.length) return { items: [], total, page, pageSize };
     const { data, error } = await supabase
       .from("listings")
-      .select(listingSelect)
+      .select(listingCardSelect)
       .in("id", pageIds);
     if (error) throw new DataAccessError("load listings", error);
     const enriched = await enrichRows(supabase, data as unknown as ListingRow[]);
@@ -297,7 +318,7 @@ export async function getPaginatedListings(
 
   let query = supabase
     .from("listings")
-    .select(listingSelect, { count: "exact" })
+    .select(listingCardSelect, { count: "exact" })
     .eq("status", "active");
   if (matchingIds) query = query.in("id", matchingIds);
   if (!term && taxonomyQuery.category)
@@ -357,7 +378,7 @@ export async function getBrowseData(userId?: string): Promise<BrowseData> {
   const supabase = publicClient();
   const { data, error } = await supabase
     .from("listings")
-    .select(listingSelect)
+    .select(listingCardSelect)
     .eq("status", "active")
     .order("published_at", { ascending: false })
     .order("sort_order", { referencedTable: "listing_images", ascending: true })
@@ -382,7 +403,7 @@ export async function getBrowseData(userId?: string): Promise<BrowseData> {
       if (recentIds.length) {
         const recentListings = await server
           .from("listings")
-          .select(listingSelect)
+          .select(listingCardSelect)
           .in("id", recentIds)
           .eq("status", "active")
           .order("sort_order", { referencedTable: "listing_images", ascending: true })
@@ -439,7 +460,7 @@ export const getListing = cache(async function getListing(
     ? await createServerClient()
     : publicClient();
   if (!supabase) throw new DataAccessError("connect to the marketplace");
-  let query = supabase.from("listings").select(listingSelect).eq("id", id);
+  let query = supabase.from("listings").select(listingDetailSelect).eq("id", id);
   if (!includeOwnedPrivate) query = query.eq("status", "active");
   const { data, error } = await query.maybeSingle();
   if (error) throw new DataAccessError("load listing", error);
@@ -480,7 +501,7 @@ export const getProfileByUsername = cache(async function getProfileByUsername(
   const [listingResult, reviewResult] = await Promise.all([
     supabase
       .from("listings")
-      .select(listingSelect, { count: "exact" })
+      .select(listingCardSelect, { count: "exact" })
       .eq("seller_id", profile.id)
       .eq("status", "active")
       .order("published_at", { ascending: false })
@@ -502,7 +523,7 @@ export const getProfileByUsername = cache(async function getProfileByUsername(
   if (listingPage !== requestedListingPage) {
     const retry = await supabase
       .from("listings")
-      .select(listingSelect, { count: "exact" })
+      .select(listingCardSelect, { count: "exact" })
       .eq("seller_id", profile.id)
       .eq("status", "active")
       .order("published_at", { ascending: false })
@@ -646,7 +667,7 @@ export async function getFavoriteListings(userId: string): Promise<Listing[]> {
   const supabase = publicClient();
   const { data, error } = await supabase
     .from("listings")
-    .select(listingSelect)
+    .select(listingCardSelect)
     .in("id", ids)
     .eq("status", "active")
     .limit(60);
@@ -661,7 +682,7 @@ export async function getOwnListings(userId: string): Promise<Listing[]> {
   if (!supabase) throw new DataAccessError("connect to your listings");
   const { data, error } = await supabase
     .from("listings")
-    .select(listingSelect)
+    .select(listingCardSelect)
     .eq("seller_id", userId)
     .order("created_at", { ascending: false })
     .limit(60);
@@ -685,7 +706,7 @@ export async function getListingExtras(listing: Listing) {
       .single(),
     supabase
       .from("listings")
-      .select(listingSelect)
+      .select(listingCardSelect)
       .eq("status", "active")
       .eq("category_id", listing.category.id)
       .neq("id", listing.id)
@@ -693,7 +714,7 @@ export async function getListingExtras(listing: Listing) {
       .limit(4),
     supabase
       .from("listings")
-      .select(listingSelect)
+      .select(listingCardSelect)
       .eq("status", "active")
       .eq("seller_id", listing.seller.id)
       .neq("id", listing.id)

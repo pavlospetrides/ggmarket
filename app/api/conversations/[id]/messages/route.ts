@@ -4,6 +4,7 @@ import { getPublicRequestOrigin } from "@/lib/request-security";
 import { readJson, readUrlEncodedForm } from "@/lib/security";
 import { createClient } from "@/lib/supabase/server";
 import { conversationIdSchema, messageSchema } from "@/lib/validation";
+import { parseMessageCursor } from "@/lib/message-reconciliation";
 
 const messageColumns = "id,conversation_id,sender_id,body,client_id,created_at";
 
@@ -47,20 +48,23 @@ async function routeIdentity(context: RouteContext) {
   return parsed.success ? parsed.data : null;
 }
 
-export async function GET(_request: Request, context: RouteContext) {
+export async function GET(request: Request, context: RouteContext) {
   const user = await getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const id = await routeIdentity(context);
   if (!id) return NextResponse.json({ error: "Invalid conversation." }, { status: 400 });
+  const cursor = parseMessageCursor(new URL(request.url).searchParams.get("after"));
+  if (!cursor.ok) return NextResponse.json({ error: "Invalid message cursor." }, { status: 400 });
 
   const supabase = await createClient();
   if (!supabase) return NextResponse.json({ error: "Messages are unavailable." }, { status: 503 });
-  const { data, error } = await supabase
+  let query = supabase
     .from("messages")
     .select(messageColumns)
     .eq("conversation_id", id)
-    .order("created_at", { ascending: true })
-    .limit(500);
+    .order("created_at", { ascending: true });
+  if (cursor.value) query = query.gte("created_at", cursor.value);
+  const { data, error } = await query.limit(cursor.value ? 100 : 500);
   if (error) {
     const forbidden = error.code === "42501";
     return NextResponse.json(

@@ -1,14 +1,12 @@
 import type { Metadata } from "next";
-import { cache } from "react";
 import { MarketplaceBrowser } from "@/components/marketplace-browser";
 import { getPaginatedListings } from "@/lib/data";
-import { getCategories, getFavoriteIds } from "@/lib/data";
+import { getFavoriteIds } from "@/lib/data";
+import { getCachedCategories } from "@/lib/public-catalog";
 import { getUser } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { isDeprecatedTaxonomyAttribute, sanitizeTaxonomyQueryParams } from "@/lib/gaming-taxonomy";
 import { buildMarketplaceMetadata } from "@/lib/site-metadata";
-
-const getCachedCategories = cache(getCategories);
 
 export async function generateMetadata({
   searchParams,

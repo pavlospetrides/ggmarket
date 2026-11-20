@@ -31,6 +31,7 @@ const state = vi.hoisted(() => ({
   duplicateRow: null as Row | null,
   inserted: [] as Array<Record<string, unknown>>,
   filters: [] as Array<[string, unknown]>,
+  limits: [] as number[],
 }));
 
 class MessageQuery {
@@ -49,11 +50,22 @@ class MessageQuery {
     return this;
   }
 
+  gt(column: string, value: unknown) {
+    state.filters.push([`${column}>`, value]);
+    return this;
+  }
+
+  gte(column: string, value: unknown) {
+    state.filters.push([`${column}>=`, value]);
+    return this;
+  }
+
   order() {
     return this;
   }
 
-  limit() {
+  limit(value: number) {
+    state.limits.push(value);
     return Promise.resolve({ data: state.selectRows, error: state.selectError });
   }
 
@@ -128,6 +140,7 @@ describe("conversation message API", () => {
     state.duplicateRow = null;
     state.inserted = [];
     state.filters = [];
+    state.limits = [];
   });
 
   it("rejects unauthenticated reads and writes before database access", async () => {
@@ -206,6 +219,29 @@ describe("conversation message API", () => {
     expect(response.status).toBe(200);
     await expect(response.json()).resolves.toEqual({ messages: [persisted] });
     expect(state.filters).toContainEqual(["conversation_id", conversationId]);
+  });
+
+  it("includes the cursor boundary so equal-timestamp messages are not missed", async () => {
+    const after = "2026-10-20T07:59:59.000Z";
+    const response = await GET(
+      new Request(`https://lootriva.test/api/conversations/${conversationId}/messages?after=${encodeURIComponent(after)}`),
+      context(),
+    );
+
+    expect(response.status).toBe(200);
+    expect(state.filters).toContainEqual(["created_at>=", after]);
+    expect(state.limits).toContain(100);
+  });
+
+  it("rejects a malformed reconciliation cursor before querying messages", async () => {
+    const response = await GET(
+      new Request(`https://lootriva.test/api/conversations/${conversationId}/messages?after=not-a-date`),
+      context(),
+    );
+
+    expect(response.status).toBe(400);
+    expect(state.filters).toEqual([]);
+    expect(state.limits).toEqual([]);
   });
 
   it("does not expose messages when RLS rejects a third-party read", async () => {
