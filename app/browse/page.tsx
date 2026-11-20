@@ -9,7 +9,8 @@ import { BrowsingStateRestorer } from "@/components/listing-navigation";
 import { SearchBar } from "@/components/search-bar";
 import { TaxonomyNavigation } from "@/components/taxonomy-navigation";
 import { getUser } from "@/lib/auth";
-import { getBrowseData, getCategories } from "@/lib/data";
+import { getBrowseData } from "@/lib/data";
+import { getCachedCategories } from "@/lib/public-catalog";
 import { PUBLIC_PAGE_SOCIAL_METADATA } from "@/lib/site-metadata";
 import { getFeaturedListings } from "@/lib/featured-listings";
 import { isFeatureEnabled } from "@/lib/feature-flags";
@@ -26,7 +27,7 @@ function Heading({ title, href }: { title: string; href?: string }) {
 
 export default async function BrowsePage() {
   const user = await getUser();
-  const [categories, discovery, featured] = await Promise.all([getCategories(), getBrowseData(user?.id), getFeaturedListings({ limit: 10 })]);
+  const [categories, discovery, featured] = await Promise.all([getCachedCategories(), getBrowseData(user?.id), getFeaturedListings({ limit: 10 })]);
   const features = [
     { slug: "pc-components", title: "Build the next frame", image: "/images/browse/browse-pc-performance.webp", alt: "Gaming PC components arranged in a hardware studio" },
     { slug: "consoles", title: "Choose your platform", image: "/images/browse/browse-console-corner.webp", alt: "Console and controllers in a gaming setup" },
