@@ -229,6 +229,25 @@ export async function getListings(
   return (await getPaginatedListings(params, limit)).items;
 }
 
+export async function getListingsByIds(ids: readonly string[]): Promise<Listing[]> {
+  const boundedIds = [...new Set(ids)].slice(0, 60);
+  if (!boundedIds.length) return [];
+  const supabase = publicClient();
+  const { data, error } = await supabase
+    .from("listings")
+    .select(listingCardSelect)
+    .in("id", boundedIds)
+    .eq("status", "active")
+    .limit(60);
+  if (error) throw new DataAccessError("load listings", error);
+  const enriched = await enrichRows(supabase, data as unknown as ListingRow[]);
+  const byId = new Map(enriched.map((listing) => [listing.id, listing]));
+  return boundedIds.flatMap((id) => {
+    const listing = byId.get(id);
+    return listing ? [listing] : [];
+  });
+}
+
 export async function getPaginatedListings(
   params: ListingQuery = {},
   pageSize = 24,

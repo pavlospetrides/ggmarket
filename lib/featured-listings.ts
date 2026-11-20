@@ -40,11 +40,10 @@ function athensRotationDay(now: Date) {
 
 export async function getFeaturedListings(options: { limit?: number; categoryId?: string; now?: Date } = {}): Promise<Listing[]> {
   if (!isFeatureEnabled("FEATURED_LISTINGS_ENABLED")) return [];
-  const [{ getListing }, { createClient }] = await Promise.all([import("./data"), import("./supabase/server")]);
+  const [{ getListingsByIds }, { createClient }] = await Promise.all([import("./data"), import("./supabase/server")]);
   const supabase = await createClient();
   if (!supabase) return [];
   const now = options.now ?? new Date();
-  await supabase.rpc("expire_featured_campaigns");
   const { data, error } = await supabase
     .from("active_featured_listings")
     .select("listing_id")
@@ -52,8 +51,8 @@ export async function getFeaturedListings(options: { limit?: number; categoryId?
     .order("starts_at", { ascending: true })
     .limit(60);
   if (error || !data?.length) return [];
-  const loaded = await Promise.all(data.map((campaign) => getListing(campaign.listing_id)));
-  const eligible = loaded.filter((listing): listing is Listing => Boolean(listing))
+  const loaded = await getListingsByIds(data.map((campaign) => campaign.listing_id));
+  const eligible = loaded
     .filter((listing) => !options.categoryId || listing.category.id === options.categoryId)
     .map((listing) => ({ ...listing, featured: true }));
   return rotateFeaturedListings(eligible, athensRotationDay(now), options.limit ?? 8);
