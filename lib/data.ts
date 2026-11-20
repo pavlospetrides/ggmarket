@@ -16,9 +16,14 @@ import { signAuthorizedProfileMedia } from "./profile-media-delivery";
 import { readSellerReviewSummary } from "./seller-review-summary";
 
 export class DataAccessError extends Error {
-  constructor(public operation: string) {
+  constructor(public operation: string, error?: unknown) {
     super(`Unable to ${operation}.`);
     this.name = "DataAccessError";
+    if (error !== undefined) {
+      const rawCode = error && typeof error === "object" ? (error as { code?: unknown }).code : null;
+      const code = typeof rawCode === "string" && /^[A-Z0-9_]{1,16}$/.test(rawCode) ? rawCode : "UNKNOWN";
+      console.error(JSON.stringify({ event: "lootriva_data_error", operation, code }));
+    }
   }
 }
 
@@ -211,7 +216,7 @@ export async function getCategories(): Promise<Category[]> {
     .select("id,name,slug,icon")
     .eq("active", true)
     .order("sort_order");
-  if (error) throw new DataAccessError("load categories");
+  if (error) throw new DataAccessError("load categories", error);
   return data;
 }
 
@@ -268,7 +273,7 @@ export async function getPaginatedListings(
     for (const filter of taxonomyQuery.filters)
       eligibleQuery = eligibleQuery.contains("attributes", { [filter.key]: filter.mode === "array" ? [filter.value] : filter.value });
     const { data: eligibleRows, error: eligibleError } = await eligibleQuery.limit(1000);
-    if (eligibleError) throw new DataAccessError("load listings");
+    if (eligibleError) throw new DataAccessError("load listings", eligibleError);
     const eligible = new Set((eligibleRows ?? []).map((row: { id: string }) => row.id));
     const orderedIds = matchingIds.filter((id) => eligible.has(id));
     const total = orderedIds.length;
@@ -279,7 +284,7 @@ export async function getPaginatedListings(
       .from("listings")
       .select(listingSelect)
       .in("id", pageIds);
-    if (error) throw new DataAccessError("load listings");
+    if (error) throw new DataAccessError("load listings", error);
     const enriched = await enrichRows(supabase, data as unknown as ListingRow[]);
     const itemById = new Map(enriched.map((item) => [item.id, item]));
     return {
@@ -323,12 +328,12 @@ export async function getPaginatedListings(
   // Count before choosing the range so out-of-bounds requests can resolve to
   // the final valid page rather than showing a misleading empty state.
   const { count, error: countError } = await query.limit(0);
-  if (countError) throw new DataAccessError("load listings");
+  if (countError) throw new DataAccessError("load listings", countError);
   const total = count ?? 0;
   const page = normalizeListingPage(params.page, total, pageSize);
   const from = (page - 1) * pageSize;
   const { data, error } = await query.range(from, from + pageSize - 1);
-  if (error) throw new DataAccessError("load listings");
+  if (error) throw new DataAccessError("load listings", error);
   return {
     items: await enrichRows(supabase, data as unknown as ListingRow[]),
     total,
@@ -437,7 +442,7 @@ export const getListing = cache(async function getListing(
   let query = supabase.from("listings").select(listingSelect).eq("id", id);
   if (!includeOwnedPrivate) query = query.eq("status", "active");
   const { data, error } = await query.maybeSingle();
-  if (error) throw new DataAccessError("load listing");
+  if (error) throw new DataAccessError("load listing", error);
   if (!data) return null;
   return (
     (await enrichRows(supabase, [data as unknown as ListingRow], "detail"))[0] ?? null
@@ -535,11 +540,11 @@ export const getProfileByUsername = cache(async function getProfileByUsername(
       .eq("founding_seller", true)
       .limit(1)
       .maybeSingle(),
-    readSellerReviewSummary(supabase, profile.id).catch(() => { throw new DataAccessError("load seller activity"); }),
+    readSellerReviewSummary(supabase, profile.id).catch((error) => { throw new DataAccessError("load seller activity", error); }),
     supabase.from("gg_cards").select("slogan,theme_id,is_public,text_color,front_pattern_color").eq("user_id", profile.id).maybeSingle(),
   ]);
   if (listingError || reviewError || verificationError || founderError || ggCardError)
-    throw new DataAccessError("load seller activity");
+    throw new DataAccessError("load seller activity", listingError ?? reviewError ?? verificationError ?? founderError ?? ggCardError);
   const profileMediaSelections = [
     { ownerId: profile.id, kind: "avatar", path: profile.avatar_path },
     { ownerId: profile.id, kind: "cover", path: profile.cover_path },
