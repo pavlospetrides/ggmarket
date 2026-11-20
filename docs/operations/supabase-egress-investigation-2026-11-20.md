@@ -97,7 +97,7 @@ These are request/payload measurements and deterministic code bounds, not a clai
 
 ## G. GitHub status
 
-Branch: `perf/supabase-egress-optimization`. Commit, push, and PR details are added at handoff.
+Branch: `perf/supabase-egress-optimization`, pushed to `origin`. Pull request: [#48 — perf: reduce Supabase egress and redundant reads](https://github.com/pavlospetrides/ggmarket/pull/48).
 
 ## H. Deployment plan
 
